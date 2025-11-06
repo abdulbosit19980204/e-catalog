@@ -13,6 +13,7 @@ from zeep.transports import Transport
 from nomenklatura.models import Nomenklatura
 from client.models import Client
 from .models import Integration, IntegrationLog
+from .serializers import IntegrationSerializer
 import logging
 import uuid
 import time as time_module
@@ -422,11 +423,23 @@ def get_sync_status(request, task_id):
             'updated': log_obj.updated,
             'errors': log_obj.errors,
             'progress_percent': log_obj.progress_percent,
-            'error_message': log_obj.error_message,
-            'started_at': log_obj.started_at,
-            'completed_at': log_obj.completed_at
+            'error_message': log_obj.error_details,
+            'started_at': log_obj.start_time,
+            'completed_at': log_obj.end_time
         })
     except IntegrationLog.DoesNotExist:
         return Response({
             'error': 'Task not found'
         }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_integrations(request):
+    """Integration'lar ro'yxatini olish"""
+    integrations = Integration.objects.filter(
+        is_deleted=False
+    ).select_related('project').order_by('-created_at')
+    
+    serializer = IntegrationSerializer(integrations, many=True)
+    return Response(serializer.data)
