@@ -65,7 +65,7 @@ const ProjectAdmin = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, descriptionStatus, createdFrom, createdTo, updatedFrom, updatedTo, showError]);
+  }, [page, pageSize, search, descriptionStatus, createdFrom, createdTo, updatedFrom, updatedTo]);
 
   useEffect(() => {
     loadProjects();

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { nomenklaturaAPI } from "../api";
 import "./NomenklaturaList.css";
 
@@ -15,7 +15,23 @@ const NomenklaturaList = () => {
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
 
-  const loadNomenklatura = useCallback(async () => {
+  useEffect(() => {
+    loadNomenklatura();
+  }, [page, search, createdFrom, createdTo]);
+
+  useEffect(() => {
+    if (showDetailModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showDetailModal]);
+
+  const loadNomenklatura = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -36,23 +52,7 @@ const NomenklaturaList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, search, createdFrom, createdTo]);
-
-  useEffect(() => {
-    loadNomenklatura();
-  }, [loadNomenklatura]);
-
-  useEffect(() => {
-    if (showDetailModal) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [showDetailModal]);
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();

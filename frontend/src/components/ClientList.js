@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { clientAPI } from "../api";
 import { useNotification } from "../contexts/NotificationContext";
 import "./ClientList.css";
@@ -17,7 +17,11 @@ const ClientList = () => {
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
 
-  const loadClients = useCallback(async () => {
+  useEffect(() => {
+    loadClients();
+  }, [page, search, createdFrom, createdTo]);
+
+  const loadClients = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -33,22 +37,17 @@ const ClientList = () => {
         setTotalPages(Math.ceil(response.data.count / 20));
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
-      setError(errorMsg);
-      showError?.(errorMsg);
+      setError(err.response?.data?.detail || "Xatolik yuz berdi");
       console.error("Error loading clients:", err);
     } finally {
       setLoading(false);
     }
-  }, [page, search, createdFrom, createdTo, showError]);
-
-  useEffect(() => {
-    loadClients();
-  }, [loadClients]);
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
     setPage(1);
+    loadClients();
   };
 
   return (
@@ -128,7 +127,7 @@ const ClientList = () => {
                     {client.images && client.images.length > 0 ? (
                       <img
                         src={client.images[0].image_sm_url || client.images[0].image_url || client.images[0].image}
-                        alt={`${client.name} preview`}
+                        alt={client.name}
                       />
                     ) : (
                       <div className="no-image">Rasm yo'q</div>
@@ -256,7 +255,7 @@ const ClientList = () => {
                           selectedClient.images[currentImageIndex]?.image_url ||
                           selectedClient.images[currentImageIndex]?.image
                         }
-                        alt={`${selectedClient.name} preview ${currentImageIndex + 1}`}
+                        alt={`${selectedClient.name} - Image ${currentImageIndex + 1}`}
                         className="main-image"
                       />
                       {selectedClient.images.length > 1 && (
@@ -299,7 +298,7 @@ const ClientList = () => {
                           >
                             <img
                               src={image.image_thumbnail_url || image.image_sm_url || image.image_url || image.image}
-                              alt={`${selectedClient.name} thumbnail ${index + 1}`}
+                              alt={`Thumbnail ${index + 1}`}
                             />
                           </div>
                         ))}

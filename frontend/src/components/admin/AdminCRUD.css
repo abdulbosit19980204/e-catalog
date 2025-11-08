@@ -205,74 +205,23 @@
   margin-top: 12px;
 }
 
-.rich-text-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.rich-text-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.rich-text-toolbar button {
-  padding: 6px 10px;
-  border: 1px solid #ced4da;
-  background: #f8f9fa;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.rich-text-toolbar button.is-active {
-  background: #007bff;
-  color: white;
-  border-color: #007bff;
-}
-
-.rich-text-toolbar button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.rich-text-toolbar button:not(:disabled):hover {
-  background: #e9ecef;
-  border-color: #adb5bd;
-}
-
-.rich-text-editor .tiptap-editor {
+.rich-text-editor .ck-editor__editable {
   min-height: 220px;
+  border-radius: 8px;
+}
+
+.rich-text-editor .ck.ck-editor__main > .ck-editor__editable {
+  padding: 12px;
+}
+
+.rich-text-editor .ck .ck-toolbar {
+  border-radius: 8px 8px 0 0;
+}
+
+.rich-text-editor .ck.ck-editor {
+  border-radius: 8px;
   border: 1px solid #dee2e6;
-  border-radius: 12px;
-  padding: 12px 14px;
-  background: white;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.rich-text-editor .tiptap-editor:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.12);
-}
-
-.rich-text-editor .tiptap-editor ul,
-.rich-text-editor .tiptap-editor ol {
-  padding-left: 20px;
-  margin: 0 0 0.85rem;
-}
-
-.rich-text-editor .tiptap-editor blockquote {
-  border-left: 3px solid #007bff;
-  margin: 0 0 0.85rem;
-  padding-left: 12px;
-  color: #495057;
-  font-style: italic;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 form .rich-text-editor {
