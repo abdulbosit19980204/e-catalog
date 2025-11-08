@@ -1781,18 +1781,23 @@ components:
           maxLength: 255
         image_url:
           type: string
+          nullable: true
           readOnly: true
         image_sm_url:
           type: string
+          nullable: true
           readOnly: true
         image_md_url:
           type: string
+          nullable: true
           readOnly: true
         image_lg_url:
           type: string
+          nullable: true
           readOnly: true
         image_thumbnail_url:
           type: string
+          nullable: true
           readOnly: true
         is_main:
           type: boolean
@@ -2114,18 +2119,23 @@ components:
           maxLength: 255
         image_url:
           type: string
+          nullable: true
           readOnly: true
         image_sm_url:
           type: string
+          nullable: true
           readOnly: true
         image_md_url:
           type: string
+          nullable: true
           readOnly: true
         image_lg_url:
           type: string
+          nullable: true
           readOnly: true
         image_thumbnail_url:
           type: string
+          nullable: true
           readOnly: true
         is_main:
           type: boolean
@@ -2539,18 +2549,23 @@ components:
           maxLength: 255
         image_url:
           type: string
+          nullable: true
           readOnly: true
         image_sm_url:
           type: string
+          nullable: true
           readOnly: true
         image_md_url:
           type: string
+          nullable: true
           readOnly: true
         image_lg_url:
           type: string
+          nullable: true
           readOnly: true
         image_thumbnail_url:
           type: string
+          nullable: true
           readOnly: true
         is_main:
           type: boolean

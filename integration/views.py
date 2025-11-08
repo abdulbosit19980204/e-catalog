@@ -352,6 +352,7 @@ def sync_clients_async(integration_id, task_id):
         " orqali `GET /api/v1/integration/sync-status/{task_id}/` endpointiga murojaat qilib"
         " progressni kuzatish mumkin."
     ),
+    request=None,
     responses={
         202: IntegrationSyncResponseSerializer,
         401: OpenApiResponse(description="Authentication talab qilinadi"),
@@ -409,6 +410,7 @@ def sync_nomenklatura_from_1c(request, integration_id):
         " orqali `GET /api/v1/integration/sync-status/{task_id}/` endpointiga murojaat qilib"
         " progressni kuzatish mumkin."
     ),
+    request=None,
     responses={
         202: IntegrationSyncResponseSerializer,
         401: OpenApiResponse(description="Authentication talab qilinadi"),
@@ -465,6 +467,7 @@ def sync_clients_from_1c(request, integration_id):
         " davom etayotgan bo'lsa, `progress_percent` maydoni orqali qancha qismi"
         " bajarilganini kuzatish mumkin."
     ),
+    request=None,
     responses={
         200: IntegrationSyncStatusSerializer,
         401: OpenApiResponse(description="Authentication talab qilinadi"),
@@ -517,6 +520,7 @@ def get_sync_status(request, task_id):
         " project bilan bog'langan bo'lib, 1C web-servis parametrlari va sync konfiguratsiyasini"
         " o'z ichiga oladi."
     ),
+    request=None,
     responses={
         200: IntegrationSerializer(many=True),
         401: OpenApiResponse(description="Authentication talab qilinadi"),

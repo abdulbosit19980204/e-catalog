@@ -1,3 +1,4 @@
+from typing import Optional
 from rest_framework import serializers
 from nomenklatura.models import Nomenklatura, NomenklaturaImage
 from .models import Project, ProjectImage
@@ -13,7 +14,7 @@ class APINomenklaturaImageSerializer(serializers.ModelSerializer):
         model = NomenklaturaImage
         fields = '__all__'
     
-    def get_image_url(self, obj):
+    def get_image_url(self, obj) -> Optional[str]:
         if obj.image:
             request = self.context.get('request')
             if request:
@@ -21,7 +22,7 @@ class APINomenklaturaImageSerializer(serializers.ModelSerializer):
             return obj.image.url
         return None
     
-    def get_image_sm_url(self, obj):
+    def get_image_sm_url(self, obj) -> Optional[str]:
         if obj.image_sm:
             request = self.context.get('request')
             if request:
@@ -29,7 +30,7 @@ class APINomenklaturaImageSerializer(serializers.ModelSerializer):
             return obj.image_sm.url
         return None
     
-    def get_image_md_url(self, obj):
+    def get_image_md_url(self, obj) -> Optional[str]:
         if obj.image_md:
             request = self.context.get('request')
             if request:
@@ -37,7 +38,7 @@ class APINomenklaturaImageSerializer(serializers.ModelSerializer):
             return obj.image_md.url
         return None
     
-    def get_image_lg_url(self, obj):
+    def get_image_lg_url(self, obj) -> Optional[str]:
         if obj.image_lg:
             request = self.context.get('request')
             if request:
@@ -45,7 +46,7 @@ class APINomenklaturaImageSerializer(serializers.ModelSerializer):
             return obj.image_lg.url
         return None
     
-    def get_image_thumbnail_url(self, obj):
+    def get_image_thumbnail_url(self, obj) -> Optional[str]:
         if obj.image_thumbnail:
             request = self.context.get('request')
             if request:
@@ -91,7 +92,7 @@ class ProjectImageSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at']
     
-    def get_image_url(self, obj):
+    def get_image_url(self, obj) -> Optional[str]:
         if obj.image:
             request = self.context.get('request')
             if request:
@@ -99,7 +100,7 @@ class ProjectImageSerializer(serializers.ModelSerializer):
             return obj.image.url
         return None
     
-    def get_image_sm_url(self, obj):
+    def get_image_sm_url(self, obj) -> Optional[str]:
         if obj.image_sm:
             request = self.context.get('request')
             if request:
@@ -107,7 +108,7 @@ class ProjectImageSerializer(serializers.ModelSerializer):
             return obj.image_sm.url
         return None
     
-    def get_image_md_url(self, obj):
+    def get_image_md_url(self, obj) -> Optional[str]:
         if obj.image_md:
             request = self.context.get('request')
             if request:
@@ -115,7 +116,7 @@ class ProjectImageSerializer(serializers.ModelSerializer):
             return obj.image_md.url
         return None
     
-    def get_image_lg_url(self, obj):
+    def get_image_lg_url(self, obj) -> Optional[str]:
         if obj.image_lg:
             request = self.context.get('request')
             if request:
@@ -123,7 +124,7 @@ class ProjectImageSerializer(serializers.ModelSerializer):
             return obj.image_lg.url
         return None
     
-    def get_image_thumbnail_url(self, obj):
+    def get_image_thumbnail_url(self, obj) -> Optional[str]:
         if obj.image_thumbnail:
             request = self.context.get('request')
             if request:
