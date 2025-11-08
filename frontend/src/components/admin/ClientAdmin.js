@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import RichTextEditor from "./RichTextEditor";
+import QuillEditor from "./QuillEditor";
 import { clientAPI } from "../../api";
 import { useNotification } from "../../contexts/NotificationContext";
 import "./AdminCRUD.css";
@@ -531,11 +531,14 @@ const ClientAdmin = () => {
               </div>
               <div className="form-group">
                 <label>Description</label>
-                <RichTextEditor
+                <QuillEditor
                   value={formData.description}
                   onChange={(value) =>
                     setFormData({ ...formData, description: value })
                   }
+                  modules={quillModules}
+                  className="quill-editor"
+                  style={{ height: '200px' }}
                 />
               </div>
               <div className="form-group">

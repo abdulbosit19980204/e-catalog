@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import RichTextEditor from "./RichTextEditor";
+import QuillEditor from "./QuillEditor";
 import { projectAPI } from "../../api";
 import { useNotification } from "../../contexts/NotificationContext";
 import "./AdminCRUD.css";
@@ -227,6 +227,17 @@ const ProjectAdmin = () => {
     const newSize = parseInt(e.target.value);
     setPageSize(newSize);
     setPage(1);
+  };
+
+  const quillModules = {
+    toolbar: [
+      [{ header: [1, 2, 3, false] }],
+      ["bold", "italic", "underline", "strike"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      [{ align: [] }],
+      ["link", "image"],
+      ["clean"],
+    ],
   };
 
   return (
@@ -504,11 +515,14 @@ const ProjectAdmin = () => {
               </div>
               <div className="form-group">
                 <label>Description</label>
-                <RichTextEditor
+                <QuillEditor
                   value={formData.description}
                   onChange={(value) =>
                     setFormData({ ...formData, description: value })
                   }
+                  modules={quillModules}
+                  className="quill-editor"
+                  style={{ height: '200px' }}
                 />
               </div>
               <div className="form-group">
