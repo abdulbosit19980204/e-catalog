@@ -1,0 +1,2468 @@
+openapi: 3.0.3
+info:
+  title: E-Catalog API
+  version: 1.0.0
+  description: "\n# E-Catalog Microservice API Documentation\n\nBu API Project, Nomenklatura
+    va Client ma'lumotlarini boshqarish uchun yaratilgan Django REST Framework asosidagi
+    microservice.\n\n## Asosiy Xususiyatlar\n\n- **Project Management** — Project'lar
+    va ularning rasmlarini boshqarish\n- **Nomenklatura Management** — Nomenklatura'lar
+    va ularning rasmlarini boshqarish\n- **Client Management** — Client'lar va ularning
+    rasmlarini boshqarish (Authentication talab qilinadi)\n- **1C Integration** —
+    1C dan ma'lumotlarni yuklab olish\n- **Image Processing** — Rasmlarni turli o'lchamlarda
+    (sm, md, lg, thumbnail) saqlash\n- **JWT Authentication** — Token-based authentication\n-
+    **Pagination** — Sahifalash bilan ma'lumotlarni olish\n- **Search & Filtering**
+    — Qidirish va filtrlash imkoniyatlari\n\n## Authentication\n\n1. `POST /api/token/`
+    — `username` va `password` yuboring. Javobda `access` va `refresh` token olasiz.\n2.
+    `Authorization: Bearer <access_token>` header'ini barcha himoyalangan endpointlarda
+    yuboring.\n3. `POST /api/token/refresh/` — `refresh` token yuborib yangi `access`
+    token oling.\n4. `POST /api/token/verify/` — mavjud tokenning yaroqliligini tekshiring.\n\n>
+    Test uchun: `http POST http://localhost:8000/api/token/ username=admin password=secret`\n\n##
+    Projects\n\n- `GET /api/v1/project/` — `search`, `code_1c`, `name`, `page`, `page_size`
+    parametrlari mavjud.\n- `POST /api/v1/project/` — yangi project yaratish (`code_1c`,
+    `name`, `title`, `description`, `is_active`).\n- `PUT/PATCH/DELETE /api/v1/project/{code_1c}/`
+    — mavjud projectni yangilash yoki soft-delete qilish.\n- Rasmlar:\n  - `POST /api/v1/project-images/`
+    — bitta rasm (`multipart/form-data`).\n  - `POST /api/v1/project-images/bulk-upload/`
+    — `project=<code>` va bir nechta `images[]`.\n\n## Clients\n\n- Barcha client
+    endpointlari JWT authentication talab qiladi.\n- `GET /api/v1/client/` — `search`,
+    `client_code_1c`, `name`, `page`, `page_size`.\n- `POST /api/v1/client/` va `PUT/PATCH/DELETE
+    /api/v1/client/{client_code_1c}/`.\n- Rasmlar:\n  - `POST /api/v1/client-images/`\n
+    \ - `POST /api/v1/client-images/bulk-upload/` — `client=<code>` va `images[]`.\n\n##
+    Nomenklatura\n\n- `GET /api/v1/nomenklatura/` — `search`, `code_1c`, `name`, `page`,
+    `page_size`.\n- `POST /api/v1/nomenklatura/` va `PUT/PATCH/DELETE /api/v1/nomenklatura/{code_1c}/`.\n-
+    Rasmlar:\n  - `POST /api/v1/nomenklatura-images/`\n  - `POST /api/v1/nomenklatura-images/bulk-upload/`
+    — `nomenklatura=<code>` va `images[]`.\n\n## Integration\n\n- `GET /api/v1/integration/`
+    — Integration sozlamalari ro'yxati (JWT talab qilinadi).\n- `POST /api/v1/integration/{id}/sync-nomenklatura/`
+    — 1C dan nomenklatura ma'lumotlarini fon rejimida yuklashni boshlaydi.\n- `POST
+    /api/v1/integration/{id}/sync-clients/` — 1C dan client ma'lumotlarini yuklaydi.\n-
+    `GET /api/v1/integration/sync-status/{task_id}/` — fon jarayonining progressini
+    kuzatish.\n- Sync javobidagi `task_id` orqali status endpointiga murojaat qiling
+    (`status`: `fetching`, `processing`, `completed`, `error`).\n\n## Image Formats\n\n-
+    **image_url** — Original rasm\n- **image_sm_url** — Kichik (300x300px) — mobil
+    qurilmalar uchun\n- **image_md_url** — O'rta (600x600px) — planshetlar uchun\n-
+    **image_lg_url** — Katta (1200x1200px) — desktop qurilmalar uchun\n- **image_thumbnail_url**
+    — Thumbnail (150x150px) — ro'yxatlar uchun\n\n## Pagination\n\n- `page` — Sahifa
+    raqami (default: 1)\n- `page_size` — Sahifadagi elementlar soni (default: 20,
+    max: 100)\n\nResponse formati:\n```json\n{\n  \"count\": 100,\n  \"next\": \"http://localhost:8000/api/v1/project/?page=2\",\n
+    \ \"previous\": null,\n  \"results\": [...]\n}\n```\n\n## Search & Filtering\n\n-
+    `search` — Barcha `search_fields` maydonlarida qidirish\n- `field=value` — Aniq
+    maydon bo'yicha filtrlash\n- `ordering=field` — Tartiblash (`-field` — teskari
+    tartib)\n\n## Status Management\n\n- `PATCH /api/v1/project/{code_1c}/` — `{\"is_active\":
+    false}` yoki `{\"is_deleted\": true}`\n- `PATCH /api/v1/client/{client_code_1c}/`
+    — xuddi shunday\n- `PATCH /api/v1/nomenklatura/{code_1c}/` — xuddi shunday\n\n##
+    Qo'shimcha Ma'lumotlar\n\n- **Swagger UI**: http://localhost:8000/api/docs/\n-
+    **ReDoc**: http://localhost:8000/api/redoc/\n- **OpenAPI Schema**: http://localhost:8000/api/schema/\n
+    \   "
+paths:
+  /api/token/:
+    post:
+      operationId: api_token_create
+      description: 'Foydalanuvchi `username` va `password` ma''lumotlari asosida JWT
+        token juftligini qaytaradi. Qaytgan `access` token''ni API so''rovlarida `Authorization:
+        Bearer <access_token>` header''i orqali yuboring. `refresh` token esa keyinchalik
+        yangi access token olish uchun ishlatiladi.'
+      summary: JWT access va refresh token olish
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+            examples:
+              CurlMisoli:
+                value: 'curl -X POST http://localhost:8000/api/token/ -H "Content-Type:
+                  application/json" -d ''{"username": "admin", "password": "secret"}'''
+                summary: Curl misoli
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+              examples:
+                CurlMisoli:
+                  value: 'curl -X POST http://localhost:8000/api/token/ -H "Content-Type:
+                    application/json" -d ''{"username": "admin", "password": "secret"}'''
+                  summary: Curl misoli
+          description: ''
+  /api/token/refresh/:
+    post:
+      operationId: api_token_refresh_create
+      description: Oldin olingan refresh token'ni yuborib yangi access token yarating.
+        Agar `ROTATE_REFRESH_TOKENS=True` bo'lsa, javobda yangi refresh ham qaytadi.
+      summary: Refresh token orqali yangi access token olish
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+            examples:
+              HTTPieMisoli:
+                value: http POST http://localhost:8000/api/token/refresh/ refresh=<refresh_token>
+                summary: HTTPie misoli
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+              examples:
+                HTTPieMisoli:
+                  value: http POST http://localhost:8000/api/token/refresh/ refresh=<refresh_token>
+                  summary: HTTPie misoli
+          description: ''
+  /api/token/verify/:
+    post:
+      operationId: api_token_verify_create
+      description: JWT tokenning haqiqiyligini tekshiradi. Token noto'g'ri bo'lsa
+        401 qaytaradi.
+      summary: Access yoki refresh tokenni tekshirish
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+        required: true
+      responses:
+        '200':
+          description: No response body
+  /api/v1/client/:
+    get:
+      operationId: client_list
+      description: Authentication talab qilinadi. Client'lar ro'yxatini pagination
+        bilan qaytaradi. `search` parametri orqali `name`, `email` va `client_code_1c`
+        bo'yicha qidirish mumkin.
+      summary: Client ro'yxatini olish
+      parameters:
+      - in: query
+        name: client_code_1c
+        schema:
+          type: string
+        description: Aniq code bo'yicha filter
+      - in: query
+        name: name
+        schema:
+          type: string
+        description: Aniq nom bo'yicha filter
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: 'Sahifa raqami (default: 1)'
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: 'Sahifadagi elementlar soni (default: 20, max: 100)'
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Client nomi, email yoki code bo'yicha qidirish
+      tags:
+      - Clients
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedClientList'
+          description: ''
+    post:
+      operationId: client_create
+      description: Authentication ostida yangi client qo'shish.
+      summary: Yangi client yaratish
+      tags:
+      - Clients
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClientRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClientRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+          description: ''
+  /api/v1/client-image/:
+    get:
+      operationId: client_image_list
+      description: Client rasmlarini `client` va `is_main` bo'yicha filterlash mumkin.
+      summary: Client rasmlari ro'yxatini olish
+      parameters:
+      - in: query
+        name: client
+        schema:
+          type: string
+        description: Client code_1c bo'yicha filter
+      - in: query
+        name: is_main
+        schema:
+          type: boolean
+        description: Asosiy rasm bo'yicha filter
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - Clients
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedClientImageList'
+          description: ''
+    post:
+      operationId: client_image_create
+      description: Multipart form-data orqali bitta rasm faylini yuklaydi.
+      summary: Client uchun bitta rasm yuklash
+      tags:
+      - Clients
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientImageRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClientImageRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClientImageRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientImage'
+          description: ''
+  /api/v1/client-image/{id}/:
+    get:
+      operationId: client_image_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this client image.
+        required: true
+      tags:
+      - client-image
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientImage'
+          description: ''
+    put:
+      operationId: client_image_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this client image.
+        required: true
+      tags:
+      - client-image
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientImageRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClientImageRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClientImageRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientImage'
+          description: ''
+    patch:
+      operationId: client_image_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this client image.
+        required: true
+      tags:
+      - client-image
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedClientImageRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedClientImageRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedClientImageRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientImage'
+          description: ''
+    delete:
+      operationId: client_image_destroy
+      description: Rasmni bazadan o'chiradi yoki soft-delete qiladi.
+      summary: Client rasmini o'chirish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this client image.
+        required: true
+      tags:
+      - Clients
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/client-image/bulk-upload/:
+    post:
+      operationId: client_image_bulk_upload_create
+      description: Multipart form-data formatida bir nechta rasm faylini birdaniga
+        yuklaydi. `client` maydoniga `client_code_1c` qiymati yuboriladi.
+      summary: Client uchun bir nechta rasm yuklash
+      tags:
+      - Clients
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientImageBulkUploadRequest'
+            examples:
+              MultipartSample:
+                value: http --form POST /api/v1/client-images/bulk-upload/ client=C-001
+                  images@/path/img1.jpg images@/path/img2.jpg
+                summary: Multipart sample
+                description: HTTPie yordamida bir nechta client rasmini yuborish
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClientImageBulkUploadRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClientImageBulkUploadRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedClientImageList'
+              examples:
+                MultipartSample:
+                  value:
+                    count: 123
+                    next: http://api.example.org/accounts/?page=4
+                    previous: http://api.example.org/accounts/?page=2
+                    results:
+                    - http --form POST /api/v1/client-images/bulk-upload/ client=C-001
+                      images@/path/img1.jpg images@/path/img2.jpg
+                  summary: Multipart sample
+                  description: HTTPie yordamida bir nechta client rasmini yuborish
+          description: Yangi yuklangan rasmlar ro'yxati
+        '400':
+          description: Kerakli maydonlar yetishmaydi
+        '404':
+          description: Client topilmadi
+  /api/v1/client/{client_code_1c}/:
+    get:
+      operationId: client_retrieve
+      description: '`client_code_1c` identifikatoriga ko''ra client ma''lumotlarini
+        qaytaradi.'
+      summary: Bitta client ma'lumotini olish
+      parameters:
+      - in: path
+        name: client_code_1c
+        schema:
+          type: string
+        required: true
+      tags:
+      - Clients
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+          description: ''
+    put:
+      operationId: client_update
+      description: '`PUT` so''rovi client yozuvini to''liq yangilaydi.'
+      summary: Client ma'lumotlarini to'liq yangilash
+      parameters:
+      - in: path
+        name: client_code_1c
+        schema:
+          type: string
+        required: true
+      tags:
+      - Clients
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClientRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClientRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+          description: ''
+    patch:
+      operationId: client_partial_update
+      description: Faqat yuborilgan maydonlarni yangilaydi. `client_code_1c` o'zgarmaydi.
+      summary: Client ma'lumotlarini qisman yangilash
+      parameters:
+      - in: path
+        name: client_code_1c
+        schema:
+          type: string
+        required: true
+      tags:
+      - Clients
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedClientRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedClientRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedClientRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+          description: ''
+    delete:
+      operationId: client_destroy
+      description: Client yozuvini `is_deleted=True` qilib belgilaydi.
+      summary: Client'ni soft-delete qilish
+      parameters:
+      - in: path
+        name: client_code_1c
+        schema:
+          type: string
+        required: true
+      tags:
+      - Clients
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: Client soft-delete qilindi
+  /api/v1/integration/:
+    get:
+      operationId: integration_list
+      description: Aktiv va o'chirilmagan integration yozuvlari ro'yxatini qaytaradi.
+        Har bir integration project bilan bog'langan bo'lib, 1C web-servis parametrlari
+        va sync konfiguratsiyasini o'z ichiga oladi.
+      summary: Integration sozlamalarini ro'yxatini olish
+      tags:
+      - Integration
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Integration'
+          description: ''
+        '401':
+          description: Authentication talab qilinadi
+  /api/v1/integration/sync/clients/{integration_id}/:
+    post:
+      operationId: integration_sync_clients_create
+      description: Integration sozlamasidagi WSDL va method ma'lumotlari asosida 1C
+        dan client ma'lumotlarini fon rejimida yuklashni boshlaydi. Jarayon tugaguncha
+        `task_id` orqali `GET /api/v1/integration/sync-status/{task_id}/` endpointiga
+        murojaat qilib progressni kuzatish mumkin.
+      summary: 1C dan client ma'lumotlarini sync qilishni boshlash
+      parameters:
+      - in: path
+        name: integration_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Integration
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationSyncResponse'
+          description: ''
+        '401':
+          description: Authentication talab qilinadi
+        '404':
+          description: Integration topilmadi yoki faol emas
+  /api/v1/integration/sync/nomenklatura/{integration_id}/:
+    post:
+      operationId: integration_sync_nomenklatura_create
+      description: Integration sozlamasidagi WSDL va method ma'lumotlari asosida 1C
+        dan nomenklatura ma'lumotlarini fon rejimida yuklashni boshlaydi. Jarayon
+        tugaguncha `task_id` orqali `GET /api/v1/integration/sync-status/{task_id}/`
+        endpointiga murojaat qilib progressni kuzatish mumkin.
+      summary: 1C dan nomenklatura ma'lumotlarini sync qilishni boshlash
+      parameters:
+      - in: path
+        name: integration_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Integration
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationSyncResponse'
+          description: ''
+        '401':
+          description: Authentication talab qilinadi
+        '404':
+          description: Integration topilmadi yoki faol emas
+  /api/v1/integration/sync/status/{task_id}/:
+    get:
+      operationId: integration_sync_status_retrieve
+      description: '`task_id` bo''yicha fon sinxronizatsiya log''ini qaytaradi. Agar
+        jarayon hali ham davom etayotgan bo''lsa, `progress_percent` maydoni orqali
+        qancha qismi bajarilganini kuzatish mumkin.'
+      summary: 1C sync jarayonining statusini olish
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Integration
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationSyncStatus'
+              examples:
+                StatusniOlish:
+                  value: http GET http://localhost:8000/api/v1/integration/sync-status/afb9d96e-...
+                    Authorization:"Bearer <access_token>"
+                  summary: Statusni olish
+          description: ''
+        '401':
+          description: Authentication talab qilinadi
+        '404':
+          description: Berilgan task_id bo'yicha log topilmadi
+  /api/v1/nomenklatura/:
+    get:
+      operationId: nomenklatura_list
+      description: Aktiv va soft-delete qilinmagan nomenklaturalarning ro'yxatini
+        qaytaradi. `search` parametri `code_1c` va `name` bo'yicha qidirish imkonini
+        beradi.
+      summary: Nomenklatura ro'yxatini olish
+      parameters:
+      - in: query
+        name: code_1c
+        schema:
+          type: string
+        description: Aniq code bo'yicha filter
+      - in: query
+        name: name
+        schema:
+          type: string
+        description: Aniq nom bo'yicha filter
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: 'Sahifa raqami (default: 1)'
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: 'Sahifadagi elementlar soni (default: 20, max: 100)'
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Nomenklatura nomi yoki code bo'yicha qidirish
+      tags:
+      - Nomenklatura
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNomenklaturaList'
+          description: ''
+    post:
+      operationId: nomenklatura_create
+      description: Yangi nomenklatura yozuvini yaratadi.
+      summary: Yangi nomenklatura yaratish
+      tags:
+      - Nomenklatura
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Nomenklatura'
+          description: ''
+  /api/v1/nomenklatura-image/:
+    get:
+      operationId: nomenklatura_image_list
+      description: Rasmlarni `nomenklatura` va `is_main` bo'yicha filterlash mumkin.
+      summary: Nomenklatura rasmlari ro'yxatini olish
+      parameters:
+      - in: query
+        name: is_main
+        schema:
+          type: boolean
+        description: Asosiy rasm bo'yicha filter
+      - in: query
+        name: nomenklatura
+        schema:
+          type: string
+        description: Nomenklatura code_1c bo'yicha filter
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - Nomenklatura
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNomenklaturaImageList'
+          description: ''
+    post:
+      operationId: nomenklatura_image_create
+      description: Multipart form-data orqali bitta rasm faylini yuklaydi.
+      summary: Nomenklatura uchun bitta rasm yuklash
+      tags:
+      - Nomenklatura
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaImageRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaImageRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaImageRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NomenklaturaImage'
+          description: ''
+  /api/v1/nomenklatura-image/{id}/:
+    get:
+      operationId: nomenklatura_image_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Nomenklatura Image.
+        required: true
+      tags:
+      - nomenklatura-image
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NomenklaturaImage'
+          description: ''
+    put:
+      operationId: nomenklatura_image_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Nomenklatura Image.
+        required: true
+      tags:
+      - nomenklatura-image
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaImageRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaImageRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaImageRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NomenklaturaImage'
+          description: ''
+    patch:
+      operationId: nomenklatura_image_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Nomenklatura Image.
+        required: true
+      tags:
+      - nomenklatura-image
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedNomenklaturaImageRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedNomenklaturaImageRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedNomenklaturaImageRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NomenklaturaImage'
+          description: ''
+    delete:
+      operationId: nomenklatura_image_destroy
+      description: Rasmni bazadan o'chiradi yoki soft-delete qiladi.
+      summary: Nomenklatura rasmini o'chirish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Nomenklatura Image.
+        required: true
+      tags:
+      - Nomenklatura
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/nomenklatura-image/bulk-upload/:
+    post:
+      operationId: nomenklatura_image_bulk_upload_create
+      description: Multipart form-data formatida bir nechta rasmni birdaniga yuklaydi.
+        `nomenklatura` maydoniga `code_1c` qiymati yuboriladi.
+      summary: Nomenklatura uchun bir nechta rasm yuklash
+      tags:
+      - Nomenklatura
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaImageBulkUploadRequest'
+            examples:
+              MultipartSample:
+                value: http --form POST /api/v1/nomenklatura-images/bulk-upload/ nomenklatura=N-001
+                  images@/path/img1.jpg images@/path/img2.jpg
+                summary: Multipart sample
+                description: HTTPie yordamida bir nechta nomenklatura rasmini yuborish
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaImageBulkUploadRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaImageBulkUploadRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNomenklaturaImageList'
+              examples:
+                MultipartSample:
+                  value:
+                    count: 123
+                    next: http://api.example.org/accounts/?page=4
+                    previous: http://api.example.org/accounts/?page=2
+                    results:
+                    - http --form POST /api/v1/nomenklatura-images/bulk-upload/ nomenklatura=N-001
+                      images@/path/img1.jpg images@/path/img2.jpg
+                  summary: Multipart sample
+                  description: HTTPie yordamida bir nechta nomenklatura rasmini yuborish
+          description: Yangi yuklangan rasmlar ro'yxati
+        '400':
+          description: Kerakli maydonlar yetishmaydi
+        '404':
+          description: Nomenklatura topilmadi
+  /api/v1/nomenklatura/{code_1c}/:
+    get:
+      operationId: nomenklatura_retrieve
+      description: '`code_1c` identifikatoriga ko''ra nomenklatura ma''lumotlarini
+        qaytaradi.'
+      summary: Bitta nomenklatura ma'lumotini olish
+      parameters:
+      - in: path
+        name: code_1c
+        schema:
+          type: string
+        required: true
+      tags:
+      - Nomenklatura
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Nomenklatura'
+          description: ''
+    put:
+      operationId: nomenklatura_update
+      description: '`PUT` so''rovi nomenklatura yozuvini to''liq yangilaydi.'
+      summary: Nomenklatura ma'lumotlarini to'liq yangilash
+      parameters:
+      - in: path
+        name: code_1c
+        schema:
+          type: string
+        required: true
+      tags:
+      - Nomenklatura
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NomenklaturaRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Nomenklatura'
+          description: ''
+    patch:
+      operationId: nomenklatura_partial_update
+      description: Faqat yuborilgan maydonlarni yangilaydi. `code_1c` o'zgarmaydi.
+      summary: Nomenklatura ma'lumotlarini qisman yangilash
+      parameters:
+      - in: path
+        name: code_1c
+        schema:
+          type: string
+        required: true
+      tags:
+      - Nomenklatura
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedNomenklaturaRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedNomenklaturaRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedNomenklaturaRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Nomenklatura'
+          description: ''
+    delete:
+      operationId: nomenklatura_destroy
+      description: Nomenklatura yozuvini `is_deleted=True` qilib belgilaydi.
+      summary: Nomenklaturani soft-delete qilish
+      parameters:
+      - in: path
+        name: code_1c
+        schema:
+          type: string
+        required: true
+      tags:
+      - Nomenklatura
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: Nomenklatura soft-delete qilindi
+  /api/v1/project/:
+    get:
+      operationId: project_list
+      description: Aktiv va soft-delete qilinmagan project'lar ro'yxatini pagination
+        bilan qaytaradi. `search` parametri orqali nom, title va `code_1c` bo'yicha
+        qidirish mumkin.
+      summary: Project ro'yxatini olish
+      parameters:
+      - in: query
+        name: code_1c
+        schema:
+          type: string
+        description: Aniq code_1c bo'yicha filter
+      - in: query
+        name: name
+        schema:
+          type: string
+        description: Aniq nom bo'yicha filter
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: 'Sahifa raqami (default: 1)'
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+        description: 'Sahifadagi elementlar soni (default: 20, max: 100)'
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Project nomi, title yoki code_1c bo'yicha qidirish
+      tags:
+      - Projects
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProjectList'
+          description: ''
+    post:
+      operationId: project_create
+      description: Yangi project yozuvini yaratadi. `code_1c` unikal bo'lishi kerak.
+      summary: Project yaratish
+      tags:
+      - Projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+  /api/v1/project-image/:
+    get:
+      operationId: project_image_list
+      description: '`project` va `is_main` bo''yicha filterlash mumkin.'
+      summary: Project rasmlari ro'yxatini olish
+      parameters:
+      - in: query
+        name: is_main
+        schema:
+          type: boolean
+        description: Asosiy rasm bo'yicha filter
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: project
+        schema:
+          type: string
+        description: Project code_1c bo'yicha filter
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - Projects
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProjectImageList'
+          description: ''
+    post:
+      operationId: project_image_create
+      description: Multipart form-data orqali bitta rasm faylini yuklaydi.
+      summary: Project uchun bitta rasm yuklash
+      tags:
+      - Projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectImageRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectImageRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectImageRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectImage'
+          description: ''
+  /api/v1/project-image/{id}/:
+    get:
+      operationId: project_image_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Project Image.
+        required: true
+      tags:
+      - project-image
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectImage'
+          description: ''
+    put:
+      operationId: project_image_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Project Image.
+        required: true
+      tags:
+      - project-image
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectImageRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectImageRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectImageRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectImage'
+          description: ''
+    patch:
+      operationId: project_image_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Project Image.
+        required: true
+      tags:
+      - project-image
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectImageRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectImageRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectImageRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectImage'
+          description: ''
+    delete:
+      operationId: project_image_destroy
+      description: Rasmni soft-delete qiladi yoki bazadan o'chiradi.
+      summary: Project rasmini o'chirish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Project Image.
+        required: true
+      tags:
+      - Projects
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/project-image/bulk-upload/:
+    post:
+      operationId: project_image_bulk_upload_create
+      description: Multipart form-data formatida bir nechta rasmni birdaniga yuklash
+        imkonini beradi. `project` maydoniga `code_1c` qiymati, `images` maydoniga
+        esa bir yoki bir nechta fayl yuboriladi.
+      summary: Project uchun bir nechta rasm yuklash
+      tags:
+      - Projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectImageBulkUploadRequest'
+            examples:
+              MultipartSample:
+                value: http --form POST /api/v1/project-images/bulk-upload/ project=P-001
+                  images@/path/to/image1.jpg images@/path/to/image2.jpg
+                summary: Multipart sample
+                description: HTTPie yordamida bir nechta rasm yuborish
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectImageBulkUploadRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectImageBulkUploadRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProjectImageList'
+              examples:
+                MultipartSample:
+                  value:
+                    count: 123
+                    next: http://api.example.org/accounts/?page=4
+                    previous: http://api.example.org/accounts/?page=2
+                    results:
+                    - http --form POST /api/v1/project-images/bulk-upload/ project=P-001
+                      images@/path/to/image1.jpg images@/path/to/image2.jpg
+                  summary: Multipart sample
+                  description: HTTPie yordamida bir nechta rasm yuborish
+          description: Yangi yuklangan rasmlar ro'yxati
+        '400':
+          description: Kerakli maydonlar yetishmaydi
+        '404':
+          description: Project topilmadi
+  /api/v1/project/{code_1c}/:
+    get:
+      operationId: project_retrieve
+      description: '`code_1c` identifikatoriga ko''ra project ma''lumotlarini qaytaradi.'
+      summary: Bitta project ma'lumotini olish
+      parameters:
+      - in: path
+        name: code_1c
+        schema:
+          type: string
+        required: true
+      tags:
+      - Projects
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    put:
+      operationId: project_update
+      description: '`PUT` so''rovi butun project yozuvini yangilaydi.'
+      summary: Project ma'lumotlarini to'liq yangilash
+      parameters:
+      - in: path
+        name: code_1c
+        schema:
+          type: string
+        required: true
+      tags:
+      - Projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    patch:
+      operationId: project_partial_update
+      description: Faqat yuborilgan maydonlarni yangilaydi. `code_1c` o'zgarmaydi.
+      summary: Project ma'lumotlarini qisman yangilash
+      parameters:
+      - in: path
+        name: code_1c
+        schema:
+          type: string
+        required: true
+      tags:
+      - Projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    delete:
+      operationId: project_destroy
+      description: Yozuvni `is_deleted=True` qilib belgilaydi va ro'yxatdan yashiradi.
+      summary: Project'ni soft-delete qilish
+      parameters:
+      - in: path
+        name: code_1c
+        schema:
+          type: string
+        required: true
+      tags:
+      - Projects
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: Project soft-delete qilindi
+components:
+  schemas:
+    Client:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientImage'
+          readOnly: true
+        is_active:
+          type: boolean
+        is_deleted:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        client_code_1c:
+          type: string
+          maxLength: 100
+        name:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          nullable: true
+          maxLength: 100
+        phone:
+          type: string
+          nullable: true
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+      required:
+      - created_at
+      - id
+      - images
+      - name
+      - updated_at
+    ClientImage:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        client:
+          type: integer
+        image:
+          type: string
+          format: uri
+        image_url:
+          type: string
+          readOnly: true
+        image_sm_url:
+          type: string
+          readOnly: true
+        image_md_url:
+          type: string
+          readOnly: true
+        image_lg_url:
+          type: string
+          readOnly: true
+        image_thumbnail_url:
+          type: string
+          readOnly: true
+        is_main:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - client
+      - created_at
+      - id
+      - image
+      - image_lg_url
+      - image_md_url
+      - image_sm_url
+      - image_thumbnail_url
+      - image_url
+    ClientImageBulkUploadRequest:
+      type: object
+      description: Client image bulk upload uchun schema.
+      properties:
+        client:
+          type: string
+          minLength: 1
+          description: Rasm bog'lanadigan client'ning `client_code_1c` qiymati
+          maxLength: 255
+        images:
+          type: array
+          items:
+            type: string
+            format: binary
+          description: Multipart form-data formatidagi bir yoki bir nechta rasm fayllari
+      required:
+      - client
+      - images
+    ClientImageRequest:
+      type: object
+      properties:
+        client:
+          type: integer
+        image:
+          type: string
+          format: binary
+        is_main:
+          type: boolean
+      required:
+      - client
+      - image
+    ClientRequest:
+      type: object
+      properties:
+        is_active:
+          type: boolean
+        is_deleted:
+          type: boolean
+        client_code_1c:
+          type: string
+          minLength: 1
+          maxLength: 100
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          nullable: true
+          maxLength: 100
+        phone:
+          type: string
+          nullable: true
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+      required:
+      - name
+    Integration:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: Integration nomi
+          maxLength: 255
+        project:
+          type: integer
+          description: Qaysi project'ga tegishli
+        project_name:
+          type: string
+          readOnly: true
+        project_code_1c:
+          type: string
+          readOnly: true
+        wsdl_url:
+          type: string
+          format: uri
+          description: 1C Web Service WSDL URL
+          maxLength: 500
+        method_nomenklatura:
+          type: string
+          description: Nomenklatura'larni olish uchun method nomi
+          maxLength: 255
+        method_clients:
+          type: string
+          description: Client'larni olish uchun method nomi
+          maxLength: 255
+        chunk_size:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          description: Bir vaqtda qancha ma'lumot yuklash (chunk size)
+        description:
+          type: string
+          nullable: true
+          description: Integration tavsifi
+        is_active:
+          type: boolean
+        is_deleted:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - project
+      - project_code_1c
+      - project_name
+      - updated_at
+      - wsdl_url
+    IntegrationSummary:
+      type: object
+      description: Integration uchun qisqa ma'lumot.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        project:
+          type: string
+          readOnly: true
+      required:
+      - id
+      - name
+      - project
+    IntegrationSyncResponse:
+      type: object
+      description: Sync jarayonini boshlash response strukturasi.
+      properties:
+        task_id:
+          type: string
+          description: Background task identifikatori
+        status:
+          type: string
+          description: Jarayon holati (started yoki error)
+        message:
+          type: string
+          description: Insonga o'qishga qulay xabar
+        integration:
+          $ref: '#/components/schemas/IntegrationSummary'
+      required:
+      - integration
+      - message
+      - status
+      - task_id
+    IntegrationSyncStatus:
+      type: object
+      description: Sync progress holatini ko'rsatuvchi schema.
+      properties:
+        task_id:
+          type: string
+          description: Background task identifikatori
+        integration:
+          $ref: '#/components/schemas/IntegrationSummary'
+        sync_type:
+          allOf:
+          - $ref: '#/components/schemas/SyncTypeEnum'
+          description: |-
+            Qaysi turdagi ma'lumot sync qilinmoqda
+
+            * `nomenklatura` - nomenklatura
+            * `clients` - clients
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          description: |-
+            Jarayonning joriy holati
+
+            * `fetching` - fetching
+            * `processing` - processing
+            * `completed` - completed
+            * `error` - error
+        total:
+          type: integer
+          description: 1C dan olingan umumiy elementlar soni
+        processed:
+          type: integer
+          description: Qayta ishlangan elementlar soni
+        created:
+          type: integer
+          description: Yangi yaratilgan elementlar soni
+        updated:
+          type: integer
+          description: Yangilangan elementlar soni
+        errors:
+          type: integer
+          description: Xato bo'lgan elementlar soni
+        progress_percent:
+          type: integer
+          maximum: 100
+          minimum: 0
+          description: Tugallanish foizi (0-100)
+        error_message:
+          type: string
+          nullable: true
+          description: Xato tafsilotlari (agar mavjud bo'lsa)
+        started_at:
+          type: string
+          format: date-time
+          description: Jarayon boshlangan vaqt
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Jarayon tugagan vaqt (agar tugagan bo'lsa)
+      required:
+      - integration
+      - status
+      - sync_type
+      - task_id
+    Nomenklatura:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/NomenklaturaImage'
+          readOnly: true
+        is_active:
+          type: boolean
+        is_deleted:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        code_1c:
+          type: string
+          maxLength: 255
+        name:
+          type: string
+          maxLength: 255
+        title:
+          type: string
+          nullable: true
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+      required:
+      - created_at
+      - id
+      - images
+      - name
+      - updated_at
+    NomenklaturaImage:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nomenklatura:
+          type: integer
+        image:
+          type: string
+          format: uri
+        image_url:
+          type: string
+          readOnly: true
+        image_sm_url:
+          type: string
+          readOnly: true
+        image_md_url:
+          type: string
+          readOnly: true
+        image_lg_url:
+          type: string
+          readOnly: true
+        image_thumbnail_url:
+          type: string
+          readOnly: true
+        is_main:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - image_lg_url
+      - image_md_url
+      - image_sm_url
+      - image_thumbnail_url
+      - image_url
+      - nomenklatura
+    NomenklaturaImageBulkUploadRequest:
+      type: object
+      description: Nomenklatura image bulk upload uchun schema.
+      properties:
+        nomenklatura:
+          type: string
+          minLength: 1
+          description: Rasm bog'lanadigan nomenklatura'ning `code_1c` qiymati
+          maxLength: 255
+        images:
+          type: array
+          items:
+            type: string
+            format: binary
+          description: Multipart form-data ko'rinishidagi bir yoki bir nechta rasm
+            fayllari
+      required:
+      - images
+      - nomenklatura
+    NomenklaturaImageRequest:
+      type: object
+      properties:
+        nomenklatura:
+          type: integer
+        image:
+          type: string
+          format: binary
+        is_main:
+          type: boolean
+      required:
+      - nomenklatura
+    NomenklaturaRequest:
+      type: object
+      properties:
+        is_active:
+          type: boolean
+        is_deleted:
+          type: boolean
+        code_1c:
+          type: string
+          minLength: 1
+          maxLength: 255
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        title:
+          type: string
+          nullable: true
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+      required:
+      - name
+    PaginatedClientImageList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientImage'
+    PaginatedClientList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Client'
+    PaginatedNomenklaturaImageList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/NomenklaturaImage'
+    PaginatedNomenklaturaList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Nomenklatura'
+    PaginatedProjectImageList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectImage'
+    PaginatedProjectList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+    PatchedClientImageRequest:
+      type: object
+      properties:
+        client:
+          type: integer
+        image:
+          type: string
+          format: binary
+        is_main:
+          type: boolean
+    PatchedClientRequest:
+      type: object
+      properties:
+        is_active:
+          type: boolean
+        is_deleted:
+          type: boolean
+        client_code_1c:
+          type: string
+          minLength: 1
+          maxLength: 100
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          nullable: true
+          maxLength: 100
+        phone:
+          type: string
+          nullable: true
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+    PatchedNomenklaturaImageRequest:
+      type: object
+      properties:
+        nomenklatura:
+          type: integer
+        image:
+          type: string
+          format: binary
+        is_main:
+          type: boolean
+    PatchedNomenklaturaRequest:
+      type: object
+      properties:
+        is_active:
+          type: boolean
+        is_deleted:
+          type: boolean
+        code_1c:
+          type: string
+          minLength: 1
+          maxLength: 255
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        title:
+          type: string
+          nullable: true
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+    PatchedProjectImageRequest:
+      type: object
+      properties:
+        project:
+          type: integer
+        image:
+          type: string
+          format: binary
+        is_main:
+          type: boolean
+    PatchedProjectRequest:
+      type: object
+      properties:
+        is_active:
+          type: boolean
+        is_deleted:
+          type: boolean
+        code_1c:
+          type: string
+          minLength: 1
+          maxLength: 255
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        title:
+          type: string
+          nullable: true
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectImage'
+          readOnly: true
+        is_active:
+          type: boolean
+        is_deleted:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        code_1c:
+          type: string
+          maxLength: 255
+        name:
+          type: string
+          maxLength: 255
+        title:
+          type: string
+          nullable: true
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+      required:
+      - created_at
+      - id
+      - images
+      - name
+      - updated_at
+    ProjectImage:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        project:
+          type: integer
+        image:
+          type: string
+          format: uri
+        image_url:
+          type: string
+          readOnly: true
+        image_sm_url:
+          type: string
+          readOnly: true
+        image_md_url:
+          type: string
+          readOnly: true
+        image_lg_url:
+          type: string
+          readOnly: true
+        image_thumbnail_url:
+          type: string
+          readOnly: true
+        is_main:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - image
+      - image_lg_url
+      - image_md_url
+      - image_sm_url
+      - image_thumbnail_url
+      - image_url
+      - project
+    ProjectImageBulkUploadRequest:
+      type: object
+      description: Bir project uchun bir nechta rasm yuklash uchun schema.
+      properties:
+        project:
+          type: string
+          minLength: 1
+          description: Rasm bog'lanadigan project'ning `code_1c` qiymati
+          maxLength: 255
+        images:
+          type: array
+          items:
+            type: string
+            format: binary
+          description: Multipart form-data da yuboriladigan bir yoki bir nechta rasm
+            fayllari
+      required:
+      - images
+      - project
+    ProjectImageRequest:
+      type: object
+      properties:
+        project:
+          type: integer
+        image:
+          type: string
+          format: binary
+        is_main:
+          type: boolean
+      required:
+      - image
+      - project
+    ProjectRequest:
+      type: object
+      properties:
+        is_active:
+          type: boolean
+        is_deleted:
+          type: boolean
+        code_1c:
+          type: string
+          minLength: 1
+          maxLength: 255
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        title:
+          type: string
+          nullable: true
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+      required:
+      - name
+    StatusEnum:
+      enum:
+      - fetching
+      - processing
+      - completed
+      - error
+      type: string
+      description: |-
+        * `fetching` - fetching
+        * `processing` - processing
+        * `completed` - completed
+        * `error` - error
+    SyncTypeEnum:
+      enum:
+      - nomenklatura
+      - clients
+      type: string
+      description: |-
+        * `nomenklatura` - nomenklatura
+        * `clients` - clients
+    TokenObtainPair:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
+    TokenObtainPairRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password
+      - username
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    TokenVerifyRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - token
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+servers:
+- url: http://localhost:8000
+  description: Development server
+tags:
+- name: Authentication
+  description: 'JWT token olish, yangilash va tekshirish endpointlari. Access tokenni
+    `Authorization: Bearer` header ida yuboring.'
+- name: Projects
+  description: Project CRUD operatsiyalari va rasm boshqaruvi (list, search, create,
+    update, delete, bulk image upload).
+- name: Clients
+  description: Client CRUD operatsiyalari, faqat autentifikatsiya qilingan foydalanuvchilar
+    uchun. Rasm boshqaruvi va bulk upload misollari.
+- name: Nomenklatura
+  description: Nomenklatura CRUD operatsiyalari, rasm yuklash va katalogni boshqarish.
+- name: Integration
+  description: 1C tizimi bilan sinxronizatsiya, background sync jarayonlari va progress
+    status endpointlari.

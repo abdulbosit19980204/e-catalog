@@ -4,7 +4,7 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import Notification from "./components/Notification";
 import "./App.css";
 import Navigation from "./components/Navigation";
-import ProjectList from "./components/ProjectList";
+import Home from "./components/Home";
 import ClientList from "./components/ClientList";
 import NomenklaturaList from "./components/NomenklaturaList";
 import Login from "./components/Login";
@@ -28,7 +28,7 @@ function App() {
             <>
               <Navigation />
               <main className="App-main">
-                <ProjectList />
+                <Home />
               </main>
             </>
           } />

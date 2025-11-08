@@ -188,40 +188,120 @@ Bu API Project, Nomenklatura va Client ma'lumotlarini boshqarish uchun yaratilga
 
 ## Asosiy Xususiyatlar
 
-- **Project Management** - Project'lar va ularning rasmlarini boshqarish
-- **Nomenklatura Management** - Nomenklatura'lar va ularning rasmlarini boshqarish
-- **Client Management** - Client'lar va ularning rasmlarini boshqarish (Authentication talab qilinadi)
-- **1C Integration** - 1C dan ma'lumotlarni yuklab olish
-- **Image Processing** - Rasmlarni turli o'lchamlarda (sm, md, lg, thumbnail) saqlash
-- **JWT Authentication** - Token-based authentication
-- **Pagination** - Sahifalash bilan ma'lumotlarni olish
-- **Search & Filtering** - Qidirish va filtrlash imkoniyatlari
+- **Project Management** — Project'lar va ularning rasmlarini boshqarish
+- **Nomenklatura Management** — Nomenklatura'lar va ularning rasmlarini boshqarish
+- **Client Management** — Client'lar va ularning rasmlarini boshqarish (Authentication talab qilinadi)
+- **1C Integration** — 1C dan ma'lumotlarni yuklab olish
+- **Image Processing** — Rasmlarni turli o'lchamlarda (sm, md, lg, thumbnail) saqlash
+- **JWT Authentication** — Token-based authentication
+- **Pagination** — Sahifalash bilan ma'lumotlarni olish
+- **Search & Filtering** — Qidirish va filtrlash imkoniyatlari
 
 ## Authentication
 
-API'dan foydalanish uchun avval token olish kerak:
+1. `POST /api/token/` — `username` va `password` yuboring. Javobda `access` va `refresh` token olasiz.
+2. `Authorization: Bearer <access_token>` header'ini barcha himoyalangan endpointlarda yuboring.
+3. `POST /api/token/refresh/` — `refresh` token yuborib yangi `access` token oling.
+4. `POST /api/token/verify/` — mavjud tokenning yaroqliligini tekshiring.
 
-1. `POST /api/token/` - Username va password bilan token olish
-2. Qaytarilgan `access` token'ni `Authorization: Bearer <token>` header'ida yuborish
+> Test uchun: `http POST http://localhost:8000/api/token/ username=admin password=secret`
+
+## Projects
+
+- `GET /api/v1/project/` — `search`, `code_1c`, `name`, `page`, `page_size` parametrlari mavjud.
+- `POST /api/v1/project/` — yangi project yaratish (`code_1c`, `name`, `title`, `description`, `is_active`).
+- `PUT/PATCH/DELETE /api/v1/project/{code_1c}/` — mavjud projectni yangilash yoki soft-delete qilish.
+- Rasmlar:
+  - `POST /api/v1/project-images/` — bitta rasm (`multipart/form-data`).
+  - `POST /api/v1/project-images/bulk-upload/` — `project=<code>` va bir nechta `images[]`.
+
+## Clients
+
+- Barcha client endpointlari JWT authentication talab qiladi.
+- `GET /api/v1/client/` — `search`, `client_code_1c`, `name`, `page`, `page_size`.
+- `POST /api/v1/client/` va `PUT/PATCH/DELETE /api/v1/client/{client_code_1c}/`.
+- Rasmlar:
+  - `POST /api/v1/client-images/`
+  - `POST /api/v1/client-images/bulk-upload/` — `client=<code>` va `images[]`.
+
+## Nomenklatura
+
+- `GET /api/v1/nomenklatura/` — `search`, `code_1c`, `name`, `page`, `page_size`.
+- `POST /api/v1/nomenklatura/` va `PUT/PATCH/DELETE /api/v1/nomenklatura/{code_1c}/`.
+- Rasmlar:
+  - `POST /api/v1/nomenklatura-images/`
+  - `POST /api/v1/nomenklatura-images/bulk-upload/` — `nomenklatura=<code>` va `images[]`.
+
+## Integration
+
+- `GET /api/v1/integration/` — Integration sozlamalari ro'yxati (JWT talab qilinadi).
+- `POST /api/v1/integration/{id}/sync-nomenklatura/` — 1C dan nomenklatura ma'lumotlarini fon rejimida yuklashni boshlaydi.
+- `POST /api/v1/integration/{id}/sync-clients/` — 1C dan client ma'lumotlarini yuklaydi.
+- `GET /api/v1/integration/sync-status/{task_id}/` — fon jarayonining progressini kuzatish.
+- Sync javobidagi `task_id` orqali status endpointiga murojaat qiling (`status`: `fetching`, `processing`, `completed`, `error`).
+
+### 1C Integration Sozlamalari
+
+Integration sozlamasini yaratish uchun quyidagi maydonlar kerak (`IntegrationSerializer`):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Integration nomi (unikal) |
+| `project` | integer | Project ID (ForeignKey) |
+| `wsdl_url` | string (URL) | 1C web-service WSDL manzili |
+| `method_nomenklatura` | string | 1C dagi nomenklaturani qaytaruvchi method nomi |
+| `method_clients` | string | 1C dagi clientlarni qaytaruvchi method nomi |
+| `chunk_size` | integer | Bir qo‘ng‘iroqda qayta ishlanadigan elementlar soni |
+| `description` | rich text | Integration haqida qo‘shimcha ma’lumot |
+
+### 1C → E-Catalog ma'lumot mapping'i
+
+#### Nomenklatura itemi (`sync-nomenklatura` uchun)
+
+1C dan keladigan obyekt quyidagi atributlarni o‘z ichiga olishi kerak:
+
+- `Code` *(string, required)* → `code_1c`
+- `Name` *(string, required)* → `name`
+- `Title` *(string, optional)* → `title`
+- `Description` *(string/RichText, optional)* → `description`
+- `Project` *(string, optional)* → Project nomi. Agar berilmasa, integration bilan biriktirilgan project ishlatiladi.
+- `Images` *(list, optional)* → Rasm URL yoki fayl manzillari. Har bir elementda quyidagi kichik maydonlar bo‘lishi mumkin:
+  - `Image` / `image` — original fayl URL
+  - `ImageSm` / `image_sm` — kichik o‘lcham
+  - `ImageMd` / `image_md` — o‘rta o‘lcham
+  - `ImageLg` / `image_lg` — katta o‘lcham
+  - `IsMain` / `is_main` — asosiy rasm flagi
+
+#### Client itemi (`sync-clients` uchun)
+
+- `Code` *(string, required)* → `client_code_1c`
+- `Name` *(string, required)* → `name`
+- `Email` *(string, optional)* → `email`
+- `Phone` *(string, optional)* → `phone`
+- `Description` *(string, optional)* → `description`
+- `Images` *(list, optional)* → Project ga o‘xshash strukturadagi rasm ma’lumotlari
+
+#### Integration log statuslari
+
+- `fetching` — 1C dan ma’lumotlar olinmoqda
+- `processing` — ma’lumotlar bazaga yozilmoqda
+- `completed` — jarayon muvaffaqiyatli yakunlandi
+- `error` — xatolik yuz berdi (`error_message` maydonida tafsilotlar qaytadi)
 
 ## Image Formats
 
-Barcha rasmlar quyidagi o'lchamlarda mavjud:
-
-- **image_url** - Original rasm
-- **image_sm_url** - Kichik (300x300px) - mobil qurilmalar uchun
-- **image_md_url** - O'rta (600x600px) - planshetlar uchun
-- **image_lg_url** - Katta (1200x1200px) - desktop qurilmalar uchun
-- **image_thumbnail_url** - Thumbnail (150x150px) - ro'yxatlar uchun
+- **image_url** — Original rasm
+- **image_sm_url** — Kichik (300x300px) — mobil qurilmalar uchun
+- **image_md_url** — O'rta (600x600px) — planshetlar uchun
+- **image_lg_url** — Katta (1200x1200px) — desktop qurilmalar uchun
+- **image_thumbnail_url** — Thumbnail (150x150px) — ro'yxatlar uchun
 
 ## Pagination
 
-Barcha list endpoint'lar pagination bilan ishlaydi:
+- `page` — Sahifa raqami (default: 1)
+- `page_size` — Sahifadagi elementlar soni (default: 20, max: 100)
 
-- `page` - Sahifa raqami (default: 1)
-- `page_size` - Sahifadagi elementlar soni (default: 20)
-
-Response format:
+Response formati:
 ```json
 {
   "count": 100,
@@ -233,17 +313,15 @@ Response format:
 
 ## Search & Filtering
 
-- `search` - Barcha search_fields maydonlarida qidirish
-- `field_name=value` - Aniq maydon bo'yicha filtrlash
-- `ordering=field_name` - Tartiblash (yoki `-field_name` teskari tartib uchun)
+- `search` — Barcha `search_fields` maydonlarida qidirish
+- `field=value` — Aniq maydon bo'yicha filtrlash
+- `ordering=field` — Tartiblash (`-field` — teskari tartib)
 
 ## Status Management
 
-Frontend'dan `is_active` va `is_deleted` o'zgartirish mumkin:
-
-- `PATCH /api/v1/project/{code_1c}/` - `{"is_active": false}` yoki `{"is_deleted": true}`
-- `PATCH /api/v1/client/{client_code_1c}/` - Xuddi shunday
-- `PATCH /api/v1/nomenklatura/{code_1c}/` - Xuddi shunday
+- `PATCH /api/v1/project/{code_1c}/` — `{"is_active": false}` yoki `{"is_deleted": true}`
+- `PATCH /api/v1/client/{client_code_1c}/` — xuddi shunday
+- `PATCH /api/v1/nomenklatura/{code_1c}/` — xuddi shunday
 
 ## Qo'shimcha Ma'lumotlar
 
@@ -256,11 +334,26 @@ Frontend'dan `is_active` va `is_deleted` o'zgartirish mumkin:
     'COMPONENT_SPLIT_REQUEST': True,
     'SCHEMA_PATH_PREFIX': '/api/v1/',
     'TAGS': [
-        {'name': 'Authentication', 'description': 'JWT token olish va yangilash'},
-        {'name': 'Projects', 'description': 'Project CRUD operatsiyalari'},
-        {'name': 'Clients', 'description': 'Client CRUD operatsiyalari (Authentication talab qilinadi)'},
-        {'name': 'Nomenklatura', 'description': 'Nomenklatura CRUD operatsiyalari'},
-        {'name': 'Integration', 'description': '1C Integration operatsiyalari'},
+        {
+            'name': 'Authentication',
+            'description': 'JWT token olish, yangilash va tekshirish endpointlari. Access tokenni `Authorization: Bearer` header ida yuboring.',
+        },
+        {
+            'name': 'Projects',
+            'description': 'Project CRUD operatsiyalari va rasm boshqaruvi (list, search, create, update, delete, bulk image upload).',
+        },
+        {
+            'name': 'Clients',
+            'description': 'Client CRUD operatsiyalari, faqat autentifikatsiya qilingan foydalanuvchilar uchun. Rasm boshqaruvi va bulk upload misollari.',
+        },
+        {
+            'name': 'Nomenklatura',
+            'description': 'Nomenklatura CRUD operatsiyalari, rasm yuklash va katalogni boshqarish.',
+        },
+        {
+            'name': 'Integration',
+            'description': '1C tizimi bilan sinxronizatsiya, background sync jarayonlari va progress status endpointlari.',
+        },
     ],
     'SECURITY_DEFINITIONS': {
         'Bearer': {

@@ -19,7 +19,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
+from config.auth_views import APITokenObtainPairView, APITokenRefreshView, APITokenVerifyView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,9 +27,9 @@ urlpatterns = [
     path('ckeditor/', include('ckeditor_uploader.urls')),
     
     # Authentication
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path('api/token/', APITokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', APITokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/verify/', APITokenVerifyView.as_view(), name='token_verify'),
     
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

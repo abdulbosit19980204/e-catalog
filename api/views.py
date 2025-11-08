@@ -2,9 +2,90 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
+from drf_spectacular.utils import (
+    extend_schema_view,
+    extend_schema,
+    OpenApiParameter,
+    OpenApiResponse,
+    OpenApiExample,
+)
+from drf_spectacular.types import OpenApiTypes
 from .models import Project, ProjectImage
-from .serializers import ProjectSerializer, ProjectImageSerializer
+from .serializers import (
+    ProjectSerializer,
+    ProjectImageSerializer,
+    ProjectImageBulkUploadSerializer,
+)
 
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Projects'],
+        summary="Project ro'yxatini olish",
+        description=(
+            "Aktiv va soft-delete qilinmagan project'lar ro'yxatini pagination bilan qaytaradi."
+            " `search` parametri orqali nom, title va `code_1c` bo'yicha qidirish mumkin."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name='search',
+                required=False,
+                type=OpenApiTypes.STR,
+                description="Project nomi, title yoki code_1c bo'yicha qidirish",
+            ),
+            OpenApiParameter(
+                name='page',
+                required=False,
+                type=OpenApiTypes.INT,
+                description="Sahifa raqami (default: 1)",
+            ),
+            OpenApiParameter(
+                name='page_size',
+                required=False,
+                type=OpenApiTypes.INT,
+                description="Sahifadagi elementlar soni (default: 20, max: 100)",
+            ),
+            OpenApiParameter(
+                name='code_1c',
+                required=False,
+                type=OpenApiTypes.STR,
+                description="Aniq code_1c bo'yicha filter",
+            ),
+            OpenApiParameter(
+                name='name',
+                required=False,
+                type=OpenApiTypes.STR,
+                description="Aniq nom bo'yicha filter",
+            ),
+        ],
+    ),
+    retrieve=extend_schema(
+        tags=['Projects'],
+        summary="Bitta project ma'lumotini olish",
+        description="`code_1c` identifikatoriga ko'ra project ma'lumotlarini qaytaradi.",
+    ),
+    create=extend_schema(
+        tags=['Projects'],
+        summary="Project yaratish",
+        description="Yangi project yozuvini yaratadi. `code_1c` unikal bo'lishi kerak.",
+    ),
+    update=extend_schema(
+        tags=['Projects'],
+        summary="Project ma'lumotlarini to'liq yangilash",
+        description="`PUT` so'rovi butun project yozuvini yangilaydi.",
+    ),
+    partial_update=extend_schema(
+        tags=['Projects'],
+        summary="Project ma'lumotlarini qisman yangilash",
+        description="Faqat yuborilgan maydonlarni yangilaydi. `code_1c` o'zgarmaydi.",
+    ),
+    destroy=extend_schema(
+        tags=['Projects'],
+        summary="Project'ni soft-delete qilish",
+        description="Yozuvni `is_deleted=True` qilib belgilaydi va ro'yxatdan yashiradi.",
+        responses={204: OpenApiResponse(description="Project soft-delete qilindi")},
+    ),
+)
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.filter(is_deleted=False)
     serializer_class = ProjectSerializer
@@ -28,6 +109,37 @@ class ProjectViewSet(viewsets.ModelViewSet):
         instance.is_deleted = True
         instance.save(update_fields=['is_deleted', 'updated_at'])
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Projects'],
+        summary="Project rasmlari ro'yxatini olish",
+        description="`project` va `is_main` bo'yicha filterlash mumkin.",
+        parameters=[
+            OpenApiParameter(
+                name='project',
+                required=False,
+                type=OpenApiTypes.STR,
+                description="Project code_1c bo'yicha filter",
+            ),
+            OpenApiParameter(
+                name='is_main',
+                required=False,
+                type=OpenApiTypes.BOOL,
+                description="Asosiy rasm bo'yicha filter",
+            ),
+        ],
+    ),
+    create=extend_schema(
+        tags=['Projects'],
+        summary="Project uchun bitta rasm yuklash",
+        description="Multipart form-data orqali bitta rasm faylini yuklaydi.",
+    ),
+    destroy=extend_schema(
+        tags=['Projects'],
+        summary="Project rasmini o'chirish",
+        description="Rasmni soft-delete qiladi yoki bazadan o'chiradi.",
+    ),
+)
 class ProjectImageViewSet(viewsets.ModelViewSet):
     queryset = ProjectImage.objects.filter(is_deleted=False)
     serializer_class = ProjectImageSerializer
@@ -45,6 +157,31 @@ class ProjectImageViewSet(viewsets.ModelViewSet):
         context['request'] = self.request
         return context
     
+    @extend_schema(
+        tags=['Projects'],
+        summary="Project uchun bir nechta rasm yuklash",
+        description=(
+            "Multipart form-data formatida bir nechta rasmni birdaniga yuklash imkonini beradi. "
+            "`project` maydoniga `code_1c` qiymati, `images` maydoniga esa bir yoki bir nechta fayl yuboriladi."
+        ),
+        request=ProjectImageBulkUploadSerializer,
+        responses={
+            201: OpenApiResponse(
+                response=ProjectImageSerializer(many=True),
+                description="Yangi yuklangan rasmlar ro'yxati",
+            ),
+            400: OpenApiResponse(description="Kerakli maydonlar yetishmaydi"),
+            404: OpenApiResponse(description="Project topilmadi"),
+        },
+        examples=[
+            OpenApiExample(
+                name="Multipart sample",
+                description="HTTPie yordamida bir nechta rasm yuborish",
+                value="http --form POST /api/v1/project-images/bulk-upload/ project=P-001 "
+                "images@/path/to/image1.jpg images@/path/to/image2.jpg",
+            )
+        ],
+    )
     @action(detail=False, methods=['post'], url_path='bulk-upload')
     def bulk_upload(self, request):
         """Bir vaqtda bir nechta rasm yuklash"""

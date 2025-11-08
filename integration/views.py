@@ -5,6 +5,7 @@ from rest_framework import status
 from django.db import transaction
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample
 import threading
 from zeep import Client as ZeepClient, Settings
 from zeep.cache import SqliteCache
@@ -13,7 +14,11 @@ from zeep.transports import Transport
 from nomenklatura.models import Nomenklatura
 from client.models import Client
 from .models import Integration, IntegrationLog
-from .serializers import IntegrationSerializer
+from .serializers import (
+    IntegrationSerializer,
+    IntegrationSyncResponseSerializer,
+    IntegrationSyncStatusSerializer,
+)
 import logging
 import uuid
 import time as time_module
@@ -338,6 +343,28 @@ def sync_clients_async(integration_id, task_id):
         log_obj.save(update_fields=['status', 'error_details', 'end_time'])
 
 
+@extend_schema(
+    tags=['Integration'],
+    summary="1C dan nomenklatura ma'lumotlarini sync qilishni boshlash",
+    description=(
+        "Integration sozlamasidagi WSDL va method ma'lumotlari asosida 1C dan nomenklatura"
+        " ma'lumotlarini fon rejimida yuklashni boshlaydi. Jarayon tugaguncha `task_id`"
+        " orqali `GET /api/v1/integration/sync-status/{task_id}/` endpointiga murojaat qilib"
+        " progressni kuzatish mumkin."
+    ),
+    responses={
+        202: IntegrationSyncResponseSerializer,
+        401: OpenApiResponse(description="Authentication talab qilinadi"),
+        404: OpenApiResponse(description="Integration topilmadi yoki faol emas"),
+    },
+    examples=[
+        OpenApiExample(
+            name="Curl misoli",
+            value="curl -X POST http://localhost:8000/api/v1/integration/1/sync-nomenklatura/ "
+            "-H \"Authorization: Bearer <access_token>\"",
+        )
+    ],
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def sync_nomenklatura_from_1c(request, integration_id):
@@ -358,18 +385,43 @@ def sync_nomenklatura_from_1c(request, integration_id):
     thread.daemon = True
     thread.start()
     
-    return Response({
-        'task_id': task_id,
-        'status': 'started',
-        'message': f'Nomenklatura sync started for {integration.name}',
-        'integration': {
-            'id': integration.id,
-            'name': integration.name,
-            'project': integration.project.name
-        }
-    }, status=status.HTTP_202_ACCEPTED)
+    return Response(
+        {
+            'task_id': task_id,
+            'status': 'started',
+            'message': f'Nomenklatura sync started for {integration.name}',
+            'integration': {
+                'id': integration.id,
+                'name': integration.name,
+                'project': integration.project.name,
+            },
+        },
+        status=status.HTTP_202_ACCEPTED,
+    )
 
 
+@extend_schema(
+    tags=['Integration'],
+    summary="1C dan client ma'lumotlarini sync qilishni boshlash",
+    description=(
+        "Integration sozlamasidagi WSDL va method ma'lumotlari asosida 1C dan client"
+        " ma'lumotlarini fon rejimida yuklashni boshlaydi. Jarayon tugaguncha `task_id`"
+        " orqali `GET /api/v1/integration/sync-status/{task_id}/` endpointiga murojaat qilib"
+        " progressni kuzatish mumkin."
+    ),
+    responses={
+        202: IntegrationSyncResponseSerializer,
+        401: OpenApiResponse(description="Authentication talab qilinadi"),
+        404: OpenApiResponse(description="Integration topilmadi yoki faol emas"),
+    },
+    examples=[
+        OpenApiExample(
+            name="HTTPie misoli",
+            value="http POST http://localhost:8000/api/v1/integration/1/sync-clients/ "
+            "Authorization:\"Bearer <access_token>\"",
+        )
+    ],
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def sync_clients_from_1c(request, integration_id):
@@ -390,49 +442,86 @@ def sync_clients_from_1c(request, integration_id):
     thread.daemon = True
     thread.start()
     
-    return Response({
-        'task_id': task_id,
-        'status': 'started',
-        'message': f'Clients sync started for {integration.name}',
-        'integration': {
-            'id': integration.id,
-            'name': integration.name,
-            'project': integration.project.name
-        }
-    }, status=status.HTTP_202_ACCEPTED)
+    return Response(
+        {
+            'task_id': task_id,
+            'status': 'started',
+            'message': f'Clients sync started for {integration.name}',
+            'integration': {
+                'id': integration.id,
+                'name': integration.name,
+                'project': integration.project.name,
+            },
+        },
+        status=status.HTTP_202_ACCEPTED,
+    )
 
 
+@extend_schema(
+    tags=['Integration'],
+    summary="1C sync jarayonining statusini olish",
+    description=(
+        "`task_id` bo'yicha fon sinxronizatsiya log'ini qaytaradi. Agar jarayon hali ham"
+        " davom etayotgan bo'lsa, `progress_percent` maydoni orqali qancha qismi"
+        " bajarilganini kuzatish mumkin."
+    ),
+    responses={
+        200: IntegrationSyncStatusSerializer,
+        401: OpenApiResponse(description="Authentication talab qilinadi"),
+        404: OpenApiResponse(description="Berilgan task_id bo'yicha log topilmadi"),
+    },
+    examples=[
+        OpenApiExample(
+            name="Statusni olish",
+            value="http GET http://localhost:8000/api/v1/integration/sync-status/afb9d96e-... "
+            "Authorization:\"Bearer <access_token>\"",
+        )
+    ],
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_sync_status(request, task_id):
     """Sync progress'ni olish"""
     try:
         log_obj = IntegrationLog.objects.get(task_id=task_id)
-        return Response({
-            'task_id': log_obj.task_id,
-            'integration': {
-                'id': log_obj.integration.id,
-                'name': log_obj.integration.name,
-                'project': log_obj.integration.project.name
-            },
-            'sync_type': log_obj.sync_type,
-            'status': log_obj.status,
-            'total': log_obj.total,
-            'processed': log_obj.processed,
-            'created': log_obj.created,
-            'updated': log_obj.updated,
-            'errors': log_obj.errors,
-            'progress_percent': log_obj.progress_percent,
-            'error_message': log_obj.error_details,
-            'started_at': log_obj.start_time,
-            'completed_at': log_obj.end_time
-        })
+        return Response(
+            {
+                'task_id': log_obj.task_id,
+                'integration': {
+                    'id': log_obj.integration.id,
+                    'name': log_obj.integration.name,
+                    'project': log_obj.integration.project.name,
+                },
+                'sync_type': log_obj.sync_type,
+                'status': log_obj.status,
+                'total': log_obj.total,
+                'processed': log_obj.processed,
+                'created': log_obj.created,
+                'updated': log_obj.updated,
+                'errors': log_obj.errors,
+                'progress_percent': log_obj.progress_percent,
+                'error_message': log_obj.error_details,
+                'started_at': log_obj.start_time,
+                'completed_at': log_obj.end_time,
+            }
+        )
     except IntegrationLog.DoesNotExist:
-        return Response({
-            'error': 'Task not found'
-        }, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
+@extend_schema(
+    tags=['Integration'],
+    summary="Integration sozlamalarini ro'yxatini olish",
+    description=(
+        "Aktiv va o'chirilmagan integration yozuvlari ro'yxatini qaytaradi. Har bir integration"
+        " project bilan bog'langan bo'lib, 1C web-servis parametrlari va sync konfiguratsiyasini"
+        " o'z ichiga oladi."
+    ),
+    responses={
+        200: IntegrationSerializer(many=True),
+        401: OpenApiResponse(description="Authentication talab qilinadi"),
+    },
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def list_integrations(request):
@@ -441,5 +530,5 @@ def list_integrations(request):
         is_deleted=False
     ).select_related('project').order_by('-created_at')
     
-    serializer = IntegrationSerializer(integrations, many=True)
+    serializer = IntegrationSerializer(integrations, many=True, context={'request': request})
     return Response(serializer.data)

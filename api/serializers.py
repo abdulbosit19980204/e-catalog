@@ -140,3 +140,16 @@ class ProjectSerializer(serializers.ModelSerializer):
         validated_data.pop('code_1c', None)  # code_1c o'zgartirilmaydi
         return super().update(instance, validated_data)
 
+
+class ProjectImageBulkUploadSerializer(serializers.Serializer):
+    """Bir project uchun bir nechta rasm yuklash uchun schema."""
+
+    project = serializers.CharField(
+        help_text="Rasm bog'lanadigan project'ning `code_1c` qiymati", max_length=255
+    )
+    images = serializers.ListField(
+        child=serializers.ImageField(),
+        allow_empty=False,
+        help_text="Multipart form-data da yuboriladigan bir yoki bir nechta rasm fayllari",
+    )
+

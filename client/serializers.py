@@ -75,3 +75,16 @@ class ClientSerializer(serializers.ModelSerializer):
         validated_data.pop('client_code_1c', None)  # client_code_1c o'zgartirilmaydi
         return super().update(instance, validated_data)
 
+
+class ClientImageBulkUploadSerializer(serializers.Serializer):
+    """Client image bulk upload uchun schema."""
+
+    client = serializers.CharField(
+        help_text="Rasm bog'lanadigan client'ning `client_code_1c` qiymati", max_length=255
+    )
+    images = serializers.ListField(
+        child=serializers.ImageField(),
+        allow_empty=False,
+        help_text="Multipart form-data formatidagi bir yoki bir nechta rasm fayllari",
+    )
+
