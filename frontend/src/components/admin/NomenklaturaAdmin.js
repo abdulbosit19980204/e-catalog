@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import QuillEditor from "./QuillEditor";
+import RichTextEditor from "./RichTextEditor";
 import { nomenklaturaAPI } from "../../api";
 import { useNotification } from "../../contexts/NotificationContext";
 import "./AdminCRUD.css";
@@ -515,14 +515,11 @@ const NomenklaturaAdmin = () => {
               </div>
               <div className="form-group">
                 <label>Description</label>
-                <QuillEditor
+                <RichTextEditor
                   value={formData.description}
                   onChange={(value) =>
                     setFormData({ ...formData, description: value })
                   }
-                  modules={quillModules}
-                  className="quill-editor"
-                  style={{ height: '200px' }}
                 />
               </div>
               <div className="form-group">
