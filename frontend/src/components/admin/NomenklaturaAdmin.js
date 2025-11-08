@@ -65,7 +65,7 @@ const NomenklaturaAdmin = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, descriptionStatus, createdFrom, createdTo, updatedFrom, updatedTo]);
+  }, [page, pageSize, search, descriptionStatus, createdFrom, createdTo, updatedFrom, updatedTo, showError]);
 
   useEffect(() => {
     loadNomenklatura();
