@@ -75,7 +75,20 @@ class ProjectImageSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ProjectImage
-        fields = ['id', 'project', 'image', 'image_url', 'image_sm_url', 'image_md_url', 'image_lg_url', 'image_thumbnail_url', 'is_main', 'created_at']
+        fields = [
+            'id',
+            'project',
+            'image',
+            'category',
+            'note',
+            'image_url',
+            'image_sm_url',
+            'image_md_url',
+            'image_lg_url',
+            'image_thumbnail_url',
+            'is_main',
+            'created_at',
+        ]
         read_only_fields = ['id', 'created_at']
     
     def get_image_url(self, obj):
@@ -151,5 +164,17 @@ class ProjectImageBulkUploadSerializer(serializers.Serializer):
         child=serializers.ImageField(),
         allow_empty=False,
         help_text="Multipart form-data da yuboriladigan bir yoki bir nechta rasm fayllari",
+    )
+    category = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Optional: barcha rasmlar uchun umumiy toifa nomi",
+        max_length=120,
+    )
+    note = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Optional: barcha rasmlar uchun umumiy izoh",
+        max_length=255,
     )
 

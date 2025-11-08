@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Q
 from django.utils.html import format_html
 from django.urls import reverse
 from .models import Client, ClientImage
@@ -8,7 +9,7 @@ class ClientImageInline(admin.TabularInline):
     """ClientImage inline admin"""
     model = ClientImage
     extra = 1
-    fields = ('image', 'image_preview', 'is_main', 'is_active')
+    fields = ('image', 'image_preview', 'is_main', 'category', 'note', 'is_active')
     readonly_fields = ('image_preview',)
     
     def image_preview(self, obj):
@@ -22,11 +23,30 @@ class ClientImageInline(admin.TabularInline):
     image_preview.short_description = "Rasm"
 
 
+class DescriptionStatusFilter(admin.SimpleListFilter):
+    title = "Description holati"
+    parameter_name = "description_status"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("with", "Description bor"),
+            ("without", "Description yo'q"),
+        )
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value == "with":
+            return queryset.exclude(Q(description__isnull=True) | Q(description__exact=""))
+        if value == "without":
+            return queryset.filter(Q(description__isnull=True) | Q(description__exact=""))
+        return queryset
+
+
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
     """Client admin"""
     list_display = ['name', 'client_code_1c', 'email', 'phone', 'images_count', 'is_active', 'is_deleted', 'created_at']
-    list_filter = ['is_active', 'is_deleted', 'created_at', 'updated_at']
+    list_filter = ['is_active', 'is_deleted', DescriptionStatusFilter, 'created_at', 'updated_at']
     search_fields = ['name', 'client_code_1c', 'email', 'phone']
     readonly_fields = ['created_at', 'updated_at', 'images_count_display']
     inlines = [ClientImageInline]
@@ -77,8 +97,8 @@ class ClientAdmin(admin.ModelAdmin):
 @admin.register(ClientImage)
 class ClientImageAdmin(admin.ModelAdmin):
     """ClientImage admin"""
-    list_display = ['image_preview', 'client', 'is_main', 'is_active', 'is_deleted', 'created_at']
-    list_filter = ['is_main', 'is_active', 'is_deleted', 'client', 'created_at']
+    list_display = ['image_preview', 'client', 'category', 'is_main', 'is_active', 'is_deleted', 'created_at']
+    list_filter = ['category', 'is_main', 'is_active', 'is_deleted', 'client', 'created_at']
     search_fields = ['client__name', 'client__client_code_1c']
     readonly_fields = ['image_preview', 'created_at', 'updated_at']
     list_per_page = 25
@@ -86,7 +106,7 @@ class ClientImageAdmin(admin.ModelAdmin):
     ordering = ['-created_at']
     fieldsets = (
         ('Asosiy ma\'lumotlar', {
-            'fields': ('client', 'image', 'image_preview', 'is_main')
+            'fields': ('client', 'image', 'image_preview', 'is_main', 'category', 'note')
         }),
         ('Status', {
             'fields': ('is_active', 'is_deleted')

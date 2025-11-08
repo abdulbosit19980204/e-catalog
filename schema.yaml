@@ -36,13 +36,39 @@ info:
     /api/v1/integration/{id}/sync-clients/` — 1C dan client ma'lumotlarini yuklaydi.\n-
     `GET /api/v1/integration/sync-status/{task_id}/` — fon jarayonining progressini
     kuzatish.\n- Sync javobidagi `task_id` orqali status endpointiga murojaat qiling
-    (`status`: `fetching`, `processing`, `completed`, `error`).\n\n## Image Formats\n\n-
-    **image_url** — Original rasm\n- **image_sm_url** — Kichik (300x300px) — mobil
-    qurilmalar uchun\n- **image_md_url** — O'rta (600x600px) — planshetlar uchun\n-
-    **image_lg_url** — Katta (1200x1200px) — desktop qurilmalar uchun\n- **image_thumbnail_url**
-    — Thumbnail (150x150px) — ro'yxatlar uchun\n\n## Pagination\n\n- `page` — Sahifa
-    raqami (default: 1)\n- `page_size` — Sahifadagi elementlar soni (default: 20,
-    max: 100)\n\nResponse formati:\n```json\n{\n  \"count\": 100,\n  \"next\": \"http://localhost:8000/api/v1/project/?page=2\",\n
+    (`status`: `fetching`, `processing`, `completed`, `error`).\n\n### 1C Integration
+    Sozlamalari\n\nIntegration sozlamasini yaratish uchun quyidagi maydonlar kerak
+    (`IntegrationSerializer`):\n\n| Field | Type | Description |\n|-------|------|-------------|\n|
+    `name` | string | Integration nomi (unikal) |\n| `project` | integer | Project
+    ID (ForeignKey) |\n| `wsdl_url` | string (URL) | 1C web-service WSDL manzili |\n|
+    `method_nomenklatura` | string | 1C dagi nomenklaturani qaytaruvchi method nomi
+    |\n| `method_clients` | string | 1C dagi clientlarni qaytaruvchi method nomi |\n|
+    `chunk_size` | integer | Bir qo‘ng‘iroqda qayta ishlanadigan elementlar soni |\n|
+    `description` | rich text | Integration haqida qo‘shimcha ma’lumot |\n\n### 1C
+    → E-Catalog ma'lumot mapping'i\n\n#### Nomenklatura itemi (`sync-nomenklatura`
+    uchun)\n\n1C dan keladigan obyekt quyidagi atributlarni o‘z ichiga olishi kerak:\n\n-
+    `Code` *(string, required)* → `code_1c`\n- `Name` *(string, required)* → `name`\n-
+    `Title` *(string, optional)* → `title`\n- `Description` *(string/RichText, optional)*
+    → `description`\n- `Project` *(string, optional)* → Project nomi. Agar berilmasa,
+    integration bilan biriktirilgan project ishlatiladi.\n- `Images` *(list, optional)*
+    → Rasm URL yoki fayl manzillari. Har bir elementda quyidagi kichik maydonlar bo‘lishi
+    mumkin:\n  - `Image` / `image` — original fayl URL\n  - `ImageSm` / `image_sm`
+    — kichik o‘lcham\n  - `ImageMd` / `image_md` — o‘rta o‘lcham\n  - `ImageLg` /
+    `image_lg` — katta o‘lcham\n  - `IsMain` / `is_main` — asosiy rasm flagi\n\n####
+    Client itemi (`sync-clients` uchun)\n\n- `Code` *(string, required)* → `client_code_1c`\n-
+    `Name` *(string, required)* → `name`\n- `Email` *(string, optional)* → `email`\n-
+    `Phone` *(string, optional)* → `phone`\n- `Description` *(string, optional)* →
+    `description`\n- `Images` *(list, optional)* → Project ga o‘xshash strukturadagi
+    rasm ma’lumotlari\n\n#### Integration log statuslari\n\n- `fetching` — 1C dan
+    ma’lumotlar olinmoqda\n- `processing` — ma’lumotlar bazaga yozilmoqda\n- `completed`
+    — jarayon muvaffaqiyatli yakunlandi\n- `error` — xatolik yuz berdi (`error_message`
+    maydonida tafsilotlar qaytadi)\n\n## Image Formats\n\n- **image_url** — Original
+    rasm\n- **image_sm_url** — Kichik (300x300px) — mobil qurilmalar uchun\n- **image_md_url**
+    — O'rta (600x600px) — planshetlar uchun\n- **image_lg_url** — Katta (1200x1200px)
+    — desktop qurilmalar uchun\n- **image_thumbnail_url** — Thumbnail (150x150px)
+    — ro'yxatlar uchun\n\n## Pagination\n\n- `page` — Sahifa raqami (default: 1)\n-
+    `page_size` — Sahifadagi elementlar soni (default: 20, max: 100)\n\nResponse formati:\n```json\n{\n
+    \ \"count\": 100,\n  \"next\": \"http://localhost:8000/api/v1/project/?page=2\",\n
     \ \"previous\": null,\n  \"results\": [...]\n}\n```\n\n## Search & Filtering\n\n-
     `search` — Barcha `search_fields` maydonlarida qidirish\n- `field=value` — Aniq
     maydon bo'yicha filtrlash\n- `ordering=field` — Tartiblash (`-field` — teskari
@@ -164,6 +190,27 @@ paths:
           type: string
         description: Aniq code bo'yicha filter
       - in: query
+        name: created_from
+        schema:
+          type: string
+          format: date
+        description: Yaratilgan sanadan boshlab (YYYY-MM-DD)
+      - in: query
+        name: created_to
+        schema:
+          type: string
+          format: date
+        description: Yaratilgan sana chegarasi (YYYY-MM-DD)
+      - in: query
+        name: description_status
+        schema:
+          type: string
+        description: Description bo'yicha filter (`with` | `without`)
+      - in: query
+        name: email
+        schema:
+          type: string
+      - in: query
         name: name
         schema:
           type: string
@@ -189,6 +236,18 @@ paths:
         schema:
           type: string
         description: Client nomi, email yoki code bo'yicha qidirish
+      - in: query
+        name: updated_from
+        schema:
+          type: string
+          format: date
+        description: Yangilangan sanadan boshlab (YYYY-MM-DD)
+      - in: query
+        name: updated_to
+        schema:
+          type: string
+          format: date
+        description: Yangilangan sana chegarasi (YYYY-MM-DD)
       tags:
       - Clients
       security:
@@ -236,10 +295,27 @@ paths:
       summary: Client rasmlari ro'yxatini olish
       parameters:
       - in: query
+        name: category
+        schema:
+          type: string
+        description: Rasm toifasi bo'yicha filter
+      - in: query
         name: client
         schema:
           type: string
         description: Client code_1c bo'yicha filter
+      - in: query
+        name: created_from
+        schema:
+          type: string
+          format: date
+        description: Yaratilgan sanadan boshlab (YYYY-MM-DD)
+      - in: query
+        name: created_to
+        schema:
+          type: string
+          format: date
+        description: Yaratilgan sana chegarasi (YYYY-MM-DD)
       - in: query
         name: is_main
         schema:
@@ -413,7 +489,9 @@ paths:
     post:
       operationId: client_image_bulk_upload_create
       description: Multipart form-data formatida bir nechta rasm faylini birdaniga
-        yuklaydi. `client` maydoniga `client_code_1c` qiymati yuboriladi.
+        yuklaydi. `client` maydoniga `client_code_1c` qiymati yuboriladi. Ixtiyoriy
+        ravishda `category` va `note` maydonlari orqali rasmlarga umumiy teg yoki
+        izoh berish mumkin.
       summary: Client uchun bir nechta rasm yuklash
       tags:
       - Clients
@@ -425,7 +503,8 @@ paths:
             examples:
               MultipartSample:
                 value: http --form POST /api/v1/client-images/bulk-upload/ client=C-001
-                  images@/path/img1.jpg images@/path/img2.jpg
+                  category=report note='Ishchi jarayon fotosi' images@/path/img1.jpg
+                  images@/path/img2.jpg
                 summary: Multipart sample
                 description: HTTPie yordamida bir nechta client rasmini yuborish
           application/x-www-form-urlencoded:
@@ -452,7 +531,8 @@ paths:
                     previous: http://api.example.org/accounts/?page=2
                     results:
                     - http --form POST /api/v1/client-images/bulk-upload/ client=C-001
-                      images@/path/img1.jpg images@/path/img2.jpg
+                      category=report note='Ishchi jarayon fotosi' images@/path/img1.jpg
+                      images@/path/img2.jpg
                   summary: Multipart sample
                   description: HTTPie yordamida bir nechta client rasmini yuborish
           description: Yangi yuklangan rasmlar ro'yxati
@@ -700,6 +780,23 @@ paths:
           type: string
         description: Aniq code bo'yicha filter
       - in: query
+        name: created_from
+        schema:
+          type: string
+          format: date
+        description: Yaratilgan sanadan boshlab (YYYY-MM-DD)
+      - in: query
+        name: created_to
+        schema:
+          type: string
+          format: date
+        description: Yaratilgan sana chegarasi (YYYY-MM-DD)
+      - in: query
+        name: description_status
+        schema:
+          type: string
+        description: Description bo'yicha filter (`with` | `without`)
+      - in: query
         name: name
         schema:
           type: string
@@ -725,6 +822,18 @@ paths:
         schema:
           type: string
         description: Nomenklatura nomi yoki code bo'yicha qidirish
+      - in: query
+        name: updated_from
+        schema:
+          type: string
+          format: date
+        description: Yangilangan sanadan boshlab (YYYY-MM-DD)
+      - in: query
+        name: updated_to
+        schema:
+          type: string
+          format: date
+        description: Yangilangan sana chegarasi (YYYY-MM-DD)
       tags:
       - Nomenklatura
       security:
@@ -772,6 +881,23 @@ paths:
       description: Rasmlarni `nomenklatura` va `is_main` bo'yicha filterlash mumkin.
       summary: Nomenklatura rasmlari ro'yxatini olish
       parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: Rasm toifasi bo'yicha filter
+      - in: query
+        name: created_from
+        schema:
+          type: string
+          format: date
+        description: Yaratilgan sanadan boshlab (YYYY-MM-DD)
+      - in: query
+        name: created_to
+        schema:
+          type: string
+          format: date
+        description: Yaratilgan sana chegarasi (YYYY-MM-DD)
       - in: query
         name: is_main
         schema:
@@ -952,7 +1078,9 @@ paths:
     post:
       operationId: nomenklatura_image_bulk_upload_create
       description: Multipart form-data formatida bir nechta rasmni birdaniga yuklaydi.
-        `nomenklatura` maydoniga `code_1c` qiymati yuboriladi.
+        `nomenklatura` maydoniga `code_1c` qiymati yuboriladi. Ixtiyoriy ravishda
+        `category` va `note` maydonlari orqali rasmlarga umumiy teg yoki izoh qo'shish
+        mumkin.
       summary: Nomenklatura uchun bir nechta rasm yuklash
       tags:
       - Nomenklatura
@@ -964,7 +1092,8 @@ paths:
             examples:
               MultipartSample:
                 value: http --form POST /api/v1/nomenklatura-images/bulk-upload/ nomenklatura=N-001
-                  images@/path/img1.jpg images@/path/img2.jpg
+                  category=kir yuvish note='Telegram katalogi uchun' images@/path/img1.jpg
+                  images@/path/img2.jpg
                 summary: Multipart sample
                 description: HTTPie yordamida bir nechta nomenklatura rasmini yuborish
           application/x-www-form-urlencoded:
@@ -991,7 +1120,8 @@ paths:
                     previous: http://api.example.org/accounts/?page=2
                     results:
                     - http --form POST /api/v1/nomenklatura-images/bulk-upload/ nomenklatura=N-001
-                      images@/path/img1.jpg images@/path/img2.jpg
+                      category=kir yuvish note='Telegram katalogi uchun' images@/path/img1.jpg
+                      images@/path/img2.jpg
                   summary: Multipart sample
                   description: HTTPie yordamida bir nechta nomenklatura rasmini yuborish
           description: Yangi yuklangan rasmlar ro'yxati
@@ -1123,6 +1253,23 @@ paths:
           type: string
         description: Aniq code_1c bo'yicha filter
       - in: query
+        name: created_from
+        schema:
+          type: string
+          format: date
+        description: Yaratilgan sanadan boshlab (YYYY-MM-DD)
+      - in: query
+        name: created_to
+        schema:
+          type: string
+          format: date
+        description: Yaratilgan sana chegarasi (YYYY-MM-DD)
+      - in: query
+        name: description_status
+        schema:
+          type: string
+        description: Description bo'yicha filter (`with` | `without`)
+      - in: query
         name: name
         schema:
           type: string
@@ -1148,6 +1295,18 @@ paths:
         schema:
           type: string
         description: Project nomi, title yoki code_1c bo'yicha qidirish
+      - in: query
+        name: updated_from
+        schema:
+          type: string
+          format: date
+        description: Yangilangan sanadan boshlab (YYYY-MM-DD)
+      - in: query
+        name: updated_to
+        schema:
+          type: string
+          format: date
+        description: Yangilangan sana chegarasi (YYYY-MM-DD)
       tags:
       - Projects
       security:
@@ -1195,6 +1354,23 @@ paths:
       description: '`project` va `is_main` bo''yicha filterlash mumkin.'
       summary: Project rasmlari ro'yxatini olish
       parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: Rasm toifasi bo'yicha filter
+      - in: query
+        name: created_from
+        schema:
+          type: string
+          format: date
+        description: Yaratilgan sanadan boshlab (YYYY-MM-DD)
+      - in: query
+        name: created_to
+        schema:
+          type: string
+          format: date
+        description: Yaratilgan sana chegarasi (YYYY-MM-DD)
       - in: query
         name: is_main
         schema:
@@ -1376,7 +1552,8 @@ paths:
       operationId: project_image_bulk_upload_create
       description: Multipart form-data formatida bir nechta rasmni birdaniga yuklash
         imkonini beradi. `project` maydoniga `code_1c` qiymati, `images` maydoniga
-        esa bir yoki bir nechta fayl yuboriladi.
+        esa bir yoki bir nechta fayl yuboriladi. Ixtiyoriy ravishda `category` va
+        `note` maydonlari orqali rasmlar uchun umumiy teg yoki izoh qo'shish mumkin.
       summary: Project uchun bir nechta rasm yuklash
       tags:
       - Projects
@@ -1388,7 +1565,8 @@ paths:
             examples:
               MultipartSample:
                 value: http --form POST /api/v1/project-images/bulk-upload/ project=P-001
-                  images@/path/to/image1.jpg images@/path/to/image2.jpg
+                  category=marketing note='Banner versiyasi' images@/path/to/image1.jpg
+                  images@/path/to/image2.jpg
                 summary: Multipart sample
                 description: HTTPie yordamida bir nechta rasm yuborish
           application/x-www-form-urlencoded:
@@ -1415,7 +1593,8 @@ paths:
                     previous: http://api.example.org/accounts/?page=2
                     results:
                     - http --form POST /api/v1/project-images/bulk-upload/ project=P-001
-                      images@/path/to/image1.jpg images@/path/to/image2.jpg
+                      category=marketing note='Banner versiyasi' images@/path/to/image1.jpg
+                      images@/path/to/image2.jpg
                   summary: Multipart sample
                   description: HTTPie yordamida bir nechta rasm yuborish
           description: Yangi yuklangan rasmlar ro'yxati
@@ -1592,6 +1771,14 @@ components:
         image:
           type: string
           format: uri
+        category:
+          type: string
+          description: Rasm toifasi yoki teg
+          maxLength: 120
+        note:
+          type: string
+          description: Rasm haqida qo'shimcha izoh
+          maxLength: 255
         image_url:
           type: string
           readOnly: true
@@ -1638,6 +1825,14 @@ components:
             type: string
             format: binary
           description: Multipart form-data formatidagi bir yoki bir nechta rasm fayllari
+        category:
+          type: string
+          description: 'Optional: barcha rasmlar uchun umumiy toifa nomi'
+          maxLength: 120
+        note:
+          type: string
+          description: 'Optional: barcha rasmlar uchun umumiy izoh'
+          maxLength: 255
       required:
       - client
       - images
@@ -1649,6 +1844,14 @@ components:
         image:
           type: string
           format: binary
+        category:
+          type: string
+          description: Rasm toifasi yoki teg
+          maxLength: 120
+        note:
+          type: string
+          description: Rasm haqida qo'shimcha izoh
+          maxLength: 255
         is_main:
           type: boolean
       required:
@@ -1901,6 +2104,14 @@ components:
         image:
           type: string
           format: uri
+        category:
+          type: string
+          description: Rasm toifasi yoki teg
+          maxLength: 120
+        note:
+          type: string
+          description: Rasm haqida qo'shimcha izoh
+          maxLength: 255
         image_url:
           type: string
           readOnly: true
@@ -1947,6 +2158,14 @@ components:
             format: binary
           description: Multipart form-data ko'rinishidagi bir yoki bir nechta rasm
             fayllari
+        category:
+          type: string
+          description: 'Optional: barcha rasmlar uchun umumiy toifa nomi'
+          maxLength: 120
+        note:
+          type: string
+          description: 'Optional: barcha rasmlar uchun umumiy izoh'
+          maxLength: 255
       required:
       - images
       - nomenklatura
@@ -1958,6 +2177,14 @@ components:
         image:
           type: string
           format: binary
+        category:
+          type: string
+          description: Rasm toifasi yoki teg
+          maxLength: 120
+        note:
+          type: string
+          description: Rasm haqida qo'shimcha izoh
+          maxLength: 255
         is_main:
           type: boolean
       required:
@@ -2132,6 +2359,14 @@ components:
         image:
           type: string
           format: binary
+        category:
+          type: string
+          description: Rasm toifasi yoki teg
+          maxLength: 120
+        note:
+          type: string
+          description: Rasm haqida qo'shimcha izoh
+          maxLength: 255
         is_main:
           type: boolean
     PatchedClientRequest:
@@ -2169,6 +2404,14 @@ components:
         image:
           type: string
           format: binary
+        category:
+          type: string
+          description: Rasm toifasi yoki teg
+          maxLength: 120
+        note:
+          type: string
+          description: Rasm haqida qo'shimcha izoh
+          maxLength: 255
         is_main:
           type: boolean
     PatchedNomenklaturaRequest:
@@ -2201,6 +2444,14 @@ components:
         image:
           type: string
           format: binary
+        category:
+          type: string
+          description: Rasm toifasi yoki teg
+          maxLength: 120
+        note:
+          type: string
+          description: Rasm haqida qo'shimcha izoh
+          maxLength: 255
         is_main:
           type: boolean
     PatchedProjectRequest:
@@ -2278,6 +2529,14 @@ components:
         image:
           type: string
           format: uri
+        category:
+          type: string
+          description: Rasm toifasi yoki teg
+          maxLength: 120
+        note:
+          type: string
+          description: Rasm haqida qo'shimcha izoh
+          maxLength: 255
         image_url:
           type: string
           readOnly: true
@@ -2325,6 +2584,14 @@ components:
             format: binary
           description: Multipart form-data da yuboriladigan bir yoki bir nechta rasm
             fayllari
+        category:
+          type: string
+          description: 'Optional: barcha rasmlar uchun umumiy toifa nomi'
+          maxLength: 120
+        note:
+          type: string
+          description: 'Optional: barcha rasmlar uchun umumiy izoh'
+          maxLength: 255
       required:
       - images
       - project
@@ -2336,6 +2603,14 @@ components:
         image:
           type: string
           format: binary
+        category:
+          type: string
+          description: Rasm toifasi yoki teg
+          maxLength: 120
+        note:
+          type: string
+          description: Rasm haqida qo'shimcha izoh
+          maxLength: 255
         is_main:
           type: boolean
       required:

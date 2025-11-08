@@ -14,10 +14,12 @@ const ClientList = () => {
   const [selectedClient, setSelectedClient] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
 
   useEffect(() => {
     loadClients();
-  }, [page, search]);
+  }, [page, search, createdFrom, createdTo]);
 
   const loadClients = async () => {
     try {
@@ -26,6 +28,8 @@ const ClientList = () => {
       const params = {
         page,
         search: search || undefined,
+        created_from: createdFrom || undefined,
+        created_to: createdTo || undefined,
       };
       const response = await clientAPI.getClients(params);
       setClients(response.data.results || response.data);
@@ -58,6 +62,30 @@ const ClientList = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
           />
+          <div className="date-filters">
+            <label>
+              Yaratilgan (dan)
+              <input
+                type="date"
+                value={createdFrom}
+                onChange={(e) => {
+                  setCreatedFrom(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+            <label>
+              Yaratilgan (gacha)
+              <input
+                type="date"
+                value={createdTo}
+                onChange={(e) => {
+                  setCreatedTo(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+          </div>
           <button type="submit" className="search-button">
             Qidirish
           </button>

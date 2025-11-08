@@ -135,12 +135,58 @@
   color: #6c757d;
 }
 
+.hero-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.highlight-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+}
+
+.highlight-thumb {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: #f1f3f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.highlight-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.highlight-info h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.highlight-info p {
+  margin: 4px 0 0 0;
+  font-size: 0.82rem;
+  color: #6c757d;
+}
+
 .hero-media {
   position: relative;
-  border-radius: 32px;
-  background: radial-gradient(circle at top left, rgba(0, 123, 255, 0.35), rgba(0, 123, 255, 0.05));
-  box-shadow: 0 36px 65px rgba(15, 23, 42, 0.18);
-  min-height: 360px;
+  border-radius: 28px;
+  background: radial-gradient(circle at 25% 0%, rgba(0, 123, 255, 0.28), rgba(0, 123, 255, 0.04));
+  box-shadow: 0 24px 55px rgba(15, 23, 42, 0.16);
+  min-height: 280px;
+  max-height: 340px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -150,7 +196,8 @@
 .hero-media img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  transform: scale(1.02);
 }
 
 .hero-placeholder {
@@ -252,73 +299,110 @@
   text-decoration: underline;
 }
 
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 22px;
+.placeholder {
+  color: #495057;
+  font-size: 0.9rem;
 }
 
-.project-card {
-  background: #f8f9fa;
-  border-radius: 22px;
-  overflow: hidden;
+.project-feed {
   display: flex;
   flex-direction: column;
-  box-shadow: inset 0 0 0 1px rgba(222, 226, 230, 0.6);
+  gap: 18px;
 }
 
-.preview-image {
-  width: 100%;
-  aspect-ratio: 16 / 10;
+.project-feed-item {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 18px;
+  padding: 16px 20px;
+  border-radius: 22px;
+  background: #f8faff;
+  box-shadow: inset 0 0 0 1px rgba(0, 123, 255, 0.08);
+  align-items: center;
+}
+
+.project-thumb {
+  width: 120px;
+  height: 90px;
+  border-radius: 16px;
+  overflow: hidden;
   background: white;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.preview-image img {
+.project-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.placeholder {
-  color: #495057;
-  font-size: 0.9rem;
-}
-
-.preview-body {
-  padding: 22px;
+.project-content {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+
+.project-content h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #0f172a;
+}
+
+.project-content p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.45;
+  font-size: 0.95rem;
+}
+
+.project-chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.chip.accent {
+  background: rgba(0, 123, 255, 0.14);
+  color: #0062ce;
+}
+
+.chip.subtle {
+  background: rgba(15, 23, 42, 0.06);
+  color: #475569;
+}
+
+.project-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 12px;
 }
 
-.preview-body h3 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.preview-subtitle {
-  margin: 0;
+.project-updated {
+  font-size: 0.8rem;
   color: #6c757d;
 }
 
-.preview-text {
-  margin: 0;
-  color: #495057;
-  line-height: 1.5;
-  font-size: 0.96rem;
-}
-
-.more-link {
-  color: #007bff;
-  font-weight: 600;
+.pill-link {
   text-decoration: none;
-}
-
-.more-link:hover {
-  text-decoration: underline;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #007bff 0%, #4694ff 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 0.82rem;
+  box-shadow: 0 14px 24px rgba(0, 123, 255, 0.2);
 }
 
 .client-grid {
@@ -575,6 +659,11 @@
   animation: shimmer 1.4s ease infinite;
 }
 
+.skeleton-card.compact {
+  height: 126px;
+  border-radius: 20px;
+}
+
 @keyframes shimmer {
   0% {
     background-position: 100% 0;
@@ -611,6 +700,25 @@
   .section-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .project-feed-item {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .project-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pill-link {
+    width: 100%;
+    text-align: center;
+  }
+
+  .hero-highlights {
+    grid-template-columns: 1fr;
   }
 
   .hero-stat-card {

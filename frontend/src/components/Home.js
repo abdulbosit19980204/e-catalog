@@ -131,11 +131,18 @@ const Home = () => {
     );
   };
 
-  const heroProduct = useMemo(() => {
-    return featured.products.find((item) => getPreviewImage(item)) || null;
-  }, [featured.products]);
+  const heroProduct = useMemo(
+    () => featured.products.find((item) => getPreviewImage(item)) || null,
+    [featured.products]
+  );
 
   const heroImage = heroProduct ? getPreviewImage(heroProduct) : null;
+
+  const heroHighlights = useMemo(() => {
+    return featured.products
+      .filter((item) => getPreviewImage(item))
+      .slice(0, 3);
+  }, [featured.products]);
 
   return (
     <div className="home">
@@ -167,6 +174,25 @@ const Home = () => {
                 </Link>
               ))}
             </div>
+            {heroHighlights.length > 0 && (
+              <div className="hero-highlights">
+                {heroHighlights.map((item) => (
+                  <article key={item.id} className="highlight-card">
+                    <div className="highlight-thumb">
+                      {getPreviewImage(item) ? (
+                        <img src={getPreviewImage(item)} alt={item.name} />
+                      ) : (
+                        <span className="placeholder">Rasm yo‘q</span>
+                      )}
+                    </div>
+                    <div className="highlight-info">
+                      <h4>{item.name}</h4>
+                      {item.title && <p>{item.title}</p>}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="hero-media">
@@ -201,12 +227,12 @@ const Home = () => {
           </Link>
         </div>
 
-        <div className="card-grid project-grid">
+        <div className="project-feed">
           {loading && (
             <>
-              <div className="skeleton-card" />
-              <div className="skeleton-card" />
-              <div className="skeleton-card" />
+              <div className="skeleton-card compact" />
+              <div className="skeleton-card compact" />
+              <div className="skeleton-card compact" />
             </>
           )}
           {error && !loading && <div className="error-inline">{error}</div>}
@@ -222,25 +248,33 @@ const Home = () => {
                   : previewText;
 
               return (
-                <article key={project.id} className="project-card">
-                <div className="preview-image">
-                  {getPreviewImage(project) ? (
+                <article key={project.id} className="project-feed-item">
+                  <div className="project-thumb">
+                    {getPreviewImage(project) ? (
                       <img src={getPreviewImage(project)} alt={project.name} />
-                  ) : (
-                    <div className="placeholder">Rasm yo‘q</div>
-                  )}
-                </div>
-                <div className="preview-body">
-                  <h3>{project.name}</h3>
-                  {project.title && <p className="preview-subtitle">{project.title}</p>}
-                    {truncatedText && (
-                      <p className="preview-text">{truncatedText}</p>
+                    ) : (
+                      <div className="placeholder">Rasm yo‘q</div>
                     )}
-                  <Link to="/projects" className="more-link">
-                    Loyihalarni ko‘rish
-                  </Link>
-                </div>
-              </article>
+                  </div>
+                  <div className="project-content">
+                    <div className="project-chip-row">
+                      {project.title && <span className="chip accent">{project.title}</span>}
+                      <span className="chip subtle">#{project.code_1c || "project"}</span>
+                    </div>
+                    <h3>{project.name}</h3>
+                    {truncatedText && <p>{truncatedText}</p>}
+                    <div className="project-actions">
+                      <span className="project-updated">
+                        {project.updated_at
+                          ? new Date(project.updated_at).toLocaleDateString("uz-UZ")
+                          : "Yangilanish sanasi mavjud emas"}
+                      </span>
+                      <Link to="/projects" className="pill-link">
+                        Batafsil loyiha
+                      </Link>
+                    </div>
+                  </div>
+                </article>
               );
             })}
         </div>

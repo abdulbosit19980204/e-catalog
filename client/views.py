@@ -1,22 +1,61 @@
-from rest_framework import viewsets
-from rest_framework.response import Response
+import django_filters
+from django.db.models import Q
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
-    extend_schema_view,
-    extend_schema,
+    OpenApiExample,
     OpenApiParameter,
     OpenApiResponse,
-    OpenApiExample,
+    extend_schema,
+    extend_schema_view,
 )
-from drf_spectacular.types import OpenApiTypes
 from .models import Client, ClientImage
-from .serializers import (
-    ClientSerializer,
-    ClientImageSerializer,
-    ClientImageBulkUploadSerializer,
-)
+from .serializers import ClientImageBulkUploadSerializer, ClientImageSerializer, ClientSerializer
+
+
+class ClientFilterSet(django_filters.FilterSet):
+    description_status = django_filters.ChoiceFilter(
+        label="Description status",
+        method="filter_description",
+        choices=(("with", "Description bor"), ("without", "Description yo'q")),
+    )
+    created_from = django_filters.DateFilter(field_name='created_at', lookup_expr='date__gte')
+    created_to = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
+    updated_from = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__gte')
+    updated_to = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__lte')
+
+    class Meta:
+        model = Client
+        fields = [
+            'client_code_1c',
+            'name',
+            'email',
+            'description_status',
+            'created_from',
+            'created_to',
+            'updated_from',
+            'updated_to',
+        ]
+
+    def filter_description(self, queryset, name, value):
+        if value == "with":
+            return queryset.exclude(Q(description__isnull=True) | Q(description__exact=""))
+        if value == "without":
+            return queryset.filter(Q(description__isnull=True) | Q(description__exact=""))
+        return queryset
+
+
+class ClientImageFilterSet(django_filters.FilterSet):
+    created_from = django_filters.DateFilter(field_name='created_at', lookup_expr='date__gte')
+    created_to = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
+
+    class Meta:
+        model = ClientImage
+        fields = ['client', 'is_main', 'category', 'created_from', 'created_to']
 
 
 @extend_schema_view(
@@ -58,6 +97,36 @@ from .serializers import (
                 type=OpenApiTypes.STR,
                 description="Aniq nom bo'yicha filter",
             ),
+            OpenApiParameter(
+                name='description_status',
+                required=False,
+                type=OpenApiTypes.STR,
+                description="Description bo'yicha filter (`with` | `without`)",
+            ),
+            OpenApiParameter(
+                name='created_from',
+                required=False,
+                type=OpenApiTypes.DATE,
+                description="Yaratilgan sanadan boshlab (YYYY-MM-DD)",
+            ),
+            OpenApiParameter(
+                name='created_to',
+                required=False,
+                type=OpenApiTypes.DATE,
+                description="Yaratilgan sana chegarasi (YYYY-MM-DD)",
+            ),
+            OpenApiParameter(
+                name='updated_from',
+                required=False,
+                type=OpenApiTypes.DATE,
+                description="Yangilangan sanadan boshlab (YYYY-MM-DD)",
+            ),
+            OpenApiParameter(
+                name='updated_to',
+                required=False,
+                type=OpenApiTypes.DATE,
+                description="Yangilangan sana chegarasi (YYYY-MM-DD)",
+            ),
         ],
     ),
     retrieve=extend_schema(
@@ -91,7 +160,7 @@ class ClientViewSet(viewsets.ModelViewSet):
     queryset = Client.objects.filter(is_deleted=False)
     serializer_class = ClientSerializer
     lookup_field = 'client_code_1c'
-    filterset_fields = ['client_code_1c', 'name', 'email']
+    filterset_class = ClientFilterSet
     search_fields = ['client_code_1c', 'name', 'email']
     permission_classes = [IsAuthenticated]  # Faqat authenticated user'lar uchun
     
@@ -124,6 +193,24 @@ class ClientViewSet(viewsets.ModelViewSet):
                 type=OpenApiTypes.BOOL,
                 description="Asosiy rasm bo'yicha filter",
             ),
+            OpenApiParameter(
+                name='category',
+                required=False,
+                type=OpenApiTypes.STR,
+                description="Rasm toifasi bo'yicha filter",
+            ),
+            OpenApiParameter(
+                name='created_from',
+                required=False,
+                type=OpenApiTypes.DATE,
+                description="Yaratilgan sanadan boshlab (YYYY-MM-DD)",
+            ),
+            OpenApiParameter(
+                name='created_to',
+                required=False,
+                type=OpenApiTypes.DATE,
+                description="Yaratilgan sana chegarasi (YYYY-MM-DD)",
+            ),
         ],
     ),
     create=extend_schema(
@@ -140,7 +227,7 @@ class ClientViewSet(viewsets.ModelViewSet):
 class ClientImageViewSet(viewsets.ModelViewSet):
     queryset = ClientImage.objects.filter(is_deleted=False)
     serializer_class = ClientImageSerializer
-    filterset_fields = ['client', 'is_main']
+    filterset_class = ClientImageFilterSet
     search_fields = ['client__client_code_1c', 'client__name']
     permission_classes = [IsAuthenticated]  # Faqat authenticated user'lar uchun
     
@@ -160,7 +247,8 @@ class ClientImageViewSet(viewsets.ModelViewSet):
         summary="Client uchun bir nechta rasm yuklash",
         description=(
             "Multipart form-data formatida bir nechta rasm faylini birdaniga yuklaydi. "
-            "`client` maydoniga `client_code_1c` qiymati yuboriladi."
+            "`client` maydoniga `client_code_1c` qiymati yuboriladi. Ixtiyoriy ravishda `category` "
+            "va `note` maydonlari orqali rasmlarga umumiy teg yoki izoh berish mumkin."
         ),
         request=ClientImageBulkUploadSerializer,
         responses={
@@ -176,6 +264,7 @@ class ClientImageViewSet(viewsets.ModelViewSet):
                 name="Multipart sample",
                 description="HTTPie yordamida bir nechta client rasmini yuborish",
                 value="http --form POST /api/v1/client-images/bulk-upload/ client=C-001 "
+                "category=report note='Ishchi jarayon fotosi' "
                 "images@/path/img1.jpg images@/path/img2.jpg",
             )
         ],
@@ -204,6 +293,9 @@ class ClientImageViewSet(viewsets.ModelViewSet):
                 {'error': 'Rasmlar talab qilinadi'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        category = request.data.get('category', '')
+        note = request.data.get('note', '')
         
         created_images = []
         for image in images:
@@ -212,7 +304,9 @@ class ClientImageViewSet(viewsets.ModelViewSet):
                 image=image,
                 is_main=False,
                 is_active=True,
-                is_deleted=False
+                is_deleted=False,
+                category=category,
+                note=note,
             )
             serializer = ClientImageSerializer(image_obj, context={'request': request})
             created_images.append(serializer.data)

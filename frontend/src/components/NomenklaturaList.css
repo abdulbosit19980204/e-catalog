@@ -27,7 +27,7 @@
 
 .search-form {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
   flex: 1;
   min-width: 280px;
@@ -64,6 +64,35 @@
 .search-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 24px rgba(0, 123, 255, 0.22);
+}
+
+.date-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.date-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.date-filters input {
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+.date-filters input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
 }
 
 .loading {

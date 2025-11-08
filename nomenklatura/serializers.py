@@ -10,7 +10,20 @@ class NomenklaturaImageSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = NomenklaturaImage
-        fields = ['id', 'nomenklatura', 'image', 'image_url', 'image_sm_url', 'image_md_url', 'image_lg_url', 'image_thumbnail_url', 'is_main', 'created_at']
+        fields = [
+            'id',
+            'nomenklatura',
+            'image',
+            'category',
+            'note',
+            'image_url',
+            'image_sm_url',
+            'image_md_url',
+            'image_lg_url',
+            'image_thumbnail_url',
+            'is_main',
+            'created_at',
+        ]
         read_only_fields = ['id', 'created_at']
         extra_kwargs = {
             'image': {'required': False}
@@ -88,5 +101,17 @@ class NomenklaturaImageBulkUploadSerializer(serializers.Serializer):
         child=serializers.ImageField(),
         allow_empty=False,
         help_text="Multipart form-data ko'rinishidagi bir yoki bir nechta rasm fayllari",
+    )
+    category = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Optional: barcha rasmlar uchun umumiy toifa nomi",
+        max_length=120,
+    )
+    note = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Optional: barcha rasmlar uchun umumiy izoh",
+        max_length=255,
     )
 

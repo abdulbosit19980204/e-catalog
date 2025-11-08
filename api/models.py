@@ -33,6 +33,18 @@ class ProjectImage(BaseModel):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='images', db_index=True)
     image = models.ImageField(upload_to='projects/')
     is_main = models.BooleanField(default=False, db_index=True)
+    category = models.CharField(
+        max_length=120,
+        blank=True,
+        default='',
+        help_text="Rasm toifasi yoki teg"
+    )
+    note = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text="Rasm haqida qo'shimcha izoh"
+    )
     
     # Turli o'lchamlarda rasmlar
     image_sm = ImageSpecField(

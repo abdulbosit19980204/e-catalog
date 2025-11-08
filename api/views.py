@@ -1,21 +1,55 @@
-from rest_framework import viewsets
-from rest_framework.response import Response
+import django_filters
+from django.db.models import Q
 from rest_framework import status
+from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.response import Response
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
-    extend_schema_view,
-    extend_schema,
+    OpenApiExample,
     OpenApiParameter,
     OpenApiResponse,
-    OpenApiExample,
+    extend_schema,
+    extend_schema_view,
 )
-from drf_spectacular.types import OpenApiTypes
 from .models import Project, ProjectImage
 from .serializers import (
-    ProjectSerializer,
-    ProjectImageSerializer,
     ProjectImageBulkUploadSerializer,
+    ProjectImageSerializer,
+    ProjectSerializer,
 )
+
+
+class ProjectFilterSet(django_filters.FilterSet):
+    description_status = django_filters.ChoiceFilter(
+        label="Description status",
+        method="filter_description",
+        choices=(("with", "Description bor"), ("without", "Description yo'q")),
+    )
+    created_from = django_filters.DateFilter(field_name='created_at', lookup_expr='date__gte')
+    created_to = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
+    updated_from = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__gte')
+    updated_to = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__lte')
+
+    class Meta:
+        model = Project
+        fields = ['code_1c', 'name', 'description_status', 'created_from', 'created_to', 'updated_from', 'updated_to']
+
+    def filter_description(self, queryset, name, value):
+        if value == "with":
+            return queryset.exclude(Q(description__isnull=True) | Q(description__exact=""))
+        if value == "without":
+            return queryset.filter(Q(description__isnull=True) | Q(description__exact=""))
+        return queryset
+
+
+class ProjectImageFilterSet(django_filters.FilterSet):
+    created_from = django_filters.DateFilter(field_name='created_at', lookup_expr='date__gte')
+    created_to = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
+
+    class Meta:
+        model = ProjectImage
+        fields = ['project', 'is_main', 'category', 'created_from', 'created_to']
 
 
 @extend_schema_view(
@@ -57,6 +91,36 @@ from .serializers import (
                 type=OpenApiTypes.STR,
                 description="Aniq nom bo'yicha filter",
             ),
+            OpenApiParameter(
+                name='description_status',
+                required=False,
+                type=OpenApiTypes.STR,
+                description="Description bo'yicha filter (`with` | `without`)",
+            ),
+            OpenApiParameter(
+                name='created_from',
+                required=False,
+                type=OpenApiTypes.DATE,
+                description="Yaratilgan sanadan boshlab (YYYY-MM-DD)",
+            ),
+            OpenApiParameter(
+                name='created_to',
+                required=False,
+                type=OpenApiTypes.DATE,
+                description="Yaratilgan sana chegarasi (YYYY-MM-DD)",
+            ),
+            OpenApiParameter(
+                name='updated_from',
+                required=False,
+                type=OpenApiTypes.DATE,
+                description="Yangilangan sanadan boshlab (YYYY-MM-DD)",
+            ),
+            OpenApiParameter(
+                name='updated_to',
+                required=False,
+                type=OpenApiTypes.DATE,
+                description="Yangilangan sana chegarasi (YYYY-MM-DD)",
+            ),
         ],
     ),
     retrieve=extend_schema(
@@ -90,7 +154,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.filter(is_deleted=False)
     serializer_class = ProjectSerializer
     lookup_field = 'code_1c'
-    filterset_fields = ['code_1c', 'name']
+    filterset_class = ProjectFilterSet
     search_fields = ['code_1c', 'name', 'title']
     
     def get_queryset(self):
@@ -127,6 +191,24 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 type=OpenApiTypes.BOOL,
                 description="Asosiy rasm bo'yicha filter",
             ),
+            OpenApiParameter(
+                name='category',
+                required=False,
+                type=OpenApiTypes.STR,
+                description="Rasm toifasi bo'yicha filter",
+            ),
+            OpenApiParameter(
+                name='created_from',
+                required=False,
+                type=OpenApiTypes.DATE,
+                description="Yaratilgan sanadan boshlab (YYYY-MM-DD)",
+            ),
+            OpenApiParameter(
+                name='created_to',
+                required=False,
+                type=OpenApiTypes.DATE,
+                description="Yaratilgan sana chegarasi (YYYY-MM-DD)",
+            ),
         ],
     ),
     create=extend_schema(
@@ -143,7 +225,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 class ProjectImageViewSet(viewsets.ModelViewSet):
     queryset = ProjectImage.objects.filter(is_deleted=False)
     serializer_class = ProjectImageSerializer
-    filterset_fields = ['project', 'is_main']
+    filterset_class = ProjectImageFilterSet
     search_fields = ['project__code_1c', 'project__name']
     
     def get_queryset(self):
@@ -162,7 +244,8 @@ class ProjectImageViewSet(viewsets.ModelViewSet):
         summary="Project uchun bir nechta rasm yuklash",
         description=(
             "Multipart form-data formatida bir nechta rasmni birdaniga yuklash imkonini beradi. "
-            "`project` maydoniga `code_1c` qiymati, `images` maydoniga esa bir yoki bir nechta fayl yuboriladi."
+            "`project` maydoniga `code_1c` qiymati, `images` maydoniga esa bir yoki bir nechta fayl yuboriladi. "
+            "Ixtiyoriy ravishda `category` va `note` maydonlari orqali rasmlar uchun umumiy teg yoki izoh qo'shish mumkin."
         ),
         request=ProjectImageBulkUploadSerializer,
         responses={
@@ -178,6 +261,7 @@ class ProjectImageViewSet(viewsets.ModelViewSet):
                 name="Multipart sample",
                 description="HTTPie yordamida bir nechta rasm yuborish",
                 value="http --form POST /api/v1/project-images/bulk-upload/ project=P-001 "
+                "category=marketing note='Banner versiyasi' "
                 "images@/path/to/image1.jpg images@/path/to/image2.jpg",
             )
         ],
@@ -206,6 +290,9 @@ class ProjectImageViewSet(viewsets.ModelViewSet):
                 {'error': 'Rasmlar talab qilinadi'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        category = request.data.get('category', '')
+        note = request.data.get('note', '')
         
         created_images = []
         for image in images:
@@ -214,7 +301,9 @@ class ProjectImageViewSet(viewsets.ModelViewSet):
                 image=image,
                 is_main=False,
                 is_active=True,
-                is_deleted=False
+                is_deleted=False,
+                category=category,
+                note=note,
             )
             serializer = ProjectImageSerializer(image_obj, context={'request': request})
             created_images.append(serializer.data)

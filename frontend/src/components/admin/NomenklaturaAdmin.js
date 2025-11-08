@@ -20,12 +20,21 @@ const NomenklaturaAdmin = () => {
   const [selectedImages, setSelectedImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [editingNomenklatura, setEditingNomenklatura] = useState(null);
+  const [descriptionStatus, setDescriptionStatus] = useState("");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
+  const [updatedFrom, setUpdatedFrom] = useState("");
+  const [updatedTo, setUpdatedTo] = useState("");
   const [formData, setFormData] = useState({
     code_1c: "",
     name: "",
     title: "",
     description: "",
     is_active: true,
+  });
+  const [imageMeta, setImageMeta] = useState({
+    category: "",
+    note: "",
   });
 
   const loadNomenklatura = useCallback(async () => {
@@ -36,6 +45,11 @@ const NomenklaturaAdmin = () => {
         page,
         page_size: pageSize,
         search: search || undefined,
+        description_status: descriptionStatus || undefined,
+        created_from: createdFrom || undefined,
+        created_to: createdTo || undefined,
+        updated_from: updatedFrom || undefined,
+        updated_to: updatedTo || undefined,
       };
       const response = await nomenklaturaAPI.getNomenklatura(params);
       setNomenklatura(response.data.results || response.data);
@@ -51,7 +65,7 @@ const NomenklaturaAdmin = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search]);
+  }, [page, pageSize, search, descriptionStatus, createdFrom, createdTo, updatedFrom, updatedTo]);
 
   useEffect(() => {
     loadNomenklatura();
@@ -131,6 +145,8 @@ const NomenklaturaAdmin = () => {
   const handleUploadImages = (item) => {
     setSelectedNomenklatura(item);
     setSelectedImages([]);
+    setImageMeta({ category: "", note: "" });
+    setError(null);
     setShowImageModal(true);
   };
 
@@ -148,10 +164,11 @@ const NomenklaturaAdmin = () => {
     try {
       setUploading(true);
       setError(null);
-      await nomenklaturaAPI.bulkUploadImages(selectedNomenklatura.code_1c, selectedImages);
+      await nomenklaturaAPI.bulkUploadImages(selectedNomenklatura.code_1c, selectedImages, imageMeta);
       setShowImageModal(false);
       setSelectedImages([]);
       setSelectedNomenklatura(null);
+      setImageMeta({ category: "", note: "" });
       loadNomenklatura();
       success(`${selectedImages.length} ta rasm muvaffaqiyatli yuklandi!`);
     } catch (err) {
@@ -190,6 +207,16 @@ const NomenklaturaAdmin = () => {
     loadNomenklatura();
   };
 
+  const handleResetFilters = () => {
+    setSearch("");
+    setDescriptionStatus("");
+    setCreatedFrom("");
+    setCreatedTo("");
+    setUpdatedFrom("");
+    setUpdatedTo("");
+    setPage(1);
+  };
+
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setPage(newPage);
@@ -223,16 +250,66 @@ const NomenklaturaAdmin = () => {
       </div>
 
       <form onSubmit={handleSearch} className="search-form">
-        <input
-          type="text"
-          placeholder="Qidirish..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="search-input"
-        />
-        <button type="submit" className="btn-secondary">
-          Qidirish
-        </button>
+        <div className="search-row">
+          <input
+            type="text"
+            placeholder="Qidirish..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="search-input"
+          />
+          <button type="submit" className="btn-secondary">
+            Qidirish
+          </button>
+          <button type="button" className="btn-tertiary" onClick={handleResetFilters}>
+            Tozalash
+          </button>
+        </div>
+        <div className="filter-row">
+          <div className="filter-field">
+            <label>Description holati</label>
+            <select
+              value={descriptionStatus}
+              onChange={(e) => setDescriptionStatus(e.target.value)}
+            >
+              <option value="">Hammasi</option>
+              <option value="with">Description bor</option>
+              <option value="without">Description yo'q</option>
+            </select>
+          </div>
+          <div className="filter-field">
+            <label>Yaratilgan (dan)</label>
+            <input
+              type="date"
+              value={createdFrom}
+              onChange={(e) => setCreatedFrom(e.target.value)}
+            />
+          </div>
+          <div className="filter-field">
+            <label>Yaratilgan (gacha)</label>
+            <input
+              type="date"
+              value={createdTo}
+              onChange={(e) => setCreatedTo(e.target.value)}
+            />
+          </div>
+          <div className="filter-field">
+            <label>Yangilangan (dan)</label>
+            <input
+              type="date"
+              value={updatedFrom}
+              onChange={(e) => setUpdatedFrom(e.target.value)}
+            />
+          </div>
+          <div className="filter-field">
+            <label>Yangilangan (gacha)</label>
+            <input
+              type="date"
+              value={updatedTo}
+              onChange={(e) => setUpdatedTo(e.target.value)}
+            />
+          </div>
+        </div>
       </form>
 
       {error && (
@@ -505,6 +582,34 @@ const NomenklaturaAdmin = () => {
                     {selectedImages.length} ta rasm tanlandi
                   </p>
                 )}
+              </div>
+              <div className="meta-grid">
+                <div className="form-group">
+                  <label>Toifa (ixtiyoriy)</label>
+                  <input
+                    type="text"
+                    value={imageMeta.category}
+                    onChange={(e) =>
+                      setImageMeta((prev) => ({ ...prev, category: e.target.value }))
+                    }
+                    className="form-input"
+                    placeholder="Masalan: asosiy, variant"
+                    disabled={uploading}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Izoh (ixtiyoriy)</label>
+                  <textarea
+                    value={imageMeta.note}
+                    onChange={(e) =>
+                      setImageMeta((prev) => ({ ...prev, note: e.target.value }))
+                    }
+                    className="form-textarea"
+                    rows={3}
+                    placeholder="Qo'shimcha ma'lumot..."
+                    disabled={uploading}
+                  />
+                </div>
               </div>
               {error && (
                 <div className="error-message">

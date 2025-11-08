@@ -9,10 +9,12 @@ const ProjectList = () => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
 
   useEffect(() => {
     loadProjects();
-  }, [page, search]);
+  }, [page, search, createdFrom, createdTo]);
 
   const loadProjects = async () => {
     try {
@@ -21,6 +23,8 @@ const ProjectList = () => {
       const params = {
         page,
         search: search || undefined,
+        created_from: createdFrom || undefined,
+        created_to: createdTo || undefined,
       };
       const response = await projectAPI.getProjects(params);
       setProjects(response.data.results || response.data);
@@ -53,6 +57,30 @@ const ProjectList = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
           />
+          <div className="date-filters">
+            <label>
+              Yaratilgan (dan)
+              <input
+                type="date"
+                value={createdFrom}
+                onChange={(e) => {
+                  setCreatedFrom(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+            <label>
+              Yaratilgan (gacha)
+              <input
+                type="date"
+                value={createdTo}
+                onChange={(e) => {
+                  setCreatedTo(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+          </div>
           <button type="submit" className="search-button">
             Qidirish
           </button>

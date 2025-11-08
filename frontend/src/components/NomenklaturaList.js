@@ -12,10 +12,12 @@ const NomenklaturaList = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
 
   useEffect(() => {
     loadNomenklatura();
-  }, [page, search]);
+  }, [page, search, createdFrom, createdTo]);
 
   useEffect(() => {
     if (showDetailModal) {
@@ -36,6 +38,8 @@ const NomenklaturaList = () => {
       const params = {
         page,
         search: search || undefined,
+        created_from: createdFrom || undefined,
+        created_to: createdTo || undefined,
       };
       const response = await nomenklaturaAPI.getNomenklatura(params);
       setNomenklatura(response.data.results || response.data);
@@ -124,6 +128,30 @@ const NomenklaturaList = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
           />
+          <div className="date-filters">
+            <label>
+              Yaratilgan (dan)
+              <input
+                type="date"
+                value={createdFrom}
+                onChange={(e) => {
+                  setCreatedFrom(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+            <label>
+              Yaratilgan (gacha)
+              <input
+                type="date"
+                value={createdTo}
+                onChange={(e) => {
+                  setCreatedTo(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+          </div>
           <button type="submit" className="search-button">
             Qidirish
           </button>

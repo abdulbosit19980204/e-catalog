@@ -65,17 +65,29 @@ export const projectAPI = {
     return apiClient.delete(`/project/${code1c}/`);
   },
   // Image upload
-  uploadImage: (projectCode, imageFile) => {
+  uploadImage: (projectCode, imageFile, options = {}) => {
     const formData = new FormData();
     formData.append('project', projectCode);
     formData.append('image', imageFile);
+    if (options.category !== undefined) {
+      formData.append('category', options.category);
+    }
+    if (options.note !== undefined) {
+      formData.append('note', options.note);
+    }
     return apiClient.post("/project-image/", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
-  bulkUploadImages: (projectCode, imageFiles) => {
+  bulkUploadImages: (projectCode, imageFiles, options = {}) => {
     const formData = new FormData();
     formData.append('project', projectCode);
+    if (options.category !== undefined) {
+      formData.append('category', options.category);
+    }
+    if (options.note !== undefined) {
+      formData.append('note', options.note);
+    }
     imageFiles.forEach((file) => {
       formData.append('images', file);
     });
@@ -109,17 +121,29 @@ export const clientAPI = {
     return apiClient.delete(`/client/${clientCode1c}/`);
   },
   // Image upload
-  uploadImage: (clientCode, imageFile) => {
+  uploadImage: (clientCode, imageFile, options = {}) => {
     const formData = new FormData();
     formData.append('client', clientCode);
     formData.append('image', imageFile);
+    if (options.category !== undefined) {
+      formData.append('category', options.category);
+    }
+    if (options.note !== undefined) {
+      formData.append('note', options.note);
+    }
     return apiClient.post("/client-image/", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
-  bulkUploadImages: (clientCode, imageFiles) => {
+  bulkUploadImages: (clientCode, imageFiles, options = {}) => {
     const formData = new FormData();
     formData.append('client', clientCode);
+    if (options.category !== undefined) {
+      formData.append('category', options.category);
+    }
+    if (options.note !== undefined) {
+      formData.append('note', options.note);
+    }
     imageFiles.forEach((file) => {
       formData.append('images', file);
     });
@@ -153,17 +177,29 @@ export const nomenklaturaAPI = {
     return apiClient.delete(`/nomenklatura/${code1c}/`);
   },
   // Image upload
-  uploadImage: (nomenklaturaCode, imageFile) => {
+  uploadImage: (nomenklaturaCode, imageFile, options = {}) => {
     const formData = new FormData();
     formData.append('nomenklatura', nomenklaturaCode);
     formData.append('image', imageFile);
+    if (options.category !== undefined) {
+      formData.append('category', options.category);
+    }
+    if (options.note !== undefined) {
+      formData.append('note', options.note);
+    }
     return apiClient.post("/nomenklatura-image/", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
-  bulkUploadImages: (nomenklaturaCode, imageFiles) => {
+  bulkUploadImages: (nomenklaturaCode, imageFiles, options = {}) => {
     const formData = new FormData();
     formData.append('nomenklatura', nomenklaturaCode);
+    if (options.category !== undefined) {
+      formData.append('category', options.category);
+    }
+    if (options.note !== undefined) {
+      formData.append('note', options.note);
+    }
     imageFiles.forEach((file) => {
       formData.append('images', file);
     });

@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Q
 from django.utils.html import format_html
 from django.urls import reverse
 from .models import Project, ProjectImage
@@ -8,7 +9,7 @@ class ProjectImageInline(admin.TabularInline):
     """ProjectImage inline admin"""
     model = ProjectImage
     extra = 1
-    fields = ('image', 'image_preview', 'is_main', 'is_active')
+    fields = ('image', 'image_preview', 'is_main', 'category', 'note', 'is_active')
     readonly_fields = ('image_preview',)
     
     def image_preview(self, obj):
@@ -22,11 +23,30 @@ class ProjectImageInline(admin.TabularInline):
     image_preview.short_description = "Rasm"
 
 
+class DescriptionStatusFilter(admin.SimpleListFilter):
+    title = "Description holati"
+    parameter_name = "description_status"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("with", "Description bor"),
+            ("without", "Description yo'q"),
+        )
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value == "with":
+            return queryset.exclude(Q(description__isnull=True) | Q(description__exact=""))
+        if value == "without":
+            return queryset.filter(Q(description__isnull=True) | Q(description__exact=""))
+        return queryset
+
+
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     """Project admin"""
     list_display = ['name', 'code_1c', 'title', 'images_count', 'is_active', 'is_deleted', 'created_at']
-    list_filter = ['is_active', 'is_deleted', 'created_at', 'updated_at']
+    list_filter = ['is_active', 'is_deleted', DescriptionStatusFilter, 'created_at', 'updated_at']
     search_fields = ['name', 'code_1c', 'title']
     readonly_fields = ['created_at', 'updated_at', 'images_count_display']
     inlines = [ProjectImageInline]
@@ -77,8 +97,8 @@ class ProjectAdmin(admin.ModelAdmin):
 @admin.register(ProjectImage)
 class ProjectImageAdmin(admin.ModelAdmin):
     """ProjectImage admin"""
-    list_display = ['image_preview', 'project', 'is_main', 'is_active', 'is_deleted', 'created_at']
-    list_filter = ['is_main', 'is_active', 'is_deleted', 'project', 'created_at']
+    list_display = ['image_preview', 'project', 'category', 'is_main', 'is_active', 'is_deleted', 'created_at']
+    list_filter = ['category', 'is_main', 'is_active', 'is_deleted', 'project', 'created_at']
     search_fields = ['project__name', 'project__code_1c']
     readonly_fields = ['image_preview', 'created_at', 'updated_at']
     list_per_page = 25
@@ -86,7 +106,7 @@ class ProjectImageAdmin(admin.ModelAdmin):
     ordering = ['-created_at']
     fieldsets = (
         ('Asosiy ma\'lumotlar', {
-            'fields': ('project', 'image', 'image_preview', 'is_main')
+            'fields': ('project', 'image', 'image_preview', 'is_main', 'category', 'note')
         }),
         ('Status', {
             'fields': ('is_active', 'is_deleted')
