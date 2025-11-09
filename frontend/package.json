@@ -19,7 +19,11 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "start:prod:linux": "HOST=0.0.0.0 PORT=1596 REACT_APP_API_URL=http://178.218.200.120:1596/api/v1 react-scripts start",
+    "start:prod:win": "set HOST=0.0.0.0&& set PORT=1596&& set REACT_APP_API_URL=http://178.218.200.120:1596/api/v1&& react-scripts start",
+    "build:prod": "REACT_APP_API_URL=http://178.218.200.120:1596/api/v1 react-scripts build",
+    "build:prod:win": "set REACT_APP_API_URL=http://178.218.200.120:1596/api/v1&& react-scripts build"
   },
   "eslintConfig": {
     "extends": [

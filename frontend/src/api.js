@@ -1,6 +1,11 @@
 import axios from "axios";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8000/api/v1";
+let derivedApiBase = process.env.REACT_APP_API_URL;
+if (!derivedApiBase && typeof window !== "undefined") {
+  const origin = window.location.origin.replace(/\/$/, "");
+  derivedApiBase = `${origin}/api/v1`;
+}
+const API_BASE_URL = derivedApiBase || "http://localhost:8000/api/v1";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -11,21 +16,57 @@ const apiClient = axios.create({
 
 // Token saqlash va qo'shish
 let authToken = localStorage.getItem("authToken");
+const dispatchAuthEvent = () => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("auth-token-changed"));
+  }
+};
 if (authToken) {
   apiClient.defaults.headers.common["Authorization"] = `Bearer ${authToken}`;
 }
 
 // Token yangilash
 export const setAuthToken = (token) => {
+  if (token) {
+    isAuthRedirectScheduled = false;
+  }
   authToken = token;
   if (token) {
     localStorage.setItem("authToken", token);
     apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    dispatchAuthEvent();
   } else {
     localStorage.removeItem("authToken");
     delete apiClient.defaults.headers.common["Authorization"];
+    dispatchAuthEvent();
   }
 };
+
+let isAuthRedirectScheduled = false;
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const { response } = error || {};
+    if (response && [401, 403].includes(response.status)) {
+      setAuthToken(null);
+      localStorage.removeItem("refreshToken");
+      sessionStorage.removeItem("authToken");
+
+      if (typeof window !== "undefined" && !isAuthRedirectScheduled) {
+        isAuthRedirectScheduled = true;
+        const currentPath = window.location.pathname || "";
+        const loginPath = "/login";
+        if (!currentPath.startsWith(loginPath)) {
+          const searchParams = new URLSearchParams({ reason: "session_expired" });
+          window.location.replace(`${loginPath}?${searchParams.toString()}`);
+        } else {
+          isAuthRedirectScheduled = false;
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Authentication API
 export const authAPI = {

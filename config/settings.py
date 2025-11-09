@@ -26,7 +26,28 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-h$&jhhj!%)h$ccokz4)0z
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else []
+DEFAULT_ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    '178.218.200.120',
+]
+ALLOWED_HOSTS = [
+    host.strip() for host in os.environ.get('ALLOWED_HOSTS', '').split(',')
+    if host.strip()
+] or DEFAULT_ALLOWED_HOSTS
+
+DEFAULT_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://178.218.200.120:1596',
+]
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip() for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
+] or DEFAULT_TRUSTED_ORIGINS
 
 
 # Application definition
@@ -56,6 +77,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -135,7 +157,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATICFILES_DIRS = []
+STATIC_APP_DIR = BASE_DIR / 'static'
+if STATIC_APP_DIR.exists():
+    STATICFILES_DIRS.append(STATIC_APP_DIR)
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+WHITENOISE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -370,6 +400,10 @@ Response formati:
             'url': 'http://localhost:8000',
             'description': 'Development server'
         },
+        {
+            'url': 'http://178.218.200.120:1596',
+            'description': 'Production server',
+        },
     ],
 }
 
@@ -387,12 +421,17 @@ SIMPLE_JWT = {
 
 # CORS Settings
 # Development uchun default origins
-CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if os.environ.get('CORS_ALLOWED_ORIGINS') else [
+DEFAULT_CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:8000",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8000",
+    "http://178.218.200.120:1596",
 ]
+CORS_ALLOWED_ORIGINS = [
+    origin.strip() for origin in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
+    if origin.strip()
+] or DEFAULT_CORS_ALLOWED_ORIGINS
 
 # Production uchun environment variable orqali
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Development uchun True, Production uchun False

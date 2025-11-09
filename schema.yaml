@@ -2741,6 +2741,8 @@ components:
 servers:
 - url: http://localhost:8000
   description: Development server
+- url: http://178.218.200.120:1596
+  description: Production server
 tags:
 - name: Authentication
   description: 'JWT token olish, yangilash va tekshirish endpointlari. Access tokenni

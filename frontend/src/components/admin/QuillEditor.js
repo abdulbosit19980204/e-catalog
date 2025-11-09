@@ -21,22 +21,32 @@ const sanitizeEmpty = (html) => {
 const QuillEditor = ({
   value,
   onChange,
-  modules = DEFAULT_MODULES,
+  modules,
   className = "",
   style,
   placeholder = "Description...",
 }) => {
   const containerRef = useRef(null);
   const editorRef = useRef(null);
+  const modulesRef = useRef(DEFAULT_MODULES);
+  const onChangeRef = useRef(onChange);
 
   useEffect(() => {
-    if (!containerRef.current || typeof window === "undefined") {
+    modulesRef.current = modules || DEFAULT_MODULES;
+  }, [modules]);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    if (!containerRef.current || editorRef.current || typeof window === "undefined") {
       return undefined;
     }
 
     const quill = new Quill(containerRef.current, {
       theme: "snow",
-      modules,
+      modules: modulesRef.current,
       placeholder,
     });
 
@@ -46,8 +56,8 @@ const QuillEditor = ({
 
     const handleChange = () => {
       const html = sanitizeEmpty(quill.root.innerHTML);
-      if (onChange) {
-        onChange(html);
+      if (onChangeRef.current) {
+        onChangeRef.current(html);
       }
     };
 
@@ -56,23 +66,25 @@ const QuillEditor = ({
 
     return () => {
       quill.off("text-change", handleChange);
-      // Dispose quill instance
+      editorRef.current = null;
       if (containerRef.current) {
         containerRef.current.innerHTML = "";
       }
     };
-  }, [modules, onChange, placeholder]);
+  }, [placeholder]);
 
   useEffect(() => {
-    if (!editorRef.current) return;
     const quill = editorRef.current;
+    if (!quill) return;
+
     const current = sanitizeEmpty(quill.root.innerHTML);
     const next = sanitizeEmpty(value);
+
     if (next !== undefined && next !== current) {
-      const sel = quill.getSelection();
+      const selection = quill.getSelection();
       quill.clipboard.dangerouslyPasteHTML(next || "");
-      if (sel) {
-        quill.setSelection(sel);
+      if (selection) {
+        quill.setSelection(selection);
       }
     }
   }, [value]);
