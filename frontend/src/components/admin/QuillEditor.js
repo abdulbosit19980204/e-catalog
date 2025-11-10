@@ -44,7 +44,10 @@ const QuillEditor = ({
       return undefined;
     }
 
-    const quill = new Quill(containerRef.current, {
+    const hostElement = containerRef.current;
+    hostElement.innerHTML = "";
+
+    const quill = new Quill(hostElement, {
       theme: "snow",
       modules: modulesRef.current,
       placeholder,
