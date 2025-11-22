@@ -1,5 +1,9 @@
 from typing import Optional
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
+from api.serializers import ImageStatusSerializer, ImageSourceSerializer
+from api.models import ImageStatus, ImageSource
 from .models import Client, ClientImage
 
 class ClientImageSerializer(serializers.ModelSerializer):
@@ -8,6 +12,10 @@ class ClientImageSerializer(serializers.ModelSerializer):
     image_md_url = serializers.SerializerMethodField()
     image_lg_url = serializers.SerializerMethodField()
     image_thumbnail_url = serializers.SerializerMethodField()
+    status = ImageStatusSerializer(read_only=True)
+    status_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+    source = ImageSourceSerializer(read_only=True)
+    source_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     
     class Meta:
         model = ClientImage
@@ -23,9 +31,63 @@ class ClientImageSerializer(serializers.ModelSerializer):
             'image_lg_url',
             'image_thumbnail_url',
             'is_main',
+            'status',
+            'status_id',
+            'source',
+            'source_id',
             'created_at',
         ]
         read_only_fields = ['id', 'created_at']
+    
+    def create(self, validated_data):
+        """Create qilganda status_id va source_id ni to'g'ri ishlatish"""
+        status_id = validated_data.pop('status_id', None)
+        source_id = validated_data.pop('source_id', None)
+        
+        instance = super().create(validated_data)
+        
+        if status_id:
+            try:
+                instance.status = ImageStatus.objects.get(id=status_id, is_deleted=False)
+            except ImageStatus.DoesNotExist:
+                pass
+        
+        if source_id:
+            try:
+                instance.source = ImageSource.objects.get(id=source_id, is_deleted=False)
+            except ImageSource.DoesNotExist:
+                pass
+        
+        instance.save()
+        return instance
+    
+    def update(self, instance, validated_data):
+        """Update qilganda status_id va source_id ni to'g'ri ishlatish"""
+        status_id = validated_data.pop('status_id', None)
+        source_id = validated_data.pop('source_id', None)
+        
+        instance = super().update(instance, validated_data)
+        
+        if status_id is not None:
+            if status_id:
+                try:
+                    instance.status = ImageStatus.objects.get(id=status_id, is_deleted=False)
+                except ImageStatus.DoesNotExist:
+                    instance.status = None
+            else:
+                instance.status = None
+        
+        if source_id is not None:
+            if source_id:
+                try:
+                    instance.source = ImageSource.objects.get(id=source_id, is_deleted=False)
+                except ImageSource.DoesNotExist:
+                    instance.source = None
+            else:
+                instance.source = None
+        
+        instance.save()
+        return instance
     
     def get_image_url(self, obj) -> Optional[str]:
         if obj.image:

@@ -9,7 +9,7 @@ class NomenklaturaImageInline(admin.TabularInline):
     """NomenklaturaImage inline admin"""
     model = NomenklaturaImage
     extra = 1
-    fields = ('image', 'image_preview', 'is_main', 'category', 'note', 'is_active')
+    fields = ('image', 'image_preview', 'is_main', 'category', 'note', 'status', 'source', 'is_active')
     readonly_fields = ('image_preview',)
     
     def image_preview(self, obj):
@@ -97,8 +97,8 @@ class NomenklaturaAdmin(admin.ModelAdmin):
 @admin.register(NomenklaturaImage)
 class NomenklaturaImageAdmin(admin.ModelAdmin):
     """NomenklaturaImage admin"""
-    list_display = ['image_preview', 'nomenklatura', 'category', 'is_main', 'is_active', 'is_deleted', 'created_at']
-    list_filter = ['category', 'is_main', 'is_active', 'is_deleted', 'nomenklatura', 'created_at']
+    list_display = ['image_preview', 'nomenklatura', 'category', 'status', 'is_main', 'is_active', 'is_deleted', 'created_at']
+    list_filter = ['category', 'status', 'is_main', 'is_active', 'is_deleted', 'nomenklatura', 'created_at']
     search_fields = ['nomenklatura__name', 'nomenklatura__code_1c']
     readonly_fields = ['image_preview', 'created_at', 'updated_at']
     list_per_page = 25
@@ -107,6 +107,9 @@ class NomenklaturaImageAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Asosiy ma\'lumotlar', {
             'fields': ('nomenklatura', 'image', 'image_preview', 'is_main', 'category', 'note')
+        }),
+        ('Rasm ma\'lumotlari', {
+            'fields': ('status', 'source')
         }),
         ('Status', {
             'fields': ('is_active', 'is_deleted')

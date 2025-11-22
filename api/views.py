@@ -12,11 +12,14 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
 )
-from .models import Project, ProjectImage
+from rest_framework.permissions import IsAuthenticated
+from .models import Project, ProjectImage, ImageStatus, ImageSource
 from .serializers import (
     ProjectImageBulkUploadSerializer,
     ProjectImageSerializer,
     ProjectSerializer,
+    ImageStatusSerializer,
+    ImageSourceSerializer,
 )
 
 
@@ -312,3 +315,76 @@ class ProjectImageViewSet(viewsets.ModelViewSet):
             'message': f'{len(created_images)} ta rasm muvaffaqiyatli yuklandi',
             'images': created_images
         }, status=status.HTTP_201_CREATED)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Image Management'],
+        summary="Image statuslar ro'yxatini olish",
+        description="Barcha aktiv image statuslar ro'yxatini qaytaradi. Pagination yo'q.",
+    ),
+    retrieve=extend_schema(
+        tags=['Image Management'],
+        summary="Bitta image status ma'lumotini olish",
+    ),
+    create=extend_schema(
+        tags=['Image Management'],
+        summary="Yangi image status yaratish",
+    ),
+    update=extend_schema(
+        tags=['Image Management'],
+        summary="Image status ma'lumotlarini to'liq yangilash",
+    ),
+    partial_update=extend_schema(
+        tags=['Image Management'],
+        summary="Image status ma'lumotlarini qisman yangilash",
+    ),
+    destroy=extend_schema(
+        tags=['Image Management'],
+        summary="Image status'ni soft-delete qilish",
+    ),
+)
+class ImageStatusViewSet(viewsets.ModelViewSet):
+    """ImageStatus CRUD operatsiyalari"""
+    queryset = ImageStatus.objects.filter(is_deleted=False, is_active=True)
+    serializer_class = ImageStatusSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None  # Statuslar kam bo'ladi, pagination kerak emas
+    search_fields = ['code', 'name', 'description']
+    ordering = ['order', 'name']
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Image Management'],
+        summary="Image source ro'yxatini olish",
+        description="Barcha aktiv image source'lar ro'yxatini pagination bilan qaytaradi.",
+    ),
+    retrieve=extend_schema(
+        tags=['Image Management'],
+        summary="Bitta image source ma'lumotini olish",
+    ),
+    create=extend_schema(
+        tags=['Image Management'],
+        summary="Yangi image source yaratish",
+    ),
+    update=extend_schema(
+        tags=['Image Management'],
+        summary="Image source ma'lumotlarini to'liq yangilash",
+    ),
+    partial_update=extend_schema(
+        tags=['Image Management'],
+        summary="Image source ma'lumotlarini qisman yangilash",
+    ),
+    destroy=extend_schema(
+        tags=['Image Management'],
+        summary="Image source'ni soft-delete qilish",
+    ),
+)
+class ImageSourceViewSet(viewsets.ModelViewSet):
+    """ImageSource CRUD operatsiyalari"""
+    queryset = ImageSource.objects.filter(is_deleted=False)
+    serializer_class = ImageSourceSerializer
+    permission_classes = [IsAuthenticated]
+    search_fields = ['uploader_name', 'uploader_contact', 'upload_location']
+    ordering = ['-created_at']

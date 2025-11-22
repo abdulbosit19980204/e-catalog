@@ -31,6 +31,8 @@ DEFAULT_ALLOWED_HOSTS = [
     '127.0.0.1',
     '0.0.0.0',
     '178.218.200.120',
+    '192.168.0.101',
+    '192.168.0.110',
 ]
 ALLOWED_HOSTS = [
     host.strip() for host in os.environ.get('ALLOWED_HOSTS', '').split(',')
@@ -427,6 +429,7 @@ DEFAULT_CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8000",
     "http://178.218.200.120:1596",
+    
 ]
 CORS_ALLOWED_ORIGINS = [
     origin.strip() for origin in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')

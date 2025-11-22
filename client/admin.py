@@ -9,7 +9,7 @@ class ClientImageInline(admin.TabularInline):
     """ClientImage inline admin"""
     model = ClientImage
     extra = 1
-    fields = ('image', 'image_preview', 'is_main', 'category', 'note', 'is_active')
+    fields = ('image', 'image_preview', 'is_main', 'category', 'note', 'status', 'source', 'is_active')
     readonly_fields = ('image_preview',)
     
     def image_preview(self, obj):
@@ -97,8 +97,8 @@ class ClientAdmin(admin.ModelAdmin):
 @admin.register(ClientImage)
 class ClientImageAdmin(admin.ModelAdmin):
     """ClientImage admin"""
-    list_display = ['image_preview', 'client', 'category', 'is_main', 'is_active', 'is_deleted', 'created_at']
-    list_filter = ['category', 'is_main', 'is_active', 'is_deleted', 'client', 'created_at']
+    list_display = ['image_preview', 'client', 'category', 'status', 'is_main', 'is_active', 'is_deleted', 'created_at']
+    list_filter = ['category', 'status', 'is_main', 'is_active', 'is_deleted', 'client', 'created_at']
     search_fields = ['client__name', 'client__client_code_1c']
     readonly_fields = ['image_preview', 'created_at', 'updated_at']
     list_per_page = 25
@@ -107,6 +107,9 @@ class ClientImageAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Asosiy ma\'lumotlar', {
             'fields': ('client', 'image', 'image_preview', 'is_main', 'category', 'note')
+        }),
+        ('Rasm ma\'lumotlari', {
+            'fields': ('status', 'source')
         }),
         ('Status', {
             'fields': ('is_active', 'is_deleted')

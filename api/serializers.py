@@ -1,7 +1,32 @@
 from typing import Optional
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 from nomenklatura.models import Nomenklatura, NomenklaturaImage
-from .models import Project, ProjectImage
+from .models import Project, ProjectImage, ImageStatus, ImageSource
+
+
+class ImageStatusSerializer(serializers.ModelSerializer):
+    """ImageStatus serializer"""
+    class Meta:
+        model = ImageStatus
+        fields = ['id', 'code', 'name', 'description', 'icon', 'order', 'is_active']
+        read_only_fields = ['id']
+
+
+class ImageSourceSerializer(serializers.ModelSerializer):
+    """ImageSource serializer"""
+    uploader_type_display = serializers.CharField(source='get_uploader_type_display', read_only=True)
+    
+    class Meta:
+        model = ImageSource
+        fields = [
+            'id', 'uploader_name', 'uploader_type', 'uploader_type_display',
+            'uploader_contact', 'upload_location', 'upload_device', 'notes',
+            'is_active', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']
+
 
 class APINomenklaturaImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
@@ -73,6 +98,10 @@ class ProjectImageSerializer(serializers.ModelSerializer):
     image_md_url = serializers.SerializerMethodField()
     image_lg_url = serializers.SerializerMethodField()
     image_thumbnail_url = serializers.SerializerMethodField()
+    status = ImageStatusSerializer(read_only=True)
+    status_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+    source = ImageSourceSerializer(read_only=True)
+    source_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     
     class Meta:
         model = ProjectImage
@@ -88,9 +117,63 @@ class ProjectImageSerializer(serializers.ModelSerializer):
             'image_lg_url',
             'image_thumbnail_url',
             'is_main',
+            'status',
+            'status_id',
+            'source',
+            'source_id',
             'created_at',
         ]
         read_only_fields = ['id', 'created_at']
+    
+    def create(self, validated_data):
+        """Create qilganda status_id va source_id ni to'g'ri ishlatish"""
+        status_id = validated_data.pop('status_id', None)
+        source_id = validated_data.pop('source_id', None)
+        
+        instance = super().create(validated_data)
+        
+        if status_id:
+            try:
+                instance.status = ImageStatus.objects.get(id=status_id, is_deleted=False)
+            except ImageStatus.DoesNotExist:
+                pass
+        
+        if source_id:
+            try:
+                instance.source = ImageSource.objects.get(id=source_id, is_deleted=False)
+            except ImageSource.DoesNotExist:
+                pass
+        
+        instance.save()
+        return instance
+    
+    def update(self, instance, validated_data):
+        """Update qilganda status_id va source_id ni to'g'ri ishlatish"""
+        status_id = validated_data.pop('status_id', None)
+        source_id = validated_data.pop('source_id', None)
+        
+        instance = super().update(instance, validated_data)
+        
+        if status_id is not None:
+            if status_id:
+                try:
+                    instance.status = ImageStatus.objects.get(id=status_id, is_deleted=False)
+                except ImageStatus.DoesNotExist:
+                    instance.status = None
+            else:
+                instance.status = None
+        
+        if source_id is not None:
+            if source_id:
+                try:
+                    instance.source = ImageSource.objects.get(id=source_id, is_deleted=False)
+                except ImageSource.DoesNotExist:
+                    instance.source = None
+            else:
+                instance.source = None
+        
+        instance.save()
+        return instance
     
     def get_image_url(self, obj) -> Optional[str]:
         if obj.image:

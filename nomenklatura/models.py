@@ -44,6 +44,24 @@ class NomenklaturaImage(BaseModel):
         default='',
         help_text="Rasm haqida qo'shimcha izoh"
     )
+    status = models.ForeignKey(
+        'api.ImageStatus',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='nomenklatura_images',
+        db_index=True,
+        help_text="Rasm statusi"
+    )
+    source = models.ForeignKey(
+        'api.ImageSource',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='nomenklatura_images',
+        db_index=True,
+        help_text="Rasmni yuboruvchi ma'lumotlari"
+    )
     
     # Turli o'lchamlarda rasmlar
     image_sm = ImageSpecField(
