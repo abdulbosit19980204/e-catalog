@@ -146,6 +146,25 @@ class ProjectImageSerializer(serializers.ModelSerializer):
         
         instance.save()
         return instance
+
+
+class ThumbnailEntrySerializer(serializers.Serializer):
+    """Serializes unified thumbnail feed entries"""
+
+    entity_type = serializers.CharField(help_text="Entity turi (project | client | nomenklatura)")
+    entity_id = serializers.IntegerField(help_text="Entity primary key ID si")
+    code_1c = serializers.CharField(help_text="Entity ning 1C kodi (code_1c yoki client_code_1c)")
+    entity_name = serializers.CharField(help_text="Entity nomi")
+    image_id = serializers.IntegerField(help_text="Image primary key ID si")
+    thumbnail_url = serializers.URLField(allow_null=True, help_text="Thumbnail rasm URL i")
+    is_main = serializers.BooleanField(help_text="Asosiy rasm statusi")
+    category = serializers.CharField(allow_null=True, help_text="Rasm toifasi", default=None)
+    note = serializers.CharField(allow_null=True, help_text="Rasm izohi", default=None)
+    status_code = serializers.CharField(allow_null=True, help_text="Image status kodi", default=None)
+    status_name = serializers.CharField(allow_null=True, help_text="Image status nomi", default=None)
+    source_name = serializers.CharField(allow_null=True, help_text="Rasmni yuboruvchi nomi", default=None)
+    source_type = serializers.CharField(allow_null=True, help_text="Rasmni yuboruvchi turi", default=None)
+    created_at = serializers.DateTimeField(help_text="Rasm yaratilingan vaqti")
     
     def update(self, instance, validated_data):
         """Update qilganda status_id va source_id ni to'g'ri ishlatish"""

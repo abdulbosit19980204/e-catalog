@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -12,7 +13,9 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
 )
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from client.models import ClientImage
+from nomenklatura.models import NomenklaturaImage
 from .models import Project, ProjectImage, ImageStatus, ImageSource
 from .serializers import (
     ProjectImageBulkUploadSerializer,
@@ -20,6 +23,7 @@ from .serializers import (
     ProjectSerializer,
     ImageStatusSerializer,
     ImageSourceSerializer,
+    ThumbnailEntrySerializer,
 )
 
 
@@ -388,3 +392,347 @@ class ImageSourceViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     search_fields = ['uploader_name', 'uploader_contact', 'upload_location']
     ordering = ['-created_at']
+
+
+class ThumbnailFeedMixin:
+    """Reusable helper mixin for thumbnail responses"""
+
+    @staticmethod
+    def _parse_entity_types(raw: str | None):
+        allowed = ['project', 'client', 'nomenklatura']
+        if not raw:
+            return allowed
+        parsed = []
+        for part in raw.split(','):
+            trimmed = part.strip().lower()
+            if trimmed in allowed and trimmed not in parsed:
+                parsed.append(trimmed)
+        return parsed or allowed
+
+    @staticmethod
+    def _parse_limit(raw: str | None) -> int:
+        default = 60
+        max_limit = 200
+        if raw is None:
+            return default
+        try:
+            value = int(raw)
+            if value < 1:
+                return default
+            return min(value, max_limit)
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
+    def _parse_bool(raw: str | None):
+        if raw is None:
+            return None
+        return raw.strip().lower() in ('1', 'true', 'yes')
+
+    def _collect_project_thumbnails(self, request, limit, is_main, status_code):
+        qs = ProjectImage.objects.filter(
+            is_deleted=False,
+            is_active=True,
+            project__is_deleted=False,
+        ).select_related('project', 'status', 'source').order_by('-created_at')
+        if is_main is not None:
+            qs = qs.filter(is_main=is_main)
+        if status_code:
+            qs = qs.filter(status__code=status_code)
+        qs = qs[:limit]
+        return [
+            self._build_entry(
+                request,
+                entity_type='project',
+                entity=image.project,
+                image=image,
+                code_attr='code_1c'
+            )
+            for image in qs
+        ]
+
+    def _collect_client_thumbnails(self, request, limit, is_main, status_code):
+        qs = ClientImage.objects.filter(
+            is_deleted=False,
+            is_active=True,
+            client__is_deleted=False,
+        ).select_related('client', 'status', 'source').order_by('-created_at')
+        if is_main is not None:
+            qs = qs.filter(is_main=is_main)
+        if status_code:
+            qs = qs.filter(status__code=status_code)
+        qs = qs[:limit]
+        return [
+            self._build_entry(
+                request,
+                entity_type='client',
+                entity=image.client,
+                image=image,
+                code_attr='client_code_1c'
+            )
+            for image in qs
+        ]
+
+    def _collect_nomenklatura_thumbnails(self, request, limit, is_main, status_code):
+        qs = NomenklaturaImage.objects.filter(
+            is_deleted=False,
+            is_active=True,
+            nomenklatura__is_deleted=False,
+        ).select_related('nomenklatura', 'status', 'source').order_by('-created_at')
+        if is_main is not None:
+            qs = qs.filter(is_main=is_main)
+        if status_code:
+            qs = qs.filter(status__code=status_code)
+        qs = qs[:limit]
+        return [
+            self._build_entry(
+                request,
+                entity_type='nomenklatura',
+                entity=image.nomenklatura,
+                image=image,
+                code_attr='code_1c'
+            )
+            for image in qs
+        ]
+
+    def _build_entry(self, request, entity_type, entity, image, code_attr):
+        status_obj = getattr(image, 'status', None)
+        source_obj = getattr(image, 'source', None)
+        code_value = getattr(entity, code_attr, None)
+        if not code_value:
+            code_value = ''
+        return {
+            'entity_type': entity_type,
+            'entity_id': entity.id,
+            'code_1c': code_value,
+            'entity_name': getattr(entity, 'name', str(entity)),
+            'image_id': image.id,
+            'thumbnail_url': self._absolute_url(request, image),
+            'is_main': image.is_main,
+            'category': image.category or None,
+            'note': image.note or None,
+            'status_code': status_obj.code if status_obj else None,
+            'status_name': status_obj.name if status_obj else None,
+            'source_name': source_obj.uploader_name if source_obj else None,
+            'source_type': source_obj.uploader_type if source_obj else None,
+            'created_at': image.created_at,
+        }
+
+    @staticmethod
+    def _absolute_url(request, image_obj):
+        try:
+            thumb = image_obj.image_thumbnail
+        except Exception:  # noqa: BLE001 - imagekit throws RuntimeError when image absent
+            return None
+        if not thumb:
+            return None
+        url = thumb.url
+        if not request:
+            return url
+        return request.build_absolute_uri(url)
+
+
+@extend_schema(
+    tags=['Image Management'],
+    summary="Birlashtirilgan thumbnail feed",
+    description=(
+        "Project, Client va Nomenklatura rasmlarining faqat thumbnail URL larini qaytaradi. "
+        "Har bir element entity haqida identifikatsion ma'lumotlar (ID, code, nom) bilan birga keladi. "
+        "Endpoint mobil yoki frontend ilovasi uchun tezkor rasm previewlarini olishga mo'ljallangan."
+    ),
+    parameters=[
+        OpenApiParameter(
+            name='entity_type',
+            type=OpenApiTypes.STR,
+            required=False,
+            description="Filtrlash uchun entity turlari (virgullar bilan ajratilgan). "
+                        "Ruxsat etilgan qiymatlar: project, client, nomenklatura. Default: hammasi.",
+        ),
+        OpenApiParameter(
+            name='is_main',
+            type=OpenApiTypes.BOOL,
+            required=False,
+            description="Faqat asosiy (true) yoki oddiy (false) rasmlarni qaytarish",
+        ),
+        OpenApiParameter(
+            name='status',
+            type=OpenApiTypes.STR,
+            required=False,
+            description="ImageStatus kodi bo'yicha filter (masalan: store_before)",
+        ),
+        OpenApiParameter(
+            name='limit',
+            type=OpenApiTypes.INT,
+            required=False,
+            description="Qaytariladigan maksimal elementlar soni (default: 60, max: 200)",
+        ),
+    ],
+    responses={
+        200: OpenApiResponse(
+            response=ThumbnailEntrySerializer(many=True),
+            description="Thumbnail feed ma'lumotlari",
+        )
+    }
+)
+class ThumbnailFeedView(ThumbnailFeedMixin, APIView):
+    """Birlashtirilgan thumbnail feed (project/client/nomenklatura)"""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        requested_types = self._parse_entity_types(request.query_params.get('entity_type'))
+        limit = self._parse_limit(request.query_params.get('limit'))
+        is_main = self._parse_bool(request.query_params.get('is_main'))
+        status_code = request.query_params.get('status')
+
+        per_type_limit = max(limit, 1)
+        entries = []
+
+        if 'project' in requested_types:
+            entries.extend(
+                self._collect_project_thumbnails(request, per_type_limit, is_main, status_code)
+            )
+        if 'client' in requested_types:
+            entries.extend(
+                self._collect_client_thumbnails(request, per_type_limit, is_main, status_code)
+            )
+        if 'nomenklatura' in requested_types:
+            entries.extend(
+                self._collect_nomenklatura_thumbnails(request, per_type_limit, is_main, status_code)
+            )
+
+        entries.sort(key=lambda item: item['created_at'], reverse=True)
+        serialized = ThumbnailEntrySerializer(entries[:limit], many=True)
+        return Response(serialized.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=['Image Management'],
+    summary="Project thumbnail rasmlari",
+    description="Faqat `ProjectImage` larining thumbnail URL larini qaytaradi.",
+    parameters=[
+        OpenApiParameter(
+            name='is_main',
+            type=OpenApiTypes.BOOL,
+            required=False,
+            description="Faqat asosiy (true) yoki oddiy (false) rasmlarni qaytarish",
+        ),
+        OpenApiParameter(
+            name='status',
+            type=OpenApiTypes.STR,
+            required=False,
+            description="ImageStatus kodi bo'yicha filter (masalan: store_before)",
+        ),
+        OpenApiParameter(
+            name='limit',
+            type=OpenApiTypes.INT,
+            required=False,
+            description="Qaytariladigan maksimal elementlar soni (default: 60, max: 200)",
+        ),
+    ],
+    responses={
+        200: OpenApiResponse(
+            response=ThumbnailEntrySerializer(many=True),
+            description="Project thumbnail ma'lumotlari",
+        )
+    }
+)
+class ProjectThumbnailView(ThumbnailFeedMixin, APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        limit = self._parse_limit(request.query_params.get('limit'))
+        is_main = self._parse_bool(request.query_params.get('is_main'))
+        status_code = request.query_params.get('status')
+
+        entries = self._collect_project_thumbnails(request, limit, is_main, status_code)
+        serialized = ThumbnailEntrySerializer(entries, many=True)
+        return Response(serialized.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=['Image Management'],
+    summary="Client thumbnail rasmlari",
+    description="Faqat `ClientImage` larining thumbnail URL larini qaytaradi.",
+    parameters=[
+        OpenApiParameter(
+            name='is_main',
+            type=OpenApiTypes.BOOL,
+            required=False,
+            description="Faqat asosiy (true) yoki oddiy (false) rasmlarni qaytarish",
+        ),
+        OpenApiParameter(
+            name='status',
+            type=OpenApiTypes.STR,
+            required=False,
+            description="ImageStatus kodi bo'yicha filter (masalan: store_before)",
+        ),
+        OpenApiParameter(
+            name='limit',
+            type=OpenApiTypes.INT,
+            required=False,
+            description="Qaytariladigan maksimal elementlar soni (default: 60, max: 200)",
+        ),
+    ],
+    responses={
+        200: OpenApiResponse(
+            response=ThumbnailEntrySerializer(many=True),
+            description="Client thumbnail ma'lumotlari",
+        )
+    }
+)
+class ClientThumbnailView(ThumbnailFeedMixin, APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        limit = self._parse_limit(request.query_params.get('limit'))
+        is_main = self._parse_bool(request.query_params.get('is_main'))
+        status_code = request.query_params.get('status')
+
+        entries = self._collect_client_thumbnails(request, limit, is_main, status_code)
+        serialized = ThumbnailEntrySerializer(entries, many=True)
+        return Response(serialized.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=['Image Management'],
+    summary="Nomenklatura thumbnail rasmlari",
+    description="Faqat `NomenklaturaImage` larining thumbnail URL larini qaytaradi.",
+    parameters=[
+        OpenApiParameter(
+            name='is_main',
+            type=OpenApiTypes.BOOL,
+            required=False,
+            description="Faqat asosiy (true) yoki oddiy (false) rasmlarni qaytarish",
+        ),
+        OpenApiParameter(
+            name='status',
+            type=OpenApiTypes.STR,
+            required=False,
+            description="ImageStatus kodi bo'yicha filter (masalan: store_before)",
+        ),
+        OpenApiParameter(
+            name='limit',
+            type=OpenApiTypes.INT,
+            required=False,
+            description="Qaytariladigan maksimal elementlar soni (default: 60, max: 200)",
+        ),
+    ],
+    responses={
+        200: OpenApiResponse(
+            response=ThumbnailEntrySerializer(many=True),
+            description="Nomenklatura thumbnail ma'lumotlari",
+        )
+    }
+)
+class NomenklaturaThumbnailView(ThumbnailFeedMixin, APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        limit = self._parse_limit(request.query_params.get('limit'))
+        is_main = self._parse_bool(request.query_params.get('is_main'))
+        status_code = request.query_params.get('status')
+
+        entries = self._collect_nomenklatura_thumbnails(request, limit, is_main, status_code)
+        serialized = ThumbnailEntrySerializer(entries, many=True)
+        return Response(serialized.data, status=status.HTTP_200_OK)
