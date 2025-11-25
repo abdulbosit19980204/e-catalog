@@ -1,9 +1,10 @@
 import django_filters
 from django.db.models import Q
 from nomenklatura.models import Nomenklatura, NomenklaturaImage
-from rest_framework import status
-from rest_framework import viewsets
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -12,7 +13,10 @@ from drf_spectacular.utils import (
     OpenApiResponse,
     extend_schema,
     extend_schema_view,
+    inline_serializer,
 )
+from openpyxl import load_workbook
+from utils.excel import build_template_workbook, workbook_to_response, parse_bool_cell, clean_cell
 from .serializers import (
     NomenklaturaImageBulkUploadSerializer,
     NomenklaturaImageSerializer,
@@ -167,6 +171,130 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
+
+    # Excel helpers ---------------------------------------------------------
+    @staticmethod
+    def _nomenklatura_excel_headers():
+        return ['code_1c', 'name', 'title', 'description', 'is_active']
+
+    def _validate_nomenklatura_headers(self, sheet):
+        expected = [header.lower() for header in self._nomenklatura_excel_headers()]
+        header_row = next(sheet.iter_rows(min_row=1, max_row=1, max_col=len(expected), values_only=True), None)
+        if not header_row:
+            return False, expected, []
+        normalized = [clean_cell(value).lower() for value in header_row[:len(expected)]]
+        return normalized == expected, expected, normalized
+
+    @extend_schema(
+        tags=['Nomenklatura'],
+        summary="Nomenklatura ma'lumotlarini Excel formatda eksport qilish",
+        responses={200: OpenApiResponse(description="XLSX fayl")},
+    )
+    @action(detail=False, methods=['get'], url_path='export-xlsx', permission_classes=[IsAuthenticated])
+    def export_xlsx(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        workbook = build_template_workbook('Nomenklatura', self._nomenklatura_excel_headers())
+        sheet = workbook.active
+        for item in queryset:
+            sheet.append([
+                item.code_1c,
+                item.name,
+                item.title or '',
+                item.description or '',
+                item.is_active,
+            ])
+        return workbook_to_response(workbook, 'nomenklatura.xlsx')
+
+    @extend_schema(
+        tags=['Nomenklatura'],
+        summary="Nomenklatura Excel shablonini yuklab olish",
+        responses={200: OpenApiResponse(description="XLSX shablon fayl")},
+    )
+    @action(detail=False, methods=['get'], url_path='template-xlsx', permission_classes=[IsAuthenticated])
+    def template_xlsx(self, request):
+        workbook = build_template_workbook(
+            'Nomenklatura template',
+            self._nomenklatura_excel_headers(),
+            ['NOM-001', 'Namuna mahsulot', 'Sarlavha', '<p>Izoh</p>', True],
+        )
+        return workbook_to_response(workbook, 'nomenklatura_template.xlsx')
+
+    @extend_schema(
+        tags=['Nomenklatura'],
+        summary="Nomenklatura ma'lumotlarini Excel fayldan import qilish",
+        request={
+            'multipart/form-data': inline_serializer(
+                name='NomenklaturaImportPayload',
+                fields={
+                    'file': serializers.FileField(help_text='XLSX fayl'),
+                },
+            )
+        },
+        responses={
+            200: OpenApiResponse(description="Import natijalari (created/updated/errors)"),
+            400: OpenApiResponse(description="Yaroqsiz fayl yoki header mos emas"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='import-xlsx',
+        parser_classes=[MultiPartParser],
+        permission_classes=[IsAuthenticated],
+    )
+    def import_xlsx(self, request):
+        uploaded = request.FILES.get('file')
+        if not uploaded:
+            return Response({'error': 'file field talab qilinadi'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            workbook = load_workbook(uploaded, data_only=True)
+        except Exception:
+            return Response({'error': 'XLSX faylni o\'qib bo\'lmadi'}, status=status.HTTP_400_BAD_REQUEST)
+
+        sheet = workbook.active
+        is_valid, expected, received = self._validate_nomenklatura_headers(sheet)
+        if not is_valid:
+            return Response(
+                {'error': 'Excel headerlari mos emas', 'expected': expected, 'received': received},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        stats = {'created': 0, 'updated': 0, 'errors': []}
+        for idx, row in enumerate(
+            sheet.iter_rows(min_row=2, max_col=len(expected), values_only=True),
+            start=2,
+        ):
+            if not row or all(value in (None, '') for value in row):
+                continue
+            code = clean_cell(row[0])
+            if not code:
+                stats['errors'].append(f"Row {idx}: code_1c bo'sh bo'lishi mumkin emas")
+                continue
+            name = clean_cell(row[1]) or code
+            title = clean_cell(row[2]) or None
+            description = row[3] if row[3] is not None else ''
+            is_active = parse_bool_cell(row[4], default=True)
+
+            defaults = {
+                'name': name,
+                'title': title,
+                'description': description,
+                'is_active': is_active,
+                'is_deleted': False,
+            }
+            try:
+                obj, created_flag = Nomenklatura.objects.update_or_create(
+                    code_1c=code,
+                    defaults=defaults,
+                )
+                if created_flag:
+                    stats['created'] += 1
+                else:
+                    stats['updated'] += 1
+            except Exception as exc:  # noqa: BLE001
+                stats['errors'].append(f"Row {idx}: {exc}")
+        return Response(stats, status=status.HTTP_200_OK)
 
 @extend_schema_view(
     list=extend_schema(

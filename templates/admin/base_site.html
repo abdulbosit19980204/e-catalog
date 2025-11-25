@@ -1,0 +1,20 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% if title %}{{ title }} | {% endif %}{{ site_title|default:_("Django site admin") }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">{{ site_header|default:_("Django administration") }}</a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}
+    <div class="import-export-nav">
+        <a class="import-export-link" href="{% url 'admin-import-export' %}">
+            {% trans "Import/Export" %}
+        </a>
+    </div>
+    {{ block.super }}
+{% endblock %}
+

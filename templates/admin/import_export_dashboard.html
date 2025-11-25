@@ -1,0 +1,120 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .import-export-dashboard {
+        max-width: 1100px;
+        margin-top: 20px;
+    }
+    .import-export-hero {
+        background: linear-gradient(135deg, #0f172a, #1d4ed8);
+        color: #fff;
+        padding: 32px;
+        border-radius: 16px;
+        box-shadow: 0 15px 45px rgba(15, 23, 42, 0.25);
+        margin-bottom: 28px;
+    }
+    .import-export-hero h1 {
+        margin: 0;
+        font-size: 32px;
+    }
+    .import-export-hero p {
+        margin: 10px 0 0;
+        opacity: 0.85;
+    }
+    .import-export-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 20px;
+    }
+    .import-export-card {
+        background: #fff;
+        border-radius: 18px;
+        padding: 24px;
+        box-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+        border: 1px solid #e5e7eb;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+    .import-export-card h2 {
+        margin: 0;
+        font-size: 22px;
+        color: #0f172a;
+    }
+    .import-export-card p {
+        margin: 0;
+        color: #475569;
+        min-height: 40px;
+    }
+    .import-export-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .import-export-actions a {
+        flex: 1;
+        min-width: 140px;
+        text-align: center;
+    }
+    .import-form {
+        background: #f8fafc;
+        border-radius: 14px;
+        padding: 18px;
+        border: 1px dashed #cbd5f5;
+    }
+    .import-form label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #1e293b;
+    }
+    .import-form input[type="file"] {
+        width: 100%;
+        margin-bottom: 12px;
+    }
+    .import-form button {
+        width: 100%;
+        background: #2563eb !important;
+        border: none !important;
+    }
+    @media (max-width: 600px) {
+        .import-export-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="import-export-dashboard">
+    <div class="import-export-hero">
+        <h1>{% trans "Import & Export markazi" %}</h1>
+        <p>{% trans "Project, client va nomenklatura Excel shablonlari orqali tezkor boshqaruv." %}</p>
+    </div>
+
+    <div class="import-export-grid">
+        {% for section in sections %}
+            <div class="import-export-card">
+                <div>
+                    <h2>{{ section.title }}</h2>
+                    <p>{{ section.description }}</p>
+                </div>
+                <div class="import-export-actions">
+                    <a class="button" href="{{ section.template_url }}">{% trans "Shablonni yuklab olish" %}</a>
+                    <a class="button" href="{{ section.export_url }}">{% trans "Mavjud ma’lumotlarni eksport qilish" %}</a>
+                </div>
+                <form class="import-form" method="post" action="{{ section.import_url }}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <label>{% trans "Excel faylni tanlang" %}</label>
+                    <input type="file" name="file" accept=".xlsx" required>
+                    <button class="button default" type="submit">{% trans "Import qilish" %}</button>
+                </form>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
