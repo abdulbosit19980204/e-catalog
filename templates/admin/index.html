@@ -1,0 +1,206 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <section class="dashboard-hero">
+        <div>
+            <p class="eyebrow">{% trans "E-Catalog boshqaruv paneli" %}</p>
+            <h1>{% trans "Ma’lumotlarni tez va ishonchli boshqaring" %}</h1>
+            <p>{% trans "Projects, Clients va Nomenklatura ma’lumotlari ustida ishlash, rasmlarni boshqarish hamda Excel import/export jarayonlarini bir joydan nazorat qiling." %}</p>
+            <div class="hero-actions">
+                <a class="button default" href="{% url 'admin-import-export' %}">
+                    {% trans "Import/Export markazi" %}
+                </a>
+                <a class="button" href="/api/redoc/" target="_blank" rel="noopener">
+                    {% trans "API hujjatlar" %}
+                </a>
+            </div>
+        </div>
+        <div class="hero-metrics">
+            <div class="metric">
+                <span>{% trans "Aktiv ma’lumotlar" %}</span>
+                <strong>{{ app_list|length }}</strong>
+            </div>
+            <div class="metric">
+                <span>{% trans "Excel shablonlari" %}</span>
+                <strong>3</strong>
+            </div>
+            <div class="metric">
+                <span>{% trans "API endpointlar" %}</span>
+                <strong>60+</strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="app-grid">
+        {% for app in app_list %}
+            <div class="app-card">
+                <div class="app-card-header">
+                    <h2>{{ app.name }}</h2>
+                    <span class="badge">{{ app.app_label }}</span>
+                </div>
+                <ul>
+                    {% for model in app.models %}
+                        <li>
+                            {% if model.admin_url %}
+                                <a href="{{ model.admin_url }}">{{ model.name }}</a>
+                            {% else %}
+                                <span>{{ model.name }}</span>
+                            {% endif %}
+                            <span class="object-tools">
+                                {% if model.add_url %}
+                                    <a href="{{ model.add_url }}">{% trans "Yaratish" %}</a>
+                                {% endif %}
+                                {% if model.admin_url %}
+                                    <a href="{{ model.admin_url }}">{% trans "Ko‘rish" %}</a>
+                                {% endif %}
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% empty %}
+            <p>{% trans "Hozircha ilovalardan hech biri ro‘yxatdan o‘tmagan." %}</p>
+        {% endfor %}
+    </section>
+</div>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .admin-dashboard {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        margin-top: 20px;
+    }
+    .dashboard-hero {
+        background: radial-gradient(circle at top left, #1d4ed8, #0f172a 70%);
+        color: #e2e8f0;
+        padding: 36px;
+        border-radius: 20px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        box-shadow: 0 20px 55px rgba(15, 23, 42, 0.25);
+    }
+    .dashboard-hero h1 {
+        margin: 10px 0;
+        font-size: 32px;
+        color: #fff;
+    }
+    .dashboard-hero p {
+        margin: 0;
+        color: #cbd5f5;
+    }
+    .dashboard-hero .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 13px;
+        color: #a5b4fc;
+    }
+    .hero-actions {
+        margin-top: 18px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .hero-actions .button {
+        border-radius: 999px;
+        padding: 10px 22px;
+    }
+    .hero-actions .button.default {
+        background: #facc15 !important;
+        color: #78350f;
+        border: none !important;
+    }
+    .hero-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+    }
+    .hero-metrics .metric {
+        background: rgba(15, 23, 42, 0.35);
+        border-radius: 14px;
+        padding: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+    .hero-metrics span {
+        display: block;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #cbd5f5;
+    }
+    .hero-metrics strong {
+        font-size: 30px;
+        color: #fff;
+    }
+    .app-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 18px;
+    }
+    .app-card {
+        background: #fff;
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 15px 30px rgba(15, 23, 42, 0.08);
+        border: 1px solid #e5e7eb;
+    }
+    .app-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+    .app-card-header h2 {
+        margin: 0;
+        font-size: 20px;
+        color: #0f172a;
+    }
+    .badge {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    .app-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .app-card li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .app-card li:last-child {
+        border-bottom: none;
+    }
+    .app-card a {
+        color: #1d4ed8;
+        font-weight: 600;
+    }
+    .object-tools a {
+        margin-left: 10px;
+        font-size: 12px;
+        color: #475569;
+    }
+    @media (max-width: 600px) {
+        .hero-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+

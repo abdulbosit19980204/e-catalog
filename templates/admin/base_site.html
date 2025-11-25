@@ -3,17 +3,60 @@
 
 {% block title %}{% if title %}{{ title }} | {% endif %}{{ site_title|default:_("Django site admin") }}{% endblock %}
 
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    body.admin-interface {
+        background: #f4f6fb;
+    }
+    #header {
+        background: linear-gradient(135deg, #0f172a, #1d4ed8);
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.2);
+    }
+    #branding h1 a {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    .custom-admin-nav {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+    .custom-admin-nav a {
+        color: #e2e8f0;
+        padding: 6px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(226, 232, 240, 0.2);
+        transition: all .2s ease;
+    }
+    .custom-admin-nav a:hover {
+        background: rgba(255, 255, 255, 0.2);
+        text-decoration: none;
+    }
+    .import-export-nav {
+        margin-left: auto;
+    }
+    .import-export-link {
+        background: #fef9c3;
+        color: #92400e;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
 {% block branding %}
 <h1 id="site-name">
-    <a href="{% url 'admin:index' %}">{{ site_header|default:_("Django administration") }}</a>
+    <a href="{% url 'admin:index' %}">{{ site_header|default:_("E-Catalog admin") }}</a>
 </h1>
 {% endblock %}
 
 {% block nav-global %}
-    <div class="import-export-nav">
-        <a class="import-export-link" href="{% url 'admin-import-export' %}">
-            {% trans "Import/Export" %}
-        </a>
+    <div class="custom-admin-nav">
+        <a href="{% url 'admin:index' %}">{% trans "Boshqaruv paneli" %}</a>
+        <a href="{% url 'admin-import-export' %}">{% trans "Import/Export" %}</a>
+        <a href="/api/redoc/" target="_blank" rel="noopener noreferrer">{% trans "API Docs" %}</a>
     </div>
     {{ block.super }}
 {% endblock %}
