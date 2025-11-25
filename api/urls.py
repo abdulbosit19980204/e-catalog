@@ -11,6 +11,7 @@ from .views import (
     ProjectThumbnailView,
     ClientThumbnailView,
     NomenklaturaThumbnailView,
+    AgentLocationViewSet,
 )
 
 router = DefaultRouter()
@@ -22,6 +23,7 @@ router.register('project', ProjectViewSet)
 router.register('project-image', ProjectImageViewSet)
 router.register('image-status', ImageStatusViewSet)
 router.register('image-source', ImageSourceViewSet)
+router.register('agent-location', AgentLocationViewSet)
 
 urlpatterns = [
     path('thumbnails/', ThumbnailFeedView.as_view(), name='thumbnail-feed'),

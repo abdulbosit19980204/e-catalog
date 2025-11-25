@@ -230,6 +230,7 @@ Bu API Project, Nomenklatura va Client ma'lumotlarini boshqarish uchun yaratilga
 - **Project Management** — Project'lar va ularning rasmlarini boshqarish
 - **Nomenklatura Management** — Nomenklatura'lar va ularning rasmlarini boshqarish
 - **Client Management** — Client'lar va ularning rasmlarini boshqarish (Authentication talab qilinadi)
+- **Agent Locations** — Mobil agentlar tomonidan yuborilgan geolokatsiya va qurilma ma'lumotlari
 - **1C Integration** — 1C dan ma'lumotlarni yuklab olish
 - **Image Processing** — Rasmlarni turli o'lchamlarda (sm, md, lg, thumbnail) saqlash
 - **JWT Authentication** — Token-based authentication
@@ -270,6 +271,98 @@ Bu API Project, Nomenklatura va Client ma'lumotlarini boshqarish uchun yaratilga
 - Rasmlar:
   - `POST /api/v1/nomenklatura-images/`
   - `POST /api/v1/nomenklatura-images/bulk-upload/` — `nomenklatura=<code>` va `images[]`.
+
+## Agent Locations
+
+- `GET /api/v1/agent-locations/` — Agent lokatsiya yozuvlari ro'yxati (JWT talab qilinadi).
+  - Filterlar: `agent_code`, `region`, `platform`, `device_id`, `date_from`, `date_to`
+- `POST /api/v1/agent-locations/` — Yangi lokatsiya yozuvini yaratish.
+- `GET /api/v1/agent-locations/{id}/` — Bitta yozuvni olish.
+- `PUT/PATCH /api/v1/agent-locations/{id}/` — Yozuvni yangilash.
+- `DELETE /api/v1/agent-locations/{id}/` — Soft-delete qilish.
+
+### AgentLocation maydonlari (barcha ixtiyoriy, faqat `agent_code`, `latitude`, `longitude` majburiy)
+
+#### Agent ma'lumotlari
+- `agent_code` *(string, required)* — Agent kodi
+- `agent_name` *(string, optional)* — Agent ismi
+- `agent_phone` *(string, optional)* — Agent telefoni
+- `region` *(string, optional)* — Hudud yoki filial
+
+#### Qurilma ma'lumotlari
+- `device_id` *(string, optional)* — Qurilma ID (IMEI/UUID)
+- `device_name` *(string, optional)* — Qurilma nomi
+- `device_manufacturer` *(string, optional)* — Ishlab chiqaruvchi (Samsung, Apple, etc.)
+- `device_model` *(string, optional)* — Qurilma modeli
+- `platform` *(string, optional)* — OS (Android/iOS)
+- `os_version` *(string, optional)* — OS versiyasi
+- `screen_width`, `screen_height` *(integer, optional)* — Ekran o'lchamlari (px)
+- `screen_density` *(decimal, optional)* — Ekran zichligi (DPI)
+- `ram_total`, `ram_available` *(bigint, optional)* — RAM (byte)
+- `storage_total`, `storage_available` *(bigint, optional)* — Xotira (byte)
+- `camera_front`, `camera_back` *(boolean, optional)* — Kamera mavjudligi
+- `camera_resolution` *(string, optional)* — Kamera o'lchami
+
+#### Ilova ma'lumotlari
+- `app_version` *(string, optional)* — Ilova versiyasi
+- `app_build_number` *(string, optional)* — Build raqami
+- `app_installation_date` *(datetime, optional)* — O'rnatilgan sana
+- `app_last_update` *(datetime, optional)* — Oxirgi yangilanish
+
+#### Lokatsiya ma'lumotlari
+- `latitude` *(decimal, required)* — Latitude (WGS84)
+- `longitude` *(decimal, required)* — Longitude (WGS84)
+- `accuracy` *(decimal, optional)* — Aniqlik (metr)
+- `altitude` *(decimal, optional)* — Balandlik (m)
+- `speed` *(decimal, optional)* — Tezlik (m/s)
+- `heading` *(decimal, optional)* — Yo'nalish (gradus)
+- `city` *(string, optional)* — Shahar
+- `country` *(string, optional)* — Davlat
+- `postal_code` *(string, optional)* — Pochta indeksi
+- `timezone` *(string, optional)* — Vaqt mintaqasi
+- `location_provider` *(string, optional)* — Lokatsiya manbasi (GPS, Network, Passive)
+- `address` *(string, optional)* — Geo reverse address
+
+#### Batareya ma'lumotlari
+- `battery_level` *(decimal, optional)* — Batareya foizi (%)
+- `is_charging` *(boolean, optional)* — Zaryadlanayaptimi
+- `battery_health` *(string, optional)* — Batareya holati (Good, Fair, Poor)
+- `battery_temperature` *(decimal, optional)* — Batareya harorati (°C)
+- `battery_voltage` *(decimal, optional)* — Batareya kuchlanishi (V)
+
+#### Tarmoq ma'lumotlari
+- `signal_strength` *(string, optional)* — Signal kuchi
+- `network_type` *(string, optional)* — Tarmoq turi (WiFi, 4G, 5G, LTE)
+- `wifi_ssid` *(string, optional)* — WiFi tarmoq nomi
+- `wifi_bssid` *(string, optional)* — WiFi BSSID (MAC)
+- `cellular_operator` *(string, optional)* — Mobil operator
+- `cellular_network_type` *(string, optional)* — Mobil tarmoq turi (GSM, CDMA, LTE)
+- `ip_address` *(IP, optional)* — IP manzil
+- `connection_type` *(string, optional)* — Ulanish turi (WiFi, Mobile, Ethernet)
+
+#### Sensor ma'lumotlari
+- `accelerometer_x`, `accelerometer_y`, `accelerometer_z` *(decimal, optional)* — Accelerometer (m/s²)
+- `gyroscope_x`, `gyroscope_y`, `gyroscope_z` *(decimal, optional)* — Gyroscope (rad/s)
+- `magnetometer_x`, `magnetometer_y`, `magnetometer_z` *(decimal, optional)* — Magnetometer (μT)
+- `proximity_sensor` *(decimal, optional)* — Proximity sensor (cm)
+- `light_sensor` *(decimal, optional)* — Yorug'lik sensori (lux)
+
+#### Atrof-muhit ma'lumotlari
+- `temperature` *(decimal, optional)* — Harorat (°C)
+- `humidity` *(decimal, optional)* — Namlik (%)
+- `pressure` *(decimal, optional)* — Bosim (hPa)
+
+#### Xavfsizlik ma'lumotlari
+- `device_fingerprint` *(string, optional)* — Qurilma fingerprint (hash)
+- `is_rooted` *(boolean, optional)* — Root qilinganmi
+- `is_jailbroken` *(boolean, optional)* — Jailbreak qilinganmi (iOS)
+- `encryption_enabled` *(boolean, optional)* — Shifrlash yoqilganmi
+- `screen_lock_type` *(string, optional)* — Ekran qulfi turi (None, PIN, Pattern, Fingerprint, Face)
+
+#### Qo'shimcha
+- `logged_at` *(datetime, optional)* — Qurilmada yozilgan vaqt
+- `note` *(text, optional)* — Izoh
+- `metadata` *(JSON, optional)* — Qo'shimcha JSON ma'lumotlar
 
 ## Integration
 
@@ -392,6 +485,10 @@ Response formati:
         {
             'name': 'Integration',
             'description': '1C tizimi bilan sinxronizatsiya, background sync jarayonlari va progress status endpointlari.',
+        },
+        {
+            'name': 'Agent Locations',
+            'description': 'Mobil agentlar tomonidan yuborilgan geolokatsiya yozuvlari. Qurilma, lokatsiya, tarmoq, sensor va boshqa ma\'lumotlar bilan birga saqlanadi. Barcha maydonlar ixtiyoriy (faqat agent_code, latitude, longitude majburiy).',
         },
     ],
     'SECURITY_DEFINITIONS': {

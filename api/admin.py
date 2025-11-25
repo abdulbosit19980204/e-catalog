@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.db.models import Q
 from django.utils.html import format_html
 from django.urls import reverse
-from .models import Project, ProjectImage, ImageStatus, ImageSource
+from .models import Project, ProjectImage, ImageStatus, ImageSource, AgentLocation
 
 
 class ProjectImageInline(admin.TabularInline):
@@ -179,3 +179,108 @@ class ProjectImageAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Optimizatsiya: select_related bilan project yuklash"""
         return super().get_queryset(request).select_related('project')
+
+
+@admin.register(AgentLocation)
+class AgentLocationAdmin(admin.ModelAdmin):
+    """AgentLocation admin - barcha maydonlar ixtiyoriy"""
+
+    list_display = [
+        'agent_code',
+        'agent_name',
+        'region',
+        'latitude',
+        'longitude',
+        'device_name',
+        'platform',
+        'app_version',
+        'battery_level',
+        'network_type',
+        'logged_at',
+        'created_at',
+    ]
+    list_filter = [
+        'platform', 'region', 'network_type', 'cellular_operator',
+        'is_active', 'is_deleted', 'is_charging', 'is_rooted', 'is_jailbroken',
+        'created_at', 'logged_at'
+    ]
+    search_fields = [
+        'agent_code', 'agent_name', 'agent_phone', 'device_id', 'device_name',
+        'device_manufacturer', 'device_model', 'city', 'country', 'wifi_ssid',
+        'cellular_operator', 'ip_address'
+    ]
+    readonly_fields = ['created_at', 'updated_at']
+    fieldsets = (
+        ('Agent ma\'lumotlari', {
+            'fields': ('agent_code', 'agent_name', 'agent_phone', 'region')
+        }),
+        ('Qurilma ma\'lumotlari', {
+            'fields': (
+                'device_id', 'device_name', 'device_manufacturer', 'device_model',
+                'platform', 'os_version',
+                'screen_width', 'screen_height', 'screen_density',
+                'ram_total', 'ram_available', 'storage_total', 'storage_available',
+                'camera_front', 'camera_back', 'camera_resolution'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Ilova ma\'lumotlari', {
+            'fields': (
+                'app_version', 'app_build_number',
+                'app_installation_date', 'app_last_update'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Lokatsiya ma\'lumotlari', {
+            'fields': (
+                'latitude', 'longitude', 'accuracy', 'altitude', 'speed', 'heading',
+                'location_provider', 'city', 'country', 'postal_code', 'timezone',
+                'address', 'logged_at'
+            )
+        }),
+        ('Batareya ma\'lumotlari', {
+            'fields': (
+                'battery_level', 'is_charging', 'battery_health',
+                'battery_temperature', 'battery_voltage'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Tarmoq ma\'lumotlari', {
+            'fields': (
+                'signal_strength', 'network_type', 'wifi_ssid', 'wifi_bssid',
+                'cellular_operator', 'cellular_network_type',
+                'ip_address', 'connection_type'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Sensor ma\'lumotlari', {
+            'fields': (
+                ('accelerometer_x', 'accelerometer_y', 'accelerometer_z'),
+                ('gyroscope_x', 'gyroscope_y', 'gyroscope_z'),
+                ('magnetometer_x', 'magnetometer_y', 'magnetometer_z'),
+                'proximity_sensor', 'light_sensor'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Atrof-muhit ma\'lumotlari', {
+            'fields': ('temperature', 'humidity', 'pressure'),
+            'classes': ('collapse',)
+        }),
+        ('Xavfsizlik ma\'lumotlari', {
+            'fields': (
+                'device_fingerprint', 'is_rooted', 'is_jailbroken',
+                'encryption_enabled', 'screen_lock_type'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Qo\'shimcha', {
+            'fields': ('note', 'metadata', 'is_active', 'is_deleted')
+        }),
+        ('Vaqt', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    ordering = ['-created_at']
+    list_per_page = 50
+    date_hierarchy = 'created_at'

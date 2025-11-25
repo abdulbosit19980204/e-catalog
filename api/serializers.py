@@ -3,7 +3,7 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 from nomenklatura.models import Nomenklatura, NomenklaturaImage
-from .models import Project, ProjectImage, ImageStatus, ImageSource
+from .models import Project, ProjectImage, ImageStatus, ImageSource, AgentLocation
 
 
 class ImageStatusSerializer(serializers.ModelSerializer):
@@ -165,74 +165,14 @@ class ThumbnailEntrySerializer(serializers.Serializer):
     source_name = serializers.CharField(allow_null=True, help_text="Rasmni yuboruvchi nomi", default=None)
     source_type = serializers.CharField(allow_null=True, help_text="Rasmni yuboruvchi turi", default=None)
     created_at = serializers.DateTimeField(help_text="Rasm yaratilingan vaqti")
-    
-    def update(self, instance, validated_data):
-        """Update qilganda status_id va source_id ni to'g'ri ishlatish"""
-        status_id = validated_data.pop('status_id', None)
-        source_id = validated_data.pop('source_id', None)
-        
-        instance = super().update(instance, validated_data)
-        
-        if status_id is not None:
-            if status_id:
-                try:
-                    instance.status = ImageStatus.objects.get(id=status_id, is_deleted=False)
-                except ImageStatus.DoesNotExist:
-                    instance.status = None
-            else:
-                instance.status = None
-        
-        if source_id is not None:
-            if source_id:
-                try:
-                    instance.source = ImageSource.objects.get(id=source_id, is_deleted=False)
-                except ImageSource.DoesNotExist:
-                    instance.source = None
-            else:
-                instance.source = None
-        
-        instance.save()
-        return instance
-    
-    def get_image_url(self, obj) -> Optional[str]:
-        if obj.image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        return None
-    
-    def get_image_sm_url(self, obj) -> Optional[str]:
-        if obj.image_sm:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image_sm.url)
-            return obj.image_sm.url
-        return None
-    
-    def get_image_md_url(self, obj) -> Optional[str]:
-        if obj.image_md:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image_md.url)
-            return obj.image_md.url
-        return None
-    
-    def get_image_lg_url(self, obj) -> Optional[str]:
-        if obj.image_lg:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image_lg.url)
-            return obj.image_lg.url
-        return None
-    
-    def get_image_thumbnail_url(self, obj) -> Optional[str]:
-        if obj.image_thumbnail:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image_thumbnail.url)
-            return obj.image_thumbnail.url
-        return None
+
+
+class AgentLocationSerializer(serializers.ModelSerializer):
+    """AgentLocation serializer - barcha maydonlar ixtiyoriy"""
+    class Meta:
+        model = AgentLocation
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 class ProjectSerializer(serializers.ModelSerializer):
     images = ProjectImageSerializer(many=True, read_only=True)
