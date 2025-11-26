@@ -5,8 +5,9 @@ from rest_framework import status
 from django.db import transaction
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django.core.cache import cache
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample
-import threading
+from django_q.tasks import async_task
 from zeep import Client as ZeepClient, Settings
 from zeep.cache import SqliteCache
 from zeep.transports import Transport
@@ -396,6 +397,9 @@ def sync_nomenklatura_async(integration_id, task_id):
         log_obj.error_items = errors
         log_obj.message = f'Completed: {created} created, {updated} updated, {errors} errors'
         log_obj.save(update_fields=['status', 'end_time', 'processed_items', 'created_items', 'updated_items', 'error_items', 'message'])
+        
+        # Invalidate cache after sync
+        cache.clear()
     except Exception as e:
         logger.error(f"Error in sync_nomenklatura_async: {e}")
         log_obj.status = 'error'
@@ -443,6 +447,9 @@ def sync_clients_async(integration_id, task_id):
         log_obj.error_items = errors
         log_obj.message = f'Completed: {created} created, {updated} updated, {errors} errors'
         log_obj.save(update_fields=['status', 'end_time', 'processed_items', 'created_items', 'updated_items', 'error_items', 'message'])
+        
+        # Invalidate cache after sync
+        cache.clear()
     except Exception as e:
         logger.error(f"Error in sync_clients_async: {e}")
         log_obj.status = 'error'
@@ -489,10 +496,8 @@ def sync_nomenklatura_from_1c(request, integration_id):
         status='fetching'
     )
     
-    # Background thread'da ishlash
-    thread = threading.Thread(target=sync_nomenklatura_async, args=(integration.id, task_id))
-    thread.daemon = True
-    thread.start()
+    # Background task'da ishlash - django-q2
+    async_task(sync_nomenklatura_async, integration.id, task_id)
     
     return Response(
         {
@@ -547,10 +552,8 @@ def sync_clients_from_1c(request, integration_id):
         status='fetching'
     )
     
-    # Background thread'da ishlash
-    thread = threading.Thread(target=sync_clients_async, args=(integration.id, task_id))
-    thread.daemon = True
-    thread.start()
+    # Background task'da ishlash - django-q2
+    async_task(sync_clients_async, integration.id, task_id)
     
     return Response(
         {

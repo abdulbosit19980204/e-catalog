@@ -76,6 +76,10 @@ INSTALLED_APPS = [
     'ckeditor',
     'ckeditor_uploader',
     'imagekit',
+    
+    # Caching and background tasks
+    'cacheops',
+    'django_q',
 
     'client',
     'nomenklatura',
@@ -197,6 +201,79 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 CKEDITOR_UPLOAD_PATH = 'uploads/ckeditor/'
+
+# ============================================================================
+# CACHING CONFIGURATION - High Performance for 10K+ requests/minute
+# ============================================================================
+
+# Redis cache backend - much faster than database cache
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'SOCKET_CONNECT_TIMEOUT': 5,
+            'SOCKET_TIMEOUT': 5,
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+            'IGNORE_EXCEPTIONS': True,  # Don't break if Redis is down
+            'PARSER_CLASS': 'redis.connection.HiredisParser',  # Faster parser
+        },
+        'KEY_PREFIX': 'ecatalog',
+        'TIMEOUT': 300,  # 5 minutes default
+        'VERSION': 1,
+    }
+}
+
+# Cacheops - automatic ORM query caching
+CACHEOPS_REDIS = {
+    'host': os.environ.get('REDIS_HOST', '127.0.0.1'),
+    'port': int(os.environ.get('REDIS_PORT', 6379)),
+    'db': int(os.environ.get('REDIS_DB', 2)),
+    'socket_timeout': 3,
+    'ignore_exceptions': True,
+}
+
+CACHEOPS = {
+    # Cache all queries for 5 minutes
+    'api.*': {'ops': 'all', 'timeout': 300},
+    'client.*': {'ops': 'all', 'timeout': 300},
+    'nomenklatura.*': {'ops': 'all', 'timeout': 300},
+    'integration.*': {'ops': 'get', 'timeout': 600},  # Integration logs cache longer
+    
+    # ImageStatus and ImageSource - cache for 1 hour (rarely change)
+    'api.imagestatus': {'ops': 'all', 'timeout': 3600},
+    'api.imagesource': {'ops': 'all', 'timeout': 3600},
+    
+    # AgentLocation - cache reads for 1 minute (frequent writes)
+    'api.agentlocation': {'ops': 'get', 'timeout': 60},
+}
+
+# Session cache - use Redis for sessions too
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
+
+# ============================================================================
+# BACKGROUND TASKS - Django-Q2 Configuration
+# ============================================================================
+
+Q_CLUSTER = {
+    'name': 'ecatalog',
+    'workers': 4,  # Number of worker processes
+    'recycle': 500,  # Restart workers after 500 tasks
+    'timeout': 300,  # Task timeout in seconds
+    'retry': 3600,  # Retry failed tasks after 1 hour
+    'queue_limit': 1000,  # Max tasks in queue
+    'bulk': 10,  # Process 10 tasks at once
+    'orm': 'default',  # Use default database
+    'sync': False,  # Async mode
+    'catch_up': False,  # Don't catch up on missed schedules
+    'redis': {
+        'host': os.environ.get('REDIS_HOST', '127.0.0.1'),
+        'port': int(os.environ.get('REDIS_PORT', 6379)),
+        'db': int(os.environ.get('REDIS_DB', 3)),
+    }
+}
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 

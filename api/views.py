@@ -1,5 +1,9 @@
 import django_filters
 from django.db.models import Q
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers, vary_on_cookie
+from django.core.cache import cache
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
@@ -175,9 +179,43 @@ class ProjectViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Optimizatsiya: prefetch_related bilan images yuklash - N+1 query muammosini hal qiladi"""
-        return Project.objects.filter(
-            is_deleted=False
-        ).prefetch_related('images').order_by('-created_at')
+        # Cache key based on filters
+        cache_key = f"project_queryset_{hash(str(self.request.query_params))}"
+        cached_qs = cache.get(cache_key)
+        if cached_qs is None:
+            qs = Project.objects.filter(
+                is_deleted=False
+            ).prefetch_related('images').order_by('-created_at')
+            cache.set(cache_key, qs, 300)  # Cache for 5 minutes
+            return qs
+        return cached_qs
+    
+    @method_decorator(cache_page(300))  # Cache list view for 5 minutes
+    @method_decorator(vary_on_headers('Authorization'))
+    def list(self, request, *args, **kwargs):
+        """Cached list view"""
+        return super().list(request, *args, **kwargs)
+    
+    @method_decorator(cache_page(600))  # Cache detail view for 10 minutes
+    def retrieve(self, request, *args, **kwargs):
+        """Cached detail view"""
+        return super().retrieve(request, *args, **kwargs)
+    
+    def perform_create(self, serializer):
+        """Invalidate cache on create"""
+        super().perform_create(serializer)
+        cache.clear()  # Clear all cache on create
+    
+    def perform_update(self, serializer):
+        """Invalidate cache on update"""
+        super().perform_update(serializer)
+        cache.clear()  # Clear all cache on update
+    
+    def perform_destroy(self, instance):
+        """Soft delete - projectni o'chirmasdan is_deleted=True qiladi"""
+        instance.is_deleted = True
+        instance.save(update_fields=['is_deleted', 'updated_at'])
+        cache.clear()  # Clear cache on delete
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -634,13 +672,33 @@ class ProjectImageViewSet(viewsets.ModelViewSet):
     ),
 )
 class ImageStatusViewSet(viewsets.ModelViewSet):
-    """ImageStatus CRUD operatsiyalari"""
+    """ImageStatus CRUD operatsiyalari - Heavily cached"""
     queryset = ImageStatus.objects.filter(is_deleted=False, is_active=True)
     serializer_class = ImageStatusSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = None  # Statuslar kam bo'ladi, pagination kerak emas
     search_fields = ['code', 'name', 'description']
     ordering = ['order', 'name']
+    
+    @method_decorator(cache_page(3600))  # Cache for 1 hour (rarely changes)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @method_decorator(cache_page(3600))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        cache.clear()
+    
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        cache.clear()
+    
+    def perform_destroy(self, instance):
+        super().perform_destroy(instance)
+        cache.clear()
 
 
 @extend_schema_view(
@@ -859,12 +917,19 @@ class ThumbnailFeedMixin:
         )
     }
 )
+@method_decorator(cache_page(180), name='get')  # Cache for 3 minutes
 class ThumbnailFeedView(ThumbnailFeedMixin, APIView):
-    """Birlashtirilgan thumbnail feed (project/client/nomenklatura)"""
+    """Birlashtirilgan thumbnail feed (project/client/nomenklatura) - Cached"""
 
     permission_classes = [AllowAny]
 
     def get(self, request):
+        # Cache key based on query parameters
+        cache_key = f"thumbnail_feed_{hash(str(request.query_params))}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data, status=status.HTTP_200_OK)
+        
         requested_types = self._parse_entity_types(request.query_params.get('entity_type'))
         limit = self._parse_limit(request.query_params.get('limit'))
         is_main = self._parse_bool(request.query_params.get('is_main'))
@@ -888,7 +953,12 @@ class ThumbnailFeedView(ThumbnailFeedMixin, APIView):
 
         entries.sort(key=lambda item: item['created_at'], reverse=True)
         serialized = ThumbnailEntrySerializer(entries[:limit], many=True)
-        return Response(serialized.data, status=status.HTTP_200_OK)
+        response_data = serialized.data
+        
+        # Cache the response
+        cache.set(cache_key, response_data, 180)  # 3 minutes
+        
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 @extend_schema(

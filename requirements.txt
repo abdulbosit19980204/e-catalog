@@ -13,4 +13,9 @@ dj-database-url==2.1.0
 # psycopg2-binary==2.9.9
 zeep>=4.3.0
 openpyxl==3.1.5
+# Caching
+django-redis==5.4.0
+django-cacheops==7.1.1
+# Background tasks
+django-q2==1.4.0
 
