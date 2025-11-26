@@ -875,22 +875,37 @@ class ThumbnailFeedMixin:
             for image in qs
         ]
 
-    def _get_image_size(self, image_field) -> Optional[str]:
-        """Rasm hajmini olish (KB yoki MB formatida)"""
+    def _get_image_size_bytes(self, image_field) -> Optional[int]:
+        """Rasm hajmini bayt'larda olish"""
         if not image_field:
             return None
         try:
             if hasattr(image_field, 'file') and image_field.file:
-                file_size = image_field.file.size
-                if file_size >= 1024 * 1024:  # MB
-                    return f"{file_size / (1024 * 1024):.2f} MB"
-                elif file_size >= 1024:  # KB
-                    return f"{file_size / 1024:.2f} KB"
-                else:  # Bytes
-                    return f"{file_size} B"
+                return image_field.file.size
         except Exception:
             pass
         return None
+    
+    def _get_image_size(self, image_field) -> Optional[str]:
+        """Rasm hajmini olish (KB yoki MB formatida)"""
+        size_bytes = self._get_image_size_bytes(image_field)
+        if size_bytes is None:
+            return None
+        if size_bytes >= 1024 * 1024:  # MB
+            return f"{size_bytes / (1024 * 1024):.2f} MB"
+        elif size_bytes >= 1024:  # KB
+            return f"{size_bytes / 1024:.2f} KB"
+        else:  # Bytes
+            return f"{size_bytes} B"
+    
+    def _format_size(self, size_bytes: int) -> str:
+        """Bayt'larni KB yoki MB formatiga aylantirish"""
+        if size_bytes >= 1024 * 1024:  # MB
+            return f"{size_bytes / (1024 * 1024):.2f} MB"
+        elif size_bytes >= 1024:  # KB
+            return f"{size_bytes / 1024:.2f} KB"
+        else:  # Bytes
+            return f"{size_bytes} B"
     
     def _get_thumbnail_dimensions(self, image_obj):
         """Thumbnail rasm o'lchamlari va hajmini olish"""
@@ -952,6 +967,21 @@ class ThumbnailFeedMixin:
         thumbnail_dimensions = self._get_thumbnail_dimensions(image)
         original_dimensions = self._get_original_dimensions(image)
         
+        # Thumbnail va original hajmini bayt'larda olish (umumiy hajmni hisoblash uchun)
+        thumbnail_size_bytes = None
+        if thumbnail_dimensions and 'size' in thumbnail_dimensions:
+            # size_str dan bayt'larni olish (agar mavjud bo'lsa)
+            try:
+                thumb = image.image_thumbnail
+                if thumb and hasattr(thumb, 'file') and thumb.file:
+                    thumbnail_size_bytes = thumb.file.size
+            except Exception:
+                pass
+        
+        original_size_bytes = None
+        if original_dimensions and 'size_bytes' in original_dimensions:
+            original_size_bytes = original_dimensions['size_bytes']
+        
         return {
             'entity_type': entity_type,
             'entity_id': entity.id,
@@ -961,6 +991,8 @@ class ThumbnailFeedMixin:
             'thumbnail_url': self._absolute_url(request, image),
             'thumbnail_dimensions': thumbnail_dimensions,
             'original_dimensions': original_dimensions,
+            'thumbnail_size_bytes': thumbnail_size_bytes,  # Umumiy hajmni hisoblash uchun
+            'original_size_bytes': original_size_bytes,  # Umumiy hajmni hisoblash uchun
             'is_main': image.is_main,
             'category': image.category or None,
             'note': image.note or None,
@@ -1062,8 +1094,33 @@ class ThumbnailFeedView(ThumbnailFeedMixin, APIView):
             )
 
         entries.sort(key=lambda item: item['created_at'], reverse=True)
-        serialized = ThumbnailEntrySerializer(entries[:limit], many=True)
-        response_data = serialized.data
+        final_entries = entries[:limit]
+        serialized = ThumbnailEntrySerializer(final_entries, many=True)
+        
+        # Umumiy hajmni hisoblash
+        total_thumbnail_size_bytes = sum(
+            entry.get('thumbnail_size_bytes', 0) or 0 
+            for entry in final_entries
+        )
+        total_original_size_bytes = sum(
+            entry.get('original_size_bytes', 0) or 0 
+            for entry in final_entries
+        )
+        
+        response_data = {
+            'results': serialized.data,
+            'total_count': len(final_entries),
+            'total_size': {
+                'thumbnail': {
+                    'size_bytes': total_thumbnail_size_bytes,
+                    'size': self._format_size(total_thumbnail_size_bytes)
+                },
+                'original': {
+                    'size_bytes': total_original_size_bytes,
+                    'size': self._format_size(total_original_size_bytes)
+                }
+            }
+        }
         
         # Cache the response
         cache.set(cache_key, response_data, 180)  # 3 minutes
@@ -1112,7 +1169,33 @@ class ProjectThumbnailView(ThumbnailFeedMixin, APIView):
 
         entries = self._collect_project_thumbnails(request, limit, is_main, status_code)
         serialized = ThumbnailEntrySerializer(entries, many=True)
-        return Response(serialized.data, status=status.HTTP_200_OK)
+        
+        # Umumiy hajmni hisoblash
+        total_thumbnail_size_bytes = sum(
+            entry.get('thumbnail_size_bytes', 0) or 0 
+            for entry in entries
+        )
+        total_original_size_bytes = sum(
+            entry.get('original_size_bytes', 0) or 0 
+            for entry in entries
+        )
+        
+        response_data = {
+            'results': serialized.data,
+            'total_count': len(entries),
+            'total_size': {
+                'thumbnail': {
+                    'size_bytes': total_thumbnail_size_bytes,
+                    'size': self._format_size(total_thumbnail_size_bytes)
+                },
+                'original': {
+                    'size_bytes': total_original_size_bytes,
+                    'size': self._format_size(total_original_size_bytes)
+                }
+            }
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 @extend_schema(
@@ -1156,7 +1239,33 @@ class ClientThumbnailView(ThumbnailFeedMixin, APIView):
 
         entries = self._collect_client_thumbnails(request, limit, is_main, status_code)
         serialized = ThumbnailEntrySerializer(entries, many=True)
-        return Response(serialized.data, status=status.HTTP_200_OK)
+        
+        # Umumiy hajmni hisoblash
+        total_thumbnail_size_bytes = sum(
+            entry.get('thumbnail_size_bytes', 0) or 0 
+            for entry in entries
+        )
+        total_original_size_bytes = sum(
+            entry.get('original_size_bytes', 0) or 0 
+            for entry in entries
+        )
+        
+        response_data = {
+            'results': serialized.data,
+            'total_count': len(entries),
+            'total_size': {
+                'thumbnail': {
+                    'size_bytes': total_thumbnail_size_bytes,
+                    'size': self._format_size(total_thumbnail_size_bytes)
+                },
+                'original': {
+                    'size_bytes': total_original_size_bytes,
+                    'size': self._format_size(total_original_size_bytes)
+                }
+            }
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 @extend_schema(
@@ -1200,4 +1309,30 @@ class NomenklaturaThumbnailView(ThumbnailFeedMixin, APIView):
 
         entries = self._collect_nomenklatura_thumbnails(request, limit, is_main, status_code)
         serialized = ThumbnailEntrySerializer(entries, many=True)
-        return Response(serialized.data, status=status.HTTP_200_OK)
+        
+        # Umumiy hajmni hisoblash
+        total_thumbnail_size_bytes = sum(
+            entry.get('thumbnail_size_bytes', 0) or 0 
+            for entry in entries
+        )
+        total_original_size_bytes = sum(
+            entry.get('original_size_bytes', 0) or 0 
+            for entry in entries
+        )
+        
+        response_data = {
+            'results': serialized.data,
+            'total_count': len(entries),
+            'total_size': {
+                'thumbnail': {
+                    'size_bytes': total_thumbnail_size_bytes,
+                    'size': self._format_size(total_thumbnail_size_bytes)
+                },
+                'original': {
+                    'size_bytes': total_original_size_bytes,
+                    'size': self._format_size(total_original_size_bytes)
+                }
+            }
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)

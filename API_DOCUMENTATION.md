@@ -1066,69 +1066,93 @@ curl -X GET "http://localhost:8000/api/v1/client/export-xlsx/?description_status
 
 **Response:**
 ```json
-[
-  {
-    "entity_type": "project",
-    "entity_id": 1,
-    "code_1c": "PROJ001",
-    "entity_name": "Project Name",
-    "image_id": 5,
-    "thumbnail_url": "http://localhost:8000/media/CACHE/images/projects/image_thumbnail.jpg",
-    "thumbnail_dimensions": {
-      "width": 150,
-      "height": 150,
-      "format": "JPEG",
-      "size": "12.45 KB"
+{
+  "results": [
+    {
+      "entity_type": "project",
+      "entity_id": 1,
+      "code_1c": "PROJ001",
+      "entity_name": "Project Name",
+      "image_id": 5,
+      "thumbnail_url": "http://localhost:8000/media/CACHE/images/projects/image_thumbnail.jpg",
+      "thumbnail_dimensions": {
+        "width": 150,
+        "height": 150,
+        "format": "JPEG",
+        "size": "12.45 KB"
+      },
+      "original_dimensions": {
+        "width": 2000,
+        "height": 1500,
+        "format": "JPEG",
+        "size_bytes": 2457600,
+        "size": "2.34 MB"
+      },
+      "is_main": true,
+      "category": "product",
+      "note": "Asosiy rasm",
+      "status_code": "product_main",
+      "status_name": "Mahsulot - Asosiy rasm",
+      "source_name": "Admin User",
+      "source_type": "admin",
+      "created_at": "2025-01-01T00:00:00Z"
     },
-    "original_dimensions": {
-      "width": 2000,
-      "height": 1500,
-      "format": "JPEG",
-      "size_bytes": 2457600,
-      "size": "2.34 MB"
+    {
+      "entity_type": "client",
+      "entity_id": 2,
+      "code_1c": "CLI001",
+      "entity_name": "Client Name",
+      "image_id": 10,
+      "thumbnail_url": "http://localhost:8000/media/CACHE/images/clients/image_thumbnail.jpg",
+      "thumbnail_dimensions": {
+        "width": 150,
+        "height": 150,
+        "format": "JPEG",
+        "size": "11.23 KB"
+      },
+      "original_dimensions": {
+        "width": 1920,
+        "height": 1080,
+        "format": "JPEG",
+        "size_bytes": 1843200,
+        "size": "1.76 MB"
+      },
+      "is_main": true,
+      "category": "logo",
+      "note": "Kompaniya logotipi",
+      "status_code": null,
+      "status_name": null,
+      "source_name": null,
+      "source_type": null,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  ],
+  "total_count": 100,
+  "total_size": {
+    "thumbnail": {
+      "size_bytes": 10485760,
+      "size": "10.00 MB"
     },
-    "is_main": true,
-    "category": "product",
-    "note": "Asosiy rasm",
-    "status_code": "product_main",
-    "status_name": "Mahsulot - Asosiy rasm",
-    "source_name": "Admin User",
-    "source_type": "admin",
-    "created_at": "2025-01-01T00:00:00Z"
-  },
-  {
-    "entity_type": "client",
-    "entity_id": 2,
-    "code_1c": "CLI001",
-    "entity_name": "Client Name",
-    "image_id": 10,
-    "thumbnail_url": "http://localhost:8000/media/CACHE/images/clients/image_thumbnail.jpg",
-    "thumbnail_dimensions": {
-      "width": 150,
-      "height": 150,
-      "format": "JPEG",
-      "size": "11.23 KB"
-    },
-    "original_dimensions": {
-      "width": 1920,
-      "height": 1080,
-      "format": "JPEG",
-      "size_bytes": 1843200,
-      "size": "1.76 MB"
-    },
-    "is_main": true,
-    "category": "logo",
-    "note": "Kompaniya logotipi",
-    "status_code": null,
-    "status_name": null,
-    "source_name": null,
-    "source_type": null,
-    "created_at": "2025-01-01T00:00:00Z"
+    "original": {
+      "size_bytes": 104857600,
+      "size": "100.00 MB"
+    }
   }
-]
+}
 ```
 
-**Response Fields:**
+**Response Structure:**
+- `results` - Thumbnail ma'lumotlari ro'yxati (array)
+- `total_count` - Qaytarilgan thumbnail'lar soni
+- `total_size` - Umumiy rasm hajmi ma'lumotlari:
+  - `thumbnail` - Barcha thumbnail rasmlarning umumiy hajmi:
+    - `size_bytes` - Umumiy hajm bayt'larda
+    - `size` - Umumiy hajm formatlangan (KB yoki MB)
+  - `original` - Barcha original rasmlarning umumiy hajmi:
+    - `size_bytes` - Umumiy hajm bayt'larda
+    - `size` - Umumiy hajm formatlangan (KB yoki MB)
+
+**Results Array Fields:**
 - `entity_type` - Entity turi (project, client, nomenklatura)
 - `entity_id` - Entity primary key ID
 - `code_1c` - Entity'ning 1C kodi
@@ -1155,7 +1179,7 @@ curl -X GET "http://localhost:8000/api/v1/client/export-xlsx/?description_status
 - `status` - Rasm statusi bo'yicha filter
 - `limit` - Qaytariladigan maksimal elementlar soni (default: 60, max: 200)
 
-**Response:** Xuddi yuqoridagi kabi, lekin faqat project rasmlari
+**Response:** Xuddi yuqoridagi kabi struktura, lekin faqat project rasmlari. `results` array'ida faqat project thumbnail'lar, `total_size` esa faqat project rasmlarning umumiy hajmini ko'rsatadi.
 
 ### 3. Client thumbnail rasmlari
 
@@ -1166,7 +1190,7 @@ curl -X GET "http://localhost:8000/api/v1/client/export-xlsx/?description_status
 - `status` - Rasm statusi bo'yicha filter
 - `limit` - Qaytariladigan maksimal elementlar soni (default: 60, max: 200)
 
-**Response:** Xuddi yuqoridagi kabi, lekin faqat client rasmlari
+**Response:** Xuddi yuqoridagi kabi struktura, lekin faqat client rasmlari. `results` array'ida faqat client thumbnail'lar, `total_size` esa faqat client rasmlarning umumiy hajmini ko'rsatadi.
 
 ### 4. Nomenklatura thumbnail rasmlari
 
@@ -1177,7 +1201,7 @@ curl -X GET "http://localhost:8000/api/v1/client/export-xlsx/?description_status
 - `status` - Rasm statusi bo'yicha filter
 - `limit` - Qaytariladigan maksimal elementlar soni (default: 60, max: 200)
 
-**Response:** Xuddi yuqoridagi kabi, lekin faqat nomenklatura rasmlari
+**Response:** Xuddi yuqoridagi kabi struktura, lekin faqat nomenklatura rasmlari. `results` array'ida faqat nomenklatura thumbnail'lar, `total_size` esa faqat nomenklatura rasmlarning umumiy hajmini ko'rsatadi.
 
 **⚠️ Muhim: Thumbnail API'da rasm o'lchamlari va hajmi**
 
@@ -1186,7 +1210,16 @@ Thumbnail API'larida har bir rasm uchun quyidagi ma'lumotlar qaytariladi:
 - **thumbnail_dimensions** - Thumbnail rasm o'lchamlari (150x150 px) va hajmi (KB formatida)
 - **original_dimensions** - Original rasm o'lchamlari (yuklangan rasm o'z o'lchamida) va hajmi (KB yoki MB formatida)
 
-Bu ma'lumotlar mobil yoki frontend ilovalarida rasm yuklashdan oldin hajmni ko'rsatish yoki optimizatsiya qilish uchun foydalidir.
+**Umumiy hajm ma'lumotlari:**
+
+Response'da `total_size` obyekti barcha qaytarilgan rasmlarning umumiy hajmini ko'rsatadi:
+
+- **total_size.thumbnail** - Barcha thumbnail rasmlarning umumiy hajmi (bayt va formatlangan)
+- **total_size.original** - Barcha original rasmlarning umumiy hajmi (bayt va formatlangan)
+
+Masalan, agar 100 ta rasm qaytarilsa va ularning umumiy hajmi 100 MB bo'lsa, `total_size.original.size` `"100.00 MB"` qiymatini qaytaradi.
+
+Bu ma'lumotlar mobil yoki frontend ilovalarida rasm yuklashdan oldin hajmni ko'rsatish, optimizatsiya qilish yoki umumiy hajmni hisoblash uchun foydalidir.
 
 ---
 
