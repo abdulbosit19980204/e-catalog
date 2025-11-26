@@ -140,17 +140,34 @@ class ClientImageSerializer(serializers.ModelSerializer):
             return obj.image_thumbnail.url
         return None
     
-    def _get_image_dimensions(self, image_field) -> Optional[Dict[str, int]]:
-        """Rasm o'lchamlarini olish"""
+    def _get_image_dimensions(self, image_field) -> Optional[Dict[str, any]]:
+        """Rasm o'lchamlarini va hajmini olish"""
         if not image_field:
             return None
         try:
             if hasattr(image_field, 'file') and image_field.file:
                 with Image.open(image_field.file) as img:
+                    # Fayl hajmini olish
+                    file_size = 0
+                    if hasattr(image_field.file, 'size'):
+                        file_size = image_field.file.size
+                    elif hasattr(image_field, 'size'):
+                        file_size = image_field.size
+                    
+                    # KB yoki MB ga aylantirish
+                    if file_size >= 1024 * 1024:  # MB
+                        size_str = f"{file_size / (1024 * 1024):.2f} MB"
+                    elif file_size >= 1024:  # KB
+                        size_str = f"{file_size / 1024:.2f} KB"
+                    else:  # Bytes
+                        size_str = f"{file_size} B"
+                    
                     return {
                         'width': img.width,
                         'height': img.height,
-                        'format': img.format or 'JPEG'
+                        'format': img.format or 'JPEG',
+                        'size_bytes': file_size,
+                        'size': size_str
                     }
         except Exception:
             pass
@@ -161,32 +178,73 @@ class ClientImageSerializer(serializers.ModelSerializer):
         """Original rasm o'lchamlari"""
         return self._get_image_dimensions(obj.image)
     
+    def _get_cached_image_size(self, image_field) -> Optional[str]:
+        """Cache qilingan rasm hajmini olish"""
+        if not image_field:
+            return None
+        try:
+            if hasattr(image_field, 'file') and image_field.file:
+                file_size = image_field.file.size
+                if file_size >= 1024 * 1024:  # MB
+                    return f"{file_size / (1024 * 1024):.2f} MB"
+                elif file_size >= 1024:  # KB
+                    return f"{file_size / 1024:.2f} KB"
+                else:  # Bytes
+                    return f"{file_size} B"
+        except Exception:
+            pass
+        return None
+    
     @extend_schema_field(OpenApiTypes.OBJECT)
-    def get_image_sm_dimensions(self, obj) -> Optional[Dict[str, int]]:
+    def get_image_sm_dimensions(self, obj) -> Optional[Dict[str, any]]:
         """Kichik rasm o'lchamlari (300x300)"""
         if obj.image_sm:
-            return {'width': 300, 'height': 300, 'format': 'JPEG'}
+            size_str = self._get_cached_image_size(obj.image_sm)
+            return {
+                'width': 300,
+                'height': 300,
+                'format': 'JPEG',
+                'size': size_str
+            }
         return None
     
     @extend_schema_field(OpenApiTypes.OBJECT)
-    def get_image_md_dimensions(self, obj) -> Optional[Dict[str, int]]:
+    def get_image_md_dimensions(self, obj) -> Optional[Dict[str, any]]:
         """O'rta rasm o'lchamlari (600x600)"""
         if obj.image_md:
-            return {'width': 600, 'height': 600, 'format': 'JPEG'}
+            size_str = self._get_cached_image_size(obj.image_md)
+            return {
+                'width': 600,
+                'height': 600,
+                'format': 'JPEG',
+                'size': size_str
+            }
         return None
     
     @extend_schema_field(OpenApiTypes.OBJECT)
-    def get_image_lg_dimensions(self, obj) -> Optional[Dict[str, int]]:
+    def get_image_lg_dimensions(self, obj) -> Optional[Dict[str, any]]:
         """Katta rasm o'lchamlari (1200x1200)"""
         if obj.image_lg:
-            return {'width': 1200, 'height': 1200, 'format': 'JPEG'}
+            size_str = self._get_cached_image_size(obj.image_lg)
+            return {
+                'width': 1200,
+                'height': 1200,
+                'format': 'JPEG',
+                'size': size_str
+            }
         return None
     
     @extend_schema_field(OpenApiTypes.OBJECT)
-    def get_image_thumbnail_dimensions(self, obj) -> Optional[Dict[str, int]]:
+    def get_image_thumbnail_dimensions(self, obj) -> Optional[Dict[str, any]]:
         """Thumbnail rasm o'lchamlari (150x150)"""
         if obj.image_thumbnail:
-            return {'width': 150, 'height': 150, 'format': 'JPEG'}
+            size_str = self._get_cached_image_size(obj.image_thumbnail)
+            return {
+                'width': 150,
+                'height': 150,
+                'format': 'JPEG',
+                'size': size_str
+            }
         return None
 
 class ClientSerializer(serializers.ModelSerializer):

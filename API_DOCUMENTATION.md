@@ -246,27 +246,33 @@ Barcha muvaffaqiyatli so'rovlar `200 OK` status code bilan qaytadi.
   "image_dimensions": {
     "width": 2000,
     "height": 1500,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size_bytes": 2457600,
+    "size": "2.34 MB"
   },
   "image_sm_dimensions": {
     "width": 300,
     "height": 300,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size": "45.23 KB"
   },
   "image_md_dimensions": {
     "width": 600,
     "height": 600,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size": "125.67 KB"
   },
   "image_lg_dimensions": {
     "width": 1200,
     "height": 1200,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size": "456.78 KB"
   },
   "image_thumbnail_dimensions": {
     "width": 150,
     "height": 150,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size": "12.45 KB"
   },
   "is_main": true,
   "category": "product",
@@ -562,27 +568,33 @@ Rasm yuklanganda, tizim avtomatik ravishda original rasmni saqlab qoladi va quyi
   "image_dimensions": {
     "width": 1920,
     "height": 1080,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size_bytes": 1843200,
+    "size": "1.76 MB"
   },
   "image_sm_dimensions": {
     "width": 300,
     "height": 300,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size": "42.15 KB"
   },
   "image_md_dimensions": {
     "width": 600,
     "height": 600,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size": "118.92 KB"
   },
   "image_lg_dimensions": {
     "width": 1200,
     "height": 1200,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size": "432.56 KB"
   },
   "image_thumbnail_dimensions": {
     "width": 150,
     "height": 150,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size": "11.23 KB"
   },
   "is_main": true,
   "category": "logo",
@@ -859,27 +871,33 @@ Rasm yuklanganda, tizim avtomatik ravishda original rasmni saqlab qoladi va quyi
   "image_dimensions": {
     "width": 1600,
     "height": 1200,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size_bytes": 1536000,
+    "size": "1.46 MB"
   },
   "image_sm_dimensions": {
     "width": 300,
     "height": 300,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size": "38.67 KB"
   },
   "image_md_dimensions": {
     "width": 600,
     "height": 600,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size": "108.34 KB"
   },
   "image_lg_dimensions": {
     "width": 1200,
     "height": 1200,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size": "398.45 KB"
   },
   "image_thumbnail_dimensions": {
     "width": 150,
     "height": 150,
-    "format": "JPEG"
+    "format": "JPEG",
+    "size": "10.12 KB"
   },
   "is_main": true,
   "category": "product",
