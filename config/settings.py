@@ -124,11 +124,27 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
         'OPTIONS': {
-            'timeout': 20,
+            'timeout': 60,  # Increased timeout for sync operations
+            'check_same_thread': False,  # Allow multiple threads
         },
         'CONN_MAX_AGE': 600,  # Connection pooling
     }
 }
+
+# SQLite WAL mode - improves concurrency and prevents "readonly database" errors
+# This is set via database connection initialization
+from django.db.backends.signals import connection_created
+from django.dispatch import receiver
+
+@receiver(connection_created)
+def setup_sqlite_wal_mode(sender, connection, **kwargs):
+    """Enable WAL mode for SQLite to improve concurrency"""
+    if connection.vendor == 'sqlite':
+        with connection.cursor() as cursor:
+            cursor.execute("PRAGMA journal_mode=WAL;")
+            cursor.execute("PRAGMA synchronous=NORMAL;")  # Faster than FULL, still safe
+            cursor.execute("PRAGMA cache_size=-64000;")  # 64MB cache
+            cursor.execute("PRAGMA temp_store=MEMORY;")  # Use memory for temp tables
 
 
 # Password validation

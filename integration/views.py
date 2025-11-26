@@ -80,83 +80,136 @@ def get_clients_from_1c(integration):
 
 
 def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None):
-    """Nomenklatura chunk'larini batch qilib saqlash - project'ga tegishli"""
+    """Nomenklatura chunk'larini batch qilib saqlash - bulk operations bilan optimallashtirilgan"""
     created_count = 0
     updated_count = 0
     error_count = 0
     
+    from api.models import Project
+    
     try:
-        with transaction.atomic():
-            for i in range(0, len(items), chunk_size):
-                chunk = items[i:i + chunk_size]
+        # Barcha itemlarni birinchi marta parse qilish
+        parsed_items = []
+        for item in items:
+            try:
+                code_1c = clean_value(getattr(item, 'Code', None))
+                name = clean_value(getattr(item, 'Name', None))
+                title = clean_value(getattr(item, 'Title', None))
+                description = clean_value(getattr(item, 'Description', None))
+                project_name = clean_value(getattr(item, 'Project', None))
                 
-                for item in chunk:
-                    try:
-                        code_1c = clean_value(getattr(item, 'Code', None))
-                        name = clean_value(getattr(item, 'Name', None))
-                        title = clean_value(getattr(item, 'Title', None))
-                        description = clean_value(getattr(item, 'Description', None))
-                        project_name = clean_value(getattr(item, 'Project', None))
-                        
-                        if not code_1c or not name:
-                            error_count += 1
-                            continue
-                        
-                        # Project'ga tegishli ekanligini tekshirish
-                        # Agar 1C dan project nomi kelsa, uni tekshirish
-                        # Yoki integration'ning project'iga tegishli deb belgilash
-                        from api.models import Project
-                        
-                        # 1C dan project nomi kelsa, uni topish yoki integration project'ini ishlatish
-                        if project_name:
-                            project, _ = Project.objects.get_or_create(
-                                name=project_name,
-                                defaults={'code_1c': project_name, 'is_active': True, 'is_deleted': False}
-                            )
-                        else:
-                            # Integration'ning project'ini ishlatish
-                            project = integration.project
-                        
-                        # Nomenklatura'ni saqlash yoki yangilash
-                        existing = Nomenklatura.objects.filter(
-                            code_1c=code_1c,
+                if not code_1c or not name:
+                    error_count += 1
+                    continue
+                
+                parsed_items.append({
+                    'code_1c': code_1c,
+                    'name': name,
+                    'title': title,
+                    'description': description,
+                    'project_name': project_name,
+                })
+            except Exception as e:
+                logger.error(f"Error parsing nomenklatura item: {e}")
+                error_count += 1
+                continue
+        
+        # Chunk'larga bo'lib ishlash - bulk operations bilan
+        for i in range(0, len(parsed_items), chunk_size):
+            chunk = parsed_items[i:i + chunk_size]
+            
+            try:
+                with transaction.atomic():
+                    # Barcha code_1c larni olish
+                    codes_1c = [item['code_1c'] for item in chunk]
+                    
+                    # Mavjud nomenklatura'larni olish
+                    existing_dict = {
+                        obj.code_1c: obj 
+                        for obj in Nomenklatura.objects.filter(
+                            code_1c__in=codes_1c,
                             is_deleted=False
-                        ).first()
+                        )
+                    }
+                    
+                    # Project cache
+                    project_cache = {}
+                    default_project = integration.project
+                    
+                    to_create = []
+                    to_update = []
+                    
+                    for item_data in chunk:
+                        code_1c = item_data['code_1c']
+                        project_name = item_data['project_name']
                         
-                        if existing:
-                            existing.name = name
-                            existing.title = title
-                            existing.description = description
-                            existing.updated_at = timezone.now()
-                            existing.save(update_fields=['name', 'title', 'description', 'updated_at'])
-                            updated_count += 1
+                        # Project'ni topish yoki cache'dan olish
+                        if project_name:
+                            if project_name not in project_cache:
+                                project_cache[project_name], _ = Project.objects.get_or_create(
+                                    name=project_name,
+                                    defaults={'code_1c': project_name, 'is_active': True, 'is_deleted': False}
+                                )
+                            project = project_cache[project_name]
                         else:
-                            Nomenklatura.objects.create(
+                            project = default_project
+                        
+                        if code_1c in existing_dict:
+                            # Update
+                            existing = existing_dict[code_1c]
+                            existing.name = item_data['name']
+                            existing.title = item_data['title']
+                            existing.description = item_data['description']
+                            existing.updated_at = timezone.now()
+                            to_update.append(existing)
+                        else:
+                            # Create
+                            to_create.append(Nomenklatura(
                                 code_1c=code_1c,
-                                name=name,
-                                title=title,
-                                description=description,
+                                name=item_data['name'],
+                                title=item_data['title'],
+                                description=item_data['description'],
                                 is_active=True,
                                 is_deleted=False
-                            )
-                            created_count += 1
-                    except Exception as e:
-                        logger.error(f"Error processing nomenklatura item: {e}")
-                        error_count += 1
-                        continue
+                            ))
+                    
+                    # Bulk operations
+                    if to_create:
+                        Nomenklatura.objects.bulk_create(to_create, ignore_conflicts=True)
+                        created_count += len(to_create)
+                    
+                    if to_update:
+                        Nomenklatura.objects.bulk_update(
+                            to_update, 
+                            ['name', 'title', 'description', 'updated_at'],
+                            batch_size=chunk_size
+                        )
+                        updated_count += len(to_update)
                 
-                # Progress yangilash
+                # Progress yangilash - har chunk'dan keyin
                 if log_obj:
-                    processed = min(i + chunk_size, len(items))
+                    processed = min(i + chunk_size, len(parsed_items))
                     log_obj.processed_items = processed
                     log_obj.created_items = created_count
                     log_obj.updated_items = updated_count
                     log_obj.error_items = error_count
                     log_obj.status = 'processing'
-                    log_obj.save(update_fields=['processed_items', 'created_items', 'updated_items', 'error_items', 'status'])
+                    # Retry mechanism bilan save
+                    max_retries = 3
+                    for retry in range(max_retries):
+                        try:
+                            log_obj.save(update_fields=['processed_items', 'created_items', 'updated_items', 'error_items', 'status'])
+                            break
+                        except Exception as save_error:
+                            if retry == max_retries - 1:
+                                logger.error(f"Failed to save log after {max_retries} retries: {save_error}")
+                            else:
+                                time_module.sleep(0.1 * (retry + 1))
                 
-                # Kichik pauza - database yukini kamaytirish
-                time_module.sleep(0.1)
+            except Exception as e:
+                logger.error(f"Error processing nomenklatura chunk batch: {e}")
+                error_count += len(chunk)
+                continue
     
     except Exception as e:
         logger.error(f"Error processing nomenklatura chunk: {e}")
@@ -164,78 +217,130 @@ def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None)
             log_obj.status = 'error'
             log_obj.error_details = str(e)
             log_obj.end_time = timezone.now()
-            log_obj.save(update_fields=['status', 'error_details', 'end_time'])
+            try:
+                log_obj.save(update_fields=['status', 'error_details', 'end_time'])
+            except Exception:
+                pass  # Ignore save errors in error handler
         raise
     
     return created_count, updated_count, error_count
 
 
 def process_clients_chunk(items, integration, chunk_size=100, log_obj=None):
-    """Client chunk'larini batch qilib saqlash - project'ga tegishli"""
+    """Client chunk'larini batch qilib saqlash - bulk operations bilan optimallashtirilgan"""
     created_count = 0
     updated_count = 0
     error_count = 0
     
     try:
-        with transaction.atomic():
-            for i in range(0, len(items), chunk_size):
-                chunk = items[i:i + chunk_size]
+        # Barcha itemlarni birinchi marta parse qilish
+        parsed_items = []
+        for item in items:
+            try:
+                client_code_1c = clean_value(getattr(item, 'Code', None))
+                name = clean_value(getattr(item, 'Name', None))
+                email = clean_value(getattr(item, 'Email', None))
+                phone = clean_value(getattr(item, 'Phone', None))
+                description = clean_value(getattr(item, 'Description', None))
                 
-                for item in chunk:
-                    try:
-                        client_code_1c = clean_value(getattr(item, 'Code', None))
-                        name = clean_value(getattr(item, 'Name', None))
-                        email = clean_value(getattr(item, 'Email', None))
-                        phone = clean_value(getattr(item, 'Phone', None))
-                        description = clean_value(getattr(item, 'Description', None))
-                        project_name = clean_value(getattr(item, 'Project', None))
-                        
-                        if not client_code_1c or not name:
-                            error_count += 1
-                            continue
-                        
-                        # Client'ni saqlash yoki yangilash
-                        existing = Client.objects.filter(
-                            client_code_1c=client_code_1c,
+                if not client_code_1c or not name:
+                    error_count += 1
+                    continue
+                
+                parsed_items.append({
+                    'client_code_1c': client_code_1c,
+                    'name': name,
+                    'email': email,
+                    'phone': phone,
+                    'description': description,
+                })
+            except Exception as e:
+                logger.error(f"Error parsing client item: {e}")
+                error_count += 1
+                continue
+        
+        # Chunk'larga bo'lib ishlash - bulk operations bilan
+        for i in range(0, len(parsed_items), chunk_size):
+            chunk = parsed_items[i:i + chunk_size]
+            
+            try:
+                with transaction.atomic():
+                    # Barcha client_code_1c larni olish
+                    codes_1c = [item['client_code_1c'] for item in chunk]
+                    
+                    # Mavjud client'larni olish
+                    existing_dict = {
+                        obj.client_code_1c: obj 
+                        for obj in Client.objects.filter(
+                            client_code_1c__in=codes_1c,
                             is_deleted=False
-                        ).first()
+                        )
+                    }
+                    
+                    to_create = []
+                    to_update = []
+                    
+                    for item_data in chunk:
+                        client_code_1c = item_data['client_code_1c']
                         
-                        if existing:
-                            existing.name = name
-                            existing.email = email
-                            existing.phone = phone
-                            existing.description = description
+                        if client_code_1c in existing_dict:
+                            # Update
+                            existing = existing_dict[client_code_1c]
+                            existing.name = item_data['name']
+                            existing.email = item_data['email']
+                            existing.phone = item_data['phone']
+                            existing.description = item_data['description']
                             existing.updated_at = timezone.now()
-                            existing.save(update_fields=['name', 'email', 'phone', 'description', 'updated_at'])
-                            updated_count += 1
+                            to_update.append(existing)
                         else:
-                            Client.objects.create(
+                            # Create
+                            to_create.append(Client(
                                 client_code_1c=client_code_1c,
-                                name=name,
-                                email=email,
-                                phone=phone,
-                                description=description,
+                                name=item_data['name'],
+                                email=item_data['email'],
+                                phone=item_data['phone'],
+                                description=item_data['description'],
                                 is_active=True,
                                 is_deleted=False
-                            )
-                            created_count += 1
-                    except Exception as e:
-                        logger.error(f"Error processing client item: {e}")
-                        error_count += 1
-                        continue
+                            ))
+                    
+                    # Bulk operations
+                    if to_create:
+                        Client.objects.bulk_create(to_create, ignore_conflicts=True)
+                        created_count += len(to_create)
+                    
+                    if to_update:
+                        Client.objects.bulk_update(
+                            to_update, 
+                            ['name', 'email', 'phone', 'description', 'updated_at'],
+                            batch_size=chunk_size
+                        )
+                        updated_count += len(to_update)
                 
-                # Progress yangilash
+                # Progress yangilash - har chunk'dan keyin
                 if log_obj:
-                    processed = min(i + chunk_size, len(items))
+                    processed = min(i + chunk_size, len(parsed_items))
                     log_obj.processed_items = processed
                     log_obj.created_items = created_count
                     log_obj.updated_items = updated_count
                     log_obj.error_items = error_count
                     log_obj.status = 'processing'
-                    log_obj.save(update_fields=['processed_items', 'created_items', 'updated_items', 'error_items', 'status'])
+                    # Retry mechanism bilan save
+                    max_retries = 3
+                    for retry in range(max_retries):
+                        try:
+                            log_obj.save(update_fields=['processed_items', 'created_items', 'updated_items', 'error_items', 'status'])
+                            break
+                        except Exception as save_error:
+                            if retry == max_retries - 1:
+                                logger.error(f"Failed to save log after {max_retries} retries: {save_error}")
+                            else:
+                                time_module.sleep(0.1 * (retry + 1))
                 
-                # Kichik pauza - database yukini kamaytirish
-                time_module.sleep(0.1)
+            except Exception as e:
+                logger.error(f"Error processing clients chunk batch: {e}")
+                error_count += len(chunk)
+                continue
     
     except Exception as e:
         logger.error(f"Error processing clients chunk: {e}")
@@ -243,7 +348,10 @@ def process_clients_chunk(items, integration, chunk_size=100, log_obj=None):
             log_obj.status = 'error'
             log_obj.error_details = str(e)
             log_obj.end_time = timezone.now()
-            log_obj.save(update_fields=['status', 'error_details', 'end_time'])
+            try:
+                log_obj.save(update_fields=['status', 'error_details', 'end_time'])
+            except Exception:
+                pass  # Ignore save errors in error handler
         raise
     
     return created_count, updated_count, error_count
