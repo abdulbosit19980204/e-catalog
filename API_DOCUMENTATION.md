@@ -508,6 +508,253 @@ is_main: true
 
 ---
 
+## Excel Import/Export API
+
+### Project Excel Export/Import
+
+#### 1. Project ma'lumotlarini Excel formatida eksport qilish
+
+**GET** `/api/v1/project/export-xlsx/`
+
+**Query Parameters:**
+- Barcha filter parametrlari qo'llaniladi (search, code_1c, name, description_status, created_from, created_to, updated_from, updated_to)
+
+**Response:**
+- Content-Type: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+- XLSX fayl yuklab olinadi
+
+**Eslatma:** 
+- Ko'p yozuvlar bilan ishlash uchun chunking ishlatiladi (har safar 1000 ta yozuv)
+- SQLite "too many SQL variables" muammosini hal qiladi
+- Memory-efficient iterator() metodidan foydalanadi
+
+**Misol:**
+```bash
+curl -X GET "http://localhost:8000/api/v1/project/export-xlsx/?search=test" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -o projects.xlsx
+```
+
+#### 2. Project Excel shablonini yuklab olish
+
+**GET** `/api/v1/project/template-xlsx/`
+
+**Response:**
+- XLSX shablon fayl yuklab olinadi
+- Namuna ma'lumotlar bilan to'ldirilgan
+
+#### 3. Project ma'lumotlarini Excel fayldan import qilish
+
+**POST** `/api/v1/project/import-xlsx/`
+
+**Request Body (multipart/form-data):**
+```
+file: [XLSX file]
+```
+
+**Response:**
+```json
+{
+  "created": 10,
+  "updated": 5,
+  "errors": []
+}
+```
+
+**Excel Format:**
+- Headers: `code_1c`, `name`, `title`, `description`, `is_active`
+- Birinchi qator headerlar, keyingi qatorlar ma'lumotlar
+
+### Client Excel Export/Import
+
+#### 1. Client ma'lumotlarini Excel formatida eksport qilish
+
+**GET** `/api/v1/client/export-xlsx/`
+
+**Query Parameters:**
+- Barcha filter parametrlari qo'llaniladi
+
+**Misol:**
+```bash
+curl -X GET "http://localhost:8000/api/v1/client/export-xlsx/?description_status=without" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -o clients.xlsx
+```
+
+#### 2. Client Excel shablonini yuklab olish
+
+**GET** `/api/v1/client/template-xlsx/`
+
+#### 3. Client ma'lumotlarini Excel fayldan import qilish
+
+**POST** `/api/v1/client/import-xlsx/`
+
+**Excel Format:**
+- Headers: `client_code_1c`, `name`, `email`, `phone`, `description`, `is_active`
+
+### Nomenklatura Excel Export/Import
+
+#### 1. Nomenklatura ma'lumotlarini Excel formatida eksport qilish
+
+**GET** `/api/v1/nomenklatura/export-xlsx/`
+
+**Query Parameters:**
+- Barcha filter parametrlari qo'llaniladi
+
+#### 2. Nomenklatura Excel shablonini yuklab olish
+
+**GET** `/api/v1/nomenklatura/template-xlsx/`
+
+#### 3. Nomenklatura ma'lumotlarini Excel fayldan import qilish
+
+**POST** `/api/v1/nomenklatura/import-xlsx/`
+
+**Excel Format:**
+- Headers: `code_1c`, `name`, `title`, `description`, `is_active`
+
+---
+
+## Thumbnail API
+
+### 1. Barcha entity'lar uchun thumbnail rasmlar
+
+**GET** `/api/v1/thumbnails/`
+
+**Query Parameters:**
+- `entity_type` - Entity turi (`project`, `client`, `nomenklatura`)
+- `is_main` - Asosiy rasm bo'yicha filter (true/false)
+- `status` - Rasm statusi bo'yicha filter
+
+**Response:**
+```json
+{
+  "count": 100,
+  "results": [
+    {
+      "entity_type": "project",
+      "entity_code_1c": "PROJ001",
+      "entity_name": "Project Name",
+      "thumbnail_url": "http://localhost:8000/media/projects/thumb.jpg",
+      "is_main": true
+    }
+  ]
+}
+```
+
+### 2. Project thumbnail rasmlari
+
+**GET** `/api/v1/thumbnails/projects/`
+
+### 3. Client thumbnail rasmlari
+
+**GET** `/api/v1/thumbnails/clients/`
+
+### 4. Nomenklatura thumbnail rasmlari
+
+**GET** `/api/v1/thumbnails/nomenklatura/`
+
+---
+
+## Agent Location API
+
+### 1. Agent lokatsiya yozuvlari ro'yxati
+
+**GET** `/api/v1/agent-location/`
+
+**Query Parameters:**
+- `agent_code` - Agent kodi bo'yicha filter
+- `region` - Hudud bo'yicha filter
+- `platform` - Platforma bo'yicha filter (Android/iOS)
+- `device_id` - Qurilma ID bo'yicha filter
+- `date_from` - Yaratilgan vaqtdan boshlab
+- `date_to` - Yaratilgan vaqtgacha
+
+**Response:**
+```json
+{
+  "count": 1000,
+  "results": [
+    {
+      "id": 1,
+      "agent_code": "AGENT001",
+      "agent_name": "Agent Name",
+      "latitude": 41.3111,
+      "longitude": 69.2797,
+      "device_name": "Samsung Galaxy S21",
+      "platform": "Android",
+      "battery_level": 85.5,
+      "network_type": "4G",
+      "created_at": "2025-11-26T22:00:00Z"
+    }
+  ]
+}
+```
+
+### 2. Yangi agent lokatsiyasi yaratish
+
+**POST** `/api/v1/agent-location/`
+
+**Request Body:**
+```json
+{
+  "agent_code": "AGENT001",
+  "latitude": 41.3111,
+  "longitude": 69.2797,
+  "device_name": "Samsung Galaxy S21",
+  "platform": "Android",
+  "battery_level": 85.5,
+  "network_type": "4G"
+}
+```
+
+**Required Fields:**
+- `agent_code` - Agent kodi
+- `latitude` - Latitude
+- `longitude` - Longitude
+
+**Optional Fields:**
+- Barcha qolgan maydonlar ixtiyoriy (device info, location, network, sensors, battery, security)
+
+---
+
+## Performance va Caching
+
+### Caching
+
+API quyidagi endpointlar uchun caching qo'llaniladi:
+
+- **Project API:**
+  - List view: 5 daqiqa cache
+  - Detail view: 10 daqiqa cache
+  
+- **Image Status/Source:**
+  - 1 soat cache (kam o'zgaradi)
+  
+- **Thumbnail API:**
+  - 3 daqiqa cache
+
+**Cache Invalidation:**
+- Ma'lumotlar o'zgarganda cache avtomatik tozalanadi
+- Create, Update, Delete operatsiyalaridan keyin cache invalidate qilinadi
+
+### Background Tasks
+
+1C Integration sync operatsiyalari background'da ishlaydi:
+
+- **Async Processing** - Sync operatsiyalari asinxron ishlaydi
+- **Task Status** - `/api/v1/integration/sync/status/{task_id}/` orqali progress kuzatiladi
+- **Bulk Operations** - Ko'p yozuvlarni bir vaqtda qayta ishlash
+- **Retry Mechanism** - Xatoliklar bo'lganda qayta urinish
+
+### SQLite Optimizations
+
+- **WAL Mode** - Concurrent write operatsiyalar uchun
+- **Connection Pooling** - Database connection'lar pool'da saqlanadi
+- **Bulk Operations** - `bulk_create` va `bulk_update` ishlatiladi
+- **Chunking** - Excel export uchun chunking (SQLite limit muammosini hal qiladi)
+
+---
+
 ## Status Kodlar
 
 - `200 OK` - Muvaffaqiyatli so'rov

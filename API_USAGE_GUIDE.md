@@ -10,7 +10,11 @@ Bu qo'llanmada E-Catalog Microservice API'laridan foydalanishning to'liq ketma-k
 4. [Client API](#client-api)
 5. [Nomenklatura API](#nomenklatura-api)
 6. [Integration API](#integration-api)
-7. [Xatoliklar bilan ishlash](#xatoliklar-bilan-ishlash)
+7. [Excel Import/Export](#excel-importexport)
+8. [AI Description Generator](#ai-description-generator)
+9. [Thumbnail API](#thumbnail-api)
+10. [Agent Location API](#agent-location-api)
+11. [Xatoliklar bilan ishlash](#xatoliklar-bilan-ishlash)
 
 ---
 
@@ -776,9 +780,212 @@ async function checkSyncStatus(accessToken, taskId) {
 
 ---
 
+## Excel Import/Export
+
+### Project Excel Export
+
+**GET** `/api/v1/project/export-xlsx/`
+
+**Misol:**
+```bash
+curl -X GET "http://localhost:8000/api/v1/project/export-xlsx/?search=test" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -o projects.xlsx
+```
+
+**JavaScript:**
+```javascript
+async function exportProjects(accessToken, filters = {}) {
+  const params = new URLSearchParams(filters);
+  const response = await fetch(
+    `http://localhost:8000/api/v1/project/export-xlsx/?${params}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    }
+  );
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'projects.xlsx';
+  a.click();
+}
+```
+
+### Project Excel Import
+
+**POST** `/api/v1/project/import-xlsx/`
+
+**Misol:**
+```bash
+curl -X POST "http://localhost:8000/api/v1/project/import-xlsx/" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@projects.xlsx"
+```
+
+**JavaScript:**
+```javascript
+async function importProjects(accessToken, file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await fetch(
+    'http://localhost:8000/api/v1/project/import-xlsx/',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: formData
+    }
+  );
+  return await response.json();
+}
+```
+
+**Response:**
+```json
+{
+  "created": 10,
+  "updated": 5,
+  "errors": []
+}
+```
+
+### Client va Nomenklatura Excel
+
+Xuddi shu formatda:
+- `/api/v1/client/export-xlsx/`
+- `/api/v1/client/import-xlsx/`
+- `/api/v1/nomenklatura/export-xlsx/`
+- `/api/v1/nomenklatura/import-xlsx/`
+
+---
+
+## AI Description Generator
+
+### Foydalanish
+
+**Test qilish (dry-run):**
+```bash
+python manage.py generate_descriptions --nomenklatura --dry-run --limit 5
+```
+
+**Haqiqiy ishlatish:**
+```bash
+# Nomenklatura uchun
+python manage.py generate_descriptions --nomenklatura
+
+# Client uchun
+python manage.py generate_descriptions --client
+
+# Ikkalasi uchun
+python manage.py generate_descriptions
+```
+
+### Environment Variables
+
+```bash
+export OPENAI_API_KEY="your-api-key-here"
+export OPENAI_MODEL="gpt-3.5-turbo"  # Optional, default: gpt-3.5-turbo
+```
+
+Batafsil ma'lumot: [scripts/README_DESCRIPTIONS.md](../scripts/README_DESCRIPTIONS.md)
+
+---
+
+## Thumbnail API
+
+### Barcha thumbnail rasmlar
+
+**GET** `/api/v1/thumbnails/`
+
+**Query Parameters:**
+- `entity_type` - `project`, `client`, `nomenklatura`
+- `is_main` - `true` yoki `false`
+- `status` - Rasm statusi
+
+**Misol:**
+```javascript
+async function getThumbnails(accessToken, entityType = null) {
+  const params = entityType ? `?entity_type=${entityType}` : '';
+  const response = await fetch(
+    `http://localhost:8000/api/v1/thumbnails/${params}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    }
+  );
+  return await response.json();
+}
+```
+
+### Entity-specific thumbnails
+
+- `/api/v1/thumbnails/projects/` - Faqat Project
+- `/api/v1/thumbnails/clients/` - Faqat Client
+- `/api/v1/thumbnails/nomenklatura/` - Faqat Nomenklatura
+
+---
+
+## Agent Location API
+
+### Agent lokatsiyasi yaratish
+
+**POST** `/api/v1/agent-location/`
+
+**Request Body:**
+```json
+{
+  "agent_code": "AGENT001",
+  "latitude": 41.3111,
+  "longitude": 69.2797,
+  "device_name": "Samsung Galaxy S21",
+  "platform": "Android",
+  "battery_level": 85.5,
+  "network_type": "4G"
+}
+```
+
+**Misol:**
+```javascript
+async function createAgentLocation(accessToken, locationData) {
+  const response = await fetch(
+    'http://localhost:8000/api/v1/agent-location/',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(locationData)
+    }
+  );
+  return await response.json();
+}
+```
+
+### Agent lokatsiyalari ro'yxati
+
+**GET** `/api/v1/agent-location/`
+
+**Query Parameters:**
+- `agent_code` - Agent kodi
+- `region` - Hudud
+- `platform` - `Android` yoki `iOS`
+- `device_id` - Qurilma ID
+- `date_from` - Yaratilgan vaqtdan boshlab
+- `date_to` - Yaratilgan vaqtgacha
+
+---
+
 ## Qo'shimcha ma'lumotlar
 
 - **API Documentation (Swagger)**: http://localhost:8000/api/docs/
 - **ReDoc**: http://localhost:8000/api/redoc/
 - **OpenAPI Schema**: http://localhost:8000/api/schema/
+- **AI Description Generator**: [scripts/README_DESCRIPTIONS.md](../scripts/README_DESCRIPTIONS.md)
 

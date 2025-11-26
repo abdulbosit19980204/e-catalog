@@ -7,11 +7,15 @@ E-Catalog Microservice - Project, Nomenklatura va Client ma'lumotlarini boshqari
 - **Project Management** - Project'lar va ularning rasmlarini boshqarish
 - **Nomenklatura Management** - Nomenklatura'lar va ularning rasmlarini boshqarish
 - **Client Management** - Client'lar va ularning rasmlarini boshqarish
-- **1C Integration** - 1C dan ma'lumotlarni yuklab olish
+- **1C Integration** - 1C dan ma'lumotlarni yuklab olish (background tasks bilan)
 - **JWT Authentication** - Token-based authentication
 - **API Documentation** - Swagger UI va ReDoc
 - **CORS Support** - Frontend integratsiya uchun
-- **Rate Limiting** - API rate limiting
+- **Excel Import/Export** - Ma'lumotlarni Excel formatida import/export qilish
+- **AI Description Generator** - OpenAI yordamida professional descriptionlar yaratish
+- **High Performance** - Redis caching va background tasks (10K+ requests/minute)
+- **Image Management** - Ko'p o'lchamdagi rasmlar, status va source tracking
+- **Agent Location Tracking** - Mobil agentlar uchun geolokatsiya va qurilma ma'lumotlari
 - **Docker Support** - Docker containerization
 - **Production Ready** - Production uchun tayyor
 
@@ -105,9 +109,30 @@ python manage.py runserver
 - `DELETE /api/v1/nomenklatura/{code_1c}/` - Nomenklatura o'chirish
 
 ### Integration API
-- `POST /api/v1/integration/sync/nomenklatura/{integration_id}/` - 1C dan nomenklatura yuklab olish
-- `POST /api/v1/integration/sync/clients/{integration_id}/` - 1C dan client yuklab olish
+- `POST /api/v1/integration/sync/nomenklatura/{integration_id}/` - 1C dan nomenklatura yuklab olish (background task)
+- `POST /api/v1/integration/sync/clients/{integration_id}/` - 1C dan client yuklab olish (background task)
 - `GET /api/v1/integration/sync/status/{task_id}/` - Sync progress
+
+### Excel Import/Export API
+- `GET /api/v1/project/export-xlsx/` - Project ma'lumotlarini Excel formatida eksport qilish
+- `GET /api/v1/project/template-xlsx/` - Project Excel shablonini yuklab olish
+- `POST /api/v1/project/import-xlsx/` - Project ma'lumotlarini Excel fayldan import qilish
+- `GET /api/v1/client/export-xlsx/` - Client ma'lumotlarini Excel formatida eksport qilish
+- `GET /api/v1/client/template-xlsx/` - Client Excel shablonini yuklab olish
+- `POST /api/v1/client/import-xlsx/` - Client ma'lumotlarini Excel fayldan import qilish
+- `GET /api/v1/nomenklatura/export-xlsx/` - Nomenklatura ma'lumotlarini Excel formatida eksport qilish
+- `GET /api/v1/nomenklatura/template-xlsx/` - Nomenklatura Excel shablonini yuklab olish
+- `POST /api/v1/nomenklatura/import-xlsx/` - Nomenklatura ma'lumotlarini Excel fayldan import qilish
+
+### Thumbnail API
+- `GET /api/v1/thumbnails/` - Barcha entity'lar uchun thumbnail rasmlar
+- `GET /api/v1/thumbnails/projects/` - Faqat Project thumbnail rasmlari
+- `GET /api/v1/thumbnails/clients/` - Faqat Client thumbnail rasmlari
+- `GET /api/v1/thumbnails/nomenklatura/` - Faqat Nomenklatura thumbnail rasmlari
+
+### Agent Location API
+- `GET /api/v1/agent-location/` - Agent lokatsiya yozuvlari ro'yxati
+- `POST /api/v1/agent-location/` - Yangi agent lokatsiyasi yaratish
 
 ## 🐳 Docker
 
@@ -132,6 +157,30 @@ docker build -t ecatalog:latest .
 - [Setup Guide](SETUP.md)
 - [Integration Guide](INTEGRATION_GUIDE.md)
 - [Production Checklist](PRODUCTION_CHECKLIST.md)
+- [AI Description Generator](scripts/README_DESCRIPTIONS.md)
+
+## 🤖 AI Description Generator
+
+Nomenklatura va Client modellariga AI yordamida professional descriptionlar yozish:
+
+```bash
+# Test qilish (dry-run)
+python manage.py generate_descriptions --nomenklatura --dry-run --limit 5
+
+# Haqiqiy ishlatish
+python manage.py generate_descriptions --nomenklatura
+python manage.py generate_descriptions --client
+```
+
+Batafsil ma'lumot: [scripts/README_DESCRIPTIONS.md](scripts/README_DESCRIPTIONS.md)
+
+## ⚡ Performance Optimizations
+
+- **Redis Caching** - API viewlar va ORM querylar uchun caching
+- **Background Tasks** - 1C sync operatsiyalari background'da ishlaydi
+- **SQLite WAL Mode** - Concurrent write operatsiyalar uchun optimizatsiya
+- **Bulk Operations** - Ko'p yozuvlarni bir vaqtda qayta ishlash
+- **Chunking** - Excel export uchun chunking (SQLite limit muammosini hal qiladi)
 
 ## 🧪 Testing
 

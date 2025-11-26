@@ -38,6 +38,86 @@ E-Catalog Microservice o'zgarishlar tarixi.
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-11-26
+
+### Qo'shilgan
+- **Excel Import/Export** - Project, Client va Nomenklatura uchun Excel import/export funksiyalari
+  - Export: `/api/v1/{entity}/export-xlsx/` - Ma'lumotlarni Excel formatida eksport qilish
+  - Template: `/api/v1/{entity}/template-xlsx/` - Excel shablonini yuklab olish
+  - Import: `/api/v1/{entity}/import-xlsx/` - Excel fayldan ma'lumotlarni import qilish
+  - Chunking optimizatsiyasi - SQLite "too many SQL variables" muammosini hal qiladi
+- **AI Description Generator** - OpenAI yordamida professional descriptionlar yaratish
+  - Django management command: `python manage.py generate_descriptions`
+  - Nomenklatura va Client uchun AI yordamida description yozish
+  - Dry-run rejimi test uchun
+- **Image Status va Source Tracking** - Rasmlar uchun status va source tracking
+  - `ImageStatus` modeli - Rasm holatini belgilash
+  - `ImageSource` modeli - Rasm manbasini kuzatish
+  - Image modellariga `status` va `source` maydonlari qo'shildi
+- **Thumbnail API** - Thumbnail rasmlarni olish uchun alohida endpoint'lar
+  - `/api/v1/thumbnails/` - Barcha entity'lar uchun
+  - `/api/v1/thumbnails/projects/` - Faqat Project uchun
+  - `/api/v1/thumbnails/clients/` - Faqat Client uchun
+  - `/api/v1/thumbnails/nomenklatura/` - Faqat Nomenklatura uchun
+- **Agent Location Tracking** - Mobil agentlar uchun kengaytirilgan geolokatsiya va qurilma ma'lumotlari
+  - Device info (manufacturer, model, OS, screen, RAM, storage, camera)
+  - Location data (city, country, timezone, location provider)
+  - Network info (WiFi, cellular, IP address)
+  - Sensor data (accelerometer, gyroscope, magnetometer, proximity, light)
+  - Battery info (level, health, temperature, voltage)
+  - Security info (fingerprint, rooted/jailbroken, encryption, screen lock)
+- **Date-based Filtering** - Barcha API'lar uchun sana bo'yicha filtrlash
+  - `created_from`, `created_to` - Yaratilgan sana bo'yicha
+  - `updated_from`, `updated_to` - Yangilangan sana bo'yicha
+- **Description Status Filtering** - Description bor/yo'q bo'yicha filtrlash
+  - `description_status=with` - Description bor
+  - `description_status=without` - Description yo'q
+- **Image Category va Note** - Rasmlar uchun toifa va izoh maydonlari
+  - `category` - Rasm toifasi yoki teg
+  - `note` - Rasm haqida qo'shimcha izoh
+- **Django Admin Redesign** - Zamonaviy va chiroyli admin interfeysi
+  - Asosiy dashboard redesign
+  - Import/Export dashboard
+  - Sidebar menu redesign
+- **High Performance Optimizations** - 10K+ requests/minute uchun optimizatsiya
+  - Redis caching - API viewlar va ORM querylar uchun
+  - Background tasks - 1C sync operatsiyalari background'da
+  - SQLite WAL mode - Concurrent write operatsiyalar uchun
+  - Bulk operations - Ko'p yozuvlarni bir vaqtda qayta ishlash
+  - Connection pooling - Database connection'lar pool'da
+
+### O'zgartirilgan
+- **Export-XLSX Optimizatsiyasi** - Chunking va iterator() ishlatiladi
+  - SQLite "too many SQL variables" muammosini hal qiladi
+  - Memory-efficient processing
+  - 1000 ta yozuv chunk'larida qayta ishlash
+- **1C Integration** - Background tasks bilan ishlaydi
+  - `django-q2` o'rniga threading ishlatiladi (Django 5.2 bilan mos keladi)
+  - Bulk operations bilan optimizatsiya
+  - Retry mechanism qo'shildi
+- **Filtering** - Kengaytirilgan filtrlash imkoniyatlari
+  - Date-based filtering barcha API'lar uchun
+  - Description status filtering
+- **Image Models** - `category` va `note` maydonlari qo'shildi
+- **Admin Interface** - Zamonaviy dizayn va yaxshilangan UX
+
+### Tuzatilgan
+- **SQLite Concurrency** - "database is locked" va "readonly database" xatoliklari
+  - WAL mode yoqildi
+  - Connection timeout oshirildi
+  - `check_same_thread=False` qo'shildi
+- **Export-XLSX SQLite Limit** - "too many SQL variables" xatoligi
+  - Chunking implementatsiyasi
+  - Iterator() metodidan foydalanish
+  - `prefetch_related` export uchun olib tashlandi
+- **URL Namespace** - API URL namespace muammosi tuzatildi
+- **Image Serializers** - `get_image_url` metodlari qo'shildi
+
+### Dokumentatsiya
+- [AI Description Generator Guide](scripts/README_DESCRIPTIONS.md) - AI description generator qo'llanmasi
+- API_DOCUMENTATION.md - Excel import/export, Thumbnail API, Agent Location API qo'shildi
+- README.md - Yangi xususiyatlar va performance optimizations qo'shildi
+
 ## [1.1.0] - 2025-01-06
 
 ### Qo'shilgan
