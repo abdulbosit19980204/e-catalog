@@ -102,6 +102,7 @@ class ImageStatusAdmin(admin.ModelAdmin):
     search_fields = ['code', 'name', 'description']
     ordering = ['order', 'name']
     list_editable = ['order', 'is_active']
+    readonly_fields = ['created_at', 'updated_at']
     fieldsets = (
         ('Asosiy ma\'lumotlar', {
             'fields': ('code', 'name', 'description', 'icon', 'order')
