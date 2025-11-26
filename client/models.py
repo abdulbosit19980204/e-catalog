@@ -18,6 +18,51 @@ class Client(BaseModel):
     email = models.EmailField(max_length=100, blank=True, null=True, db_index=True)
     phone = models.CharField(max_length=100, blank=True, null=True)
     description = RichTextField(blank=True, null=True)
+    
+    # Company Information
+    company_name = models.CharField(max_length=255, blank=True, null=True, help_text="Kompaniya nomi")
+    tax_id = models.CharField(max_length=50, blank=True, null=True, help_text="INN/STIR")
+    registration_number = models.CharField(max_length=100, blank=True, null=True, help_text="Ro'yxatdan o'tish raqami")
+    legal_address = models.TextField(blank=True, null=True, help_text="Yuridik manzil")
+    actual_address = models.TextField(blank=True, null=True, help_text="Haqiqiy manzil")
+    
+    # Contact Information
+    fax = models.CharField(max_length=50, blank=True, null=True, help_text="Faks raqami")
+    website = models.URLField(max_length=255, blank=True, null=True, help_text="Veb-sayt")
+    social_media = models.JSONField(blank=True, null=True, default=dict, help_text="Ijtimoiy tarmoqlar (JSON)")
+    additional_phones = models.JSONField(blank=True, null=True, default=list, help_text="Qo'shimcha telefon raqamlari (JSON)")
+    
+    # Business Information
+    industry = models.CharField(max_length=150, blank=True, null=True, help_text="Soha/Industriya")
+    business_type = models.CharField(max_length=100, blank=True, null=True, help_text="Biznes turi")
+    employee_count = models.IntegerField(blank=True, null=True, help_text="Xodimlar soni")
+    annual_revenue = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, help_text="Yillik daromad")
+    established_date = models.DateField(blank=True, null=True, help_text="Tashkil etilgan sana")
+    
+    # Financial Information
+    payment_terms = models.CharField(max_length=255, blank=True, null=True, help_text="To'lov shartlari")
+    credit_limit = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, help_text="Kredit limiti")
+    currency = models.CharField(max_length=10, blank=True, null=True, default='UZS', help_text="Valyuta")
+    
+    # Location Information
+    city = models.CharField(max_length=100, blank=True, null=True, help_text="Shahar")
+    region = models.CharField(max_length=100, blank=True, null=True, help_text="Viloyat/Hudud")
+    country = models.CharField(max_length=100, blank=True, null=True, default='Uzbekistan', help_text="Davlat")
+    postal_code = models.CharField(max_length=20, blank=True, null=True, help_text="Pochta indeksi")
+    
+    # Contact Person
+    contact_person = models.CharField(max_length=150, blank=True, null=True, help_text="Kontakt shaxs")
+    contact_position = models.CharField(max_length=100, blank=True, null=True, help_text="Lavozim")
+    contact_email = models.EmailField(max_length=100, blank=True, null=True, help_text="Kontakt email")
+    contact_phone = models.CharField(max_length=100, blank=True, null=True, help_text="Kontakt telefon")
+    
+    # Additional Information
+    notes = models.TextField(blank=True, null=True, help_text="Qo'shimcha izohlar")
+    tags = models.JSONField(blank=True, null=True, default=list, help_text="Teglar (JSON)")
+    rating = models.DecimalField(max_digits=3, decimal_places=2, blank=True, null=True, help_text="Reyting (0-5)")
+    priority = models.IntegerField(blank=True, null=True, default=0, help_text="Prioritet (0-100)")
+    source = models.CharField(max_length=100, blank=True, null=True, help_text="Manba")
+    metadata = models.JSONField(blank=True, null=True, default=dict, help_text="Qo'shimcha meta ma'lumotlar (JSON)")
 
     class Meta:
         indexes = [
@@ -25,6 +70,9 @@ class Client(BaseModel):
             models.Index(fields=['client_code_1c', 'is_deleted']),
             models.Index(fields=['name', 'is_deleted']),
             models.Index(fields=['email', 'is_deleted']),
+            models.Index(fields=['city', 'region']),
+            models.Index(fields=['industry', 'business_type']),
+            models.Index(fields=['rating', 'priority']),
         ]
 
     def __str__(self):

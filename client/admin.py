@@ -45,14 +45,42 @@ class DescriptionStatusFilter(admin.SimpleListFilter):
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
     """Client admin"""
-    list_display = ['name', 'client_code_1c', 'email', 'phone', 'images_count', 'is_active', 'is_deleted', 'created_at']
-    list_filter = ['is_active', 'is_deleted', DescriptionStatusFilter, 'created_at', 'updated_at']
-    search_fields = ['name', 'client_code_1c', 'email', 'phone']
+    list_display = ['name', 'client_code_1c', 'email', 'phone', 'city', 'industry', 'rating', 'images_count', 'is_active', 'is_deleted', 'created_at']
+    list_filter = ['is_active', 'is_deleted', DescriptionStatusFilter, 'city', 'region', 'country', 'industry', 'business_type', 'created_at', 'updated_at']
+    search_fields = ['name', 'client_code_1c', 'email', 'phone', 'company_name', 'tax_id', 'contact_person', 'city', 'region']
     readonly_fields = ['created_at', 'updated_at', 'images_count_display']
     inlines = [ClientImageInline]
     fieldsets = (
         ('Asosiy ma\'lumotlar', {
             'fields': ('client_code_1c', 'name', 'email', 'phone', 'description')
+        }),
+        ('Kompaniya ma\'lumotlari', {
+            'fields': ('company_name', 'tax_id', 'registration_number', 'legal_address', 'actual_address'),
+            'classes': ('collapse',)
+        }),
+        ('Aloqa ma\'lumotlari', {
+            'fields': ('fax', 'website', 'social_media', 'additional_phones'),
+            'classes': ('collapse',)
+        }),
+        ('Biznes ma\'lumotlari', {
+            'fields': ('industry', 'business_type', 'employee_count', 'annual_revenue', 'established_date'),
+            'classes': ('collapse',)
+        }),
+        ('Moliyaviy ma\'lumotlar', {
+            'fields': ('payment_terms', 'credit_limit', 'currency'),
+            'classes': ('collapse',)
+        }),
+        ('Lokatsiya', {
+            'fields': ('city', 'region', 'country', 'postal_code'),
+            'classes': ('collapse',)
+        }),
+        ('Kontakt shaxs', {
+            'fields': ('contact_person', 'contact_position', 'contact_email', 'contact_phone'),
+            'classes': ('collapse',)
+        }),
+        ('Qo\'shimcha ma\'lumotlar', {
+            'fields': ('notes', 'tags', 'rating', 'priority', 'source', 'metadata'),
+            'classes': ('collapse',)
         }),
         ('Status', {
             'fields': ('is_active', 'is_deleted')

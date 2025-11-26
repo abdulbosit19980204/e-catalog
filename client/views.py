@@ -181,7 +181,15 @@ class ClientViewSet(viewsets.ModelViewSet):
     # Excel helpers ---------------------------------------------------------
     @staticmethod
     def _client_excel_headers():
-        return ['client_code_1c', 'name', 'email', 'phone', 'description', 'is_active']
+        return [
+            'client_code_1c', 'name', 'email', 'phone', 'description', 'is_active',
+            'company_name', 'tax_id', 'registration_number', 'legal_address', 'actual_address',
+            'fax', 'website', 'industry', 'business_type', 'employee_count', 'annual_revenue',
+            'established_date', 'payment_terms', 'credit_limit', 'currency',
+            'city', 'region', 'country', 'postal_code',
+            'contact_person', 'contact_position', 'contact_email', 'contact_phone',
+            'notes', 'rating', 'priority', 'source'
+        ]
 
     def _validate_client_headers(self, sheet):
         expected = [header.lower() for header in self._client_excel_headers()]
@@ -223,6 +231,33 @@ class ClientViewSet(viewsets.ModelViewSet):
                     client.phone or '',
                     client.description or '',
                     client.is_active,
+                    client.company_name or '',
+                    client.tax_id or '',
+                    client.registration_number or '',
+                    client.legal_address or '',
+                    client.actual_address or '',
+                    client.fax or '',
+                    client.website or '',
+                    client.industry or '',
+                    client.business_type or '',
+                    client.employee_count or '',
+                    client.annual_revenue or '',
+                    client.established_date.strftime('%Y-%m-%d') if client.established_date else '',
+                    client.payment_terms or '',
+                    client.credit_limit or '',
+                    client.currency or '',
+                    client.city or '',
+                    client.region or '',
+                    client.country or '',
+                    client.postal_code or '',
+                    client.contact_person or '',
+                    client.contact_position or '',
+                    client.contact_email or '',
+                    client.contact_phone or '',
+                    client.notes or '',
+                    client.rating or '',
+                    client.priority or '',
+                    client.source or '',
                 ])
             
             offset += chunk_size

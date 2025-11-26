@@ -175,7 +175,15 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
     # Excel helpers ---------------------------------------------------------
     @staticmethod
     def _nomenklatura_excel_headers():
-        return ['code_1c', 'name', 'title', 'description', 'is_active']
+        return [
+            'code_1c', 'name', 'title', 'description', 'is_active',
+            'sku', 'barcode', 'brand', 'manufacturer', 'model', 'series', 'vendor_code',
+            'base_price', 'sale_price', 'cost_price', 'currency', 'discount_percent', 'tax_rate',
+            'stock_quantity', 'min_stock', 'max_stock', 'unit_of_measure', 'weight', 'dimensions', 'volume',
+            'category', 'subcategory',
+            'color', 'size', 'material', 'warranty_period', 'expiry_date', 'production_date',
+            'notes', 'rating', 'popularity_score', 'seo_keywords', 'source'
+        ]
 
     def _validate_nomenklatura_headers(self, sheet):
         expected = [header.lower() for header in self._nomenklatura_excel_headers()]
@@ -216,6 +224,39 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
                     item.title or '',
                     item.description or '',
                     item.is_active,
+                    item.sku or '',
+                    item.barcode or '',
+                    item.brand or '',
+                    item.manufacturer or '',
+                    item.model or '',
+                    item.series or '',
+                    item.vendor_code or '',
+                    item.base_price or '',
+                    item.sale_price or '',
+                    item.cost_price or '',
+                    item.currency or '',
+                    item.discount_percent or '',
+                    item.tax_rate or '',
+                    item.stock_quantity or '',
+                    item.min_stock or '',
+                    item.max_stock or '',
+                    item.unit_of_measure or '',
+                    item.weight or '',
+                    item.dimensions or '',
+                    item.volume or '',
+                    item.category or '',
+                    item.subcategory or '',
+                    item.color or '',
+                    item.size or '',
+                    item.material or '',
+                    item.warranty_period or '',
+                    item.expiry_date.strftime('%Y-%m-%d') if item.expiry_date else '',
+                    item.production_date.strftime('%Y-%m-%d') if item.production_date else '',
+                    item.notes or '',
+                    item.rating or '',
+                    item.popularity_score or '',
+                    item.seo_keywords or '',
+                    item.source or '',
                 ])
             
             offset += chunk_size

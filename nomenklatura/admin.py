@@ -45,14 +45,38 @@ class DescriptionStatusFilter(admin.SimpleListFilter):
 @admin.register(Nomenklatura)
 class NomenklaturaAdmin(admin.ModelAdmin):
     """Nomenklatura admin"""
-    list_display = ['name', 'code_1c', 'title', 'images_count', 'is_active', 'is_deleted', 'created_at']
-    list_filter = ['is_active', 'is_deleted', DescriptionStatusFilter, 'created_at', 'updated_at']
-    search_fields = ['name', 'code_1c', 'title']
+    list_display = ['name', 'code_1c', 'sku', 'brand', 'category', 'base_price', 'stock_quantity', 'rating', 'images_count', 'is_active', 'is_deleted', 'created_at']
+    list_filter = ['is_active', 'is_deleted', DescriptionStatusFilter, 'category', 'subcategory', 'brand', 'manufacturer', 'created_at', 'updated_at']
+    search_fields = ['name', 'code_1c', 'title', 'sku', 'barcode', 'brand', 'manufacturer', 'model', 'category']
     readonly_fields = ['created_at', 'updated_at', 'images_count_display']
     inlines = [NomenklaturaImageInline]
     fieldsets = (
         ('Asosiy ma\'lumotlar', {
             'fields': ('code_1c', 'name', 'title', 'description')
+        }),
+        ('Mahsulot identifikatsiyasi', {
+            'fields': ('sku', 'barcode', 'brand', 'manufacturer', 'model', 'series', 'vendor_code'),
+            'classes': ('collapse',)
+        }),
+        ('Narx ma\'lumotlari', {
+            'fields': ('base_price', 'sale_price', 'cost_price', 'currency', 'discount_percent', 'tax_rate'),
+            'classes': ('collapse',)
+        }),
+        ('Ombor ma\'lumotlari', {
+            'fields': ('stock_quantity', 'min_stock', 'max_stock', 'unit_of_measure', 'weight', 'dimensions', 'volume'),
+            'classes': ('collapse',)
+        }),
+        ('Kategoriya va teg', {
+            'fields': ('category', 'subcategory', 'tags'),
+            'classes': ('collapse',)
+        }),
+        ('Texnik xususiyatlar', {
+            'fields': ('color', 'size', 'material', 'warranty_period', 'expiry_date', 'production_date'),
+            'classes': ('collapse',)
+        }),
+        ('Qo\'shimcha ma\'lumotlar', {
+            'fields': ('notes', 'rating', 'popularity_score', 'seo_keywords', 'source', 'metadata'),
+            'classes': ('collapse',)
         }),
         ('Status', {
             'fields': ('is_active', 'is_deleted')
