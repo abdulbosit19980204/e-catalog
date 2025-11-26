@@ -146,6 +146,51 @@ class ProjectImageSerializer(serializers.ModelSerializer):
         
         instance.save()
         return instance
+    
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_image_url(self, obj) -> Optional[str]:
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+    
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_image_sm_url(self, obj) -> Optional[str]:
+        if obj.image_sm:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image_sm.url)
+            return obj.image_sm.url
+        return None
+    
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_image_md_url(self, obj) -> Optional[str]:
+        if obj.image_md:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image_md.url)
+            return obj.image_md.url
+        return None
+    
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_image_lg_url(self, obj) -> Optional[str]:
+        if obj.image_lg:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image_lg.url)
+            return obj.image_lg.url
+        return None
+    
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_image_thumbnail_url(self, obj) -> Optional[str]:
+        if obj.image_thumbnail:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image_thumbnail.url)
+            return obj.image_thumbnail.url
+        return None
 
 
 class ThumbnailEntrySerializer(serializers.Serializer):

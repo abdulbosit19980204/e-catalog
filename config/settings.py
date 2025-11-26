@@ -34,6 +34,7 @@ DEFAULT_ALLOWED_HOSTS = [
     '192.168.0.101',
     '192.168.0.110',
     '192.168.0.111',
+    '192.168.0.129',
 ]
 ALLOWED_HOSTS = [
     host.strip() for host in os.environ.get('ALLOWED_HOSTS', '').split(',')
@@ -49,6 +50,7 @@ DEFAULT_TRUSTED_ORIGINS = [
     'http://192.168.0.101'
     'http://192.168.0.110',
     'http://192.168.0.111',
+    'http://192.168.0.129:8000',
 ]
 CSRF_TRUSTED_ORIGINS = [
     origin.strip() for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
