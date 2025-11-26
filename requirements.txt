@@ -19,3 +19,6 @@ django-redis==5.4.0
 # Background tasks - using threading instead (django-q2 not compatible with Django 5.2)
 # django-q2==1.4.0  # Commented - incompatible with Django 5.2.7
 
+# AI Description Generation
+openai>=1.0.0
+
