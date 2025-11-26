@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.core.cache import cache
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample
-from django_q.tasks import async_task
+import threading
 from zeep import Client as ZeepClient, Settings
 from zeep.cache import SqliteCache
 from zeep.transports import Transport
@@ -496,8 +496,10 @@ def sync_nomenklatura_from_1c(request, integration_id):
         status='fetching'
     )
     
-    # Background task'da ishlash - django-q2
-    async_task(sync_nomenklatura_async, integration.id, task_id)
+    # Background thread'da ishlash - threading (django-q2 Django 5.2 bilan mos kelmaydi)
+    thread = threading.Thread(target=sync_nomenklatura_async, args=(integration.id, task_id))
+    thread.daemon = True
+    thread.start()
     
     return Response(
         {
@@ -552,8 +554,10 @@ def sync_clients_from_1c(request, integration_id):
         status='fetching'
     )
     
-    # Background task'da ishlash - django-q2
-    async_task(sync_clients_async, integration.id, task_id)
+    # Background thread'da ishlash - threading (django-q2 Django 5.2 bilan mos kelmaydi)
+    thread = threading.Thread(target=sync_clients_async, args=(integration.id, task_id))
+    thread.daemon = True
+    thread.start()
     
     return Response(
         {
