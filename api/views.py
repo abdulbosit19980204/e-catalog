@@ -875,12 +875,83 @@ class ThumbnailFeedMixin:
             for image in qs
         ]
 
+    def _get_image_size(self, image_field) -> Optional[str]:
+        """Rasm hajmini olish (KB yoki MB formatida)"""
+        if not image_field:
+            return None
+        try:
+            if hasattr(image_field, 'file') and image_field.file:
+                file_size = image_field.file.size
+                if file_size >= 1024 * 1024:  # MB
+                    return f"{file_size / (1024 * 1024):.2f} MB"
+                elif file_size >= 1024:  # KB
+                    return f"{file_size / 1024:.2f} KB"
+                else:  # Bytes
+                    return f"{file_size} B"
+        except Exception:
+            pass
+        return None
+    
+    def _get_thumbnail_dimensions(self, image_obj):
+        """Thumbnail rasm o'lchamlari va hajmini olish"""
+        try:
+            thumb = image_obj.image_thumbnail
+            if not thumb:
+                return None
+            size_str = self._get_image_size(thumb)
+            return {
+                'width': 150,
+                'height': 150,
+                'format': 'JPEG',
+                'size': size_str
+            }
+        except Exception:
+            pass
+        return None
+    
+    def _get_original_dimensions(self, image_obj):
+        """Original rasm o'lchamlari va hajmini olish"""
+        try:
+            if not image_obj.image:
+                return None
+            from PIL import Image as PILImage
+            with PILImage.open(image_obj.image.file) as img:
+                file_size = 0
+                if hasattr(image_obj.image.file, 'size'):
+                    file_size = image_obj.image.file.size
+                elif hasattr(image_obj.image, 'size'):
+                    file_size = image_obj.image.size
+                
+                # KB yoki MB ga aylantirish
+                if file_size >= 1024 * 1024:  # MB
+                    size_str = f"{file_size / (1024 * 1024):.2f} MB"
+                elif file_size >= 1024:  # KB
+                    size_str = f"{file_size / 1024:.2f} KB"
+                else:  # Bytes
+                    size_str = f"{file_size} B"
+                
+                return {
+                    'width': img.width,
+                    'height': img.height,
+                    'format': img.format or 'JPEG',
+                    'size_bytes': file_size,
+                    'size': size_str
+                }
+        except Exception:
+            pass
+        return None
+
     def _build_entry(self, request, entity_type, entity, image, code_attr):
         status_obj = getattr(image, 'status', None)
         source_obj = getattr(image, 'source', None)
         code_value = getattr(entity, code_attr, None)
         if not code_value:
             code_value = ''
+        
+        # Rasm o'lchamlari va hajmini olish
+        thumbnail_dimensions = self._get_thumbnail_dimensions(image)
+        original_dimensions = self._get_original_dimensions(image)
+        
         return {
             'entity_type': entity_type,
             'entity_id': entity.id,
@@ -888,6 +959,8 @@ class ThumbnailFeedMixin:
             'entity_name': getattr(entity, 'name', str(entity)),
             'image_id': image.id,
             'thumbnail_url': self._absolute_url(request, image),
+            'thumbnail_dimensions': thumbnail_dimensions,
+            'original_dimensions': original_dimensions,
             'is_main': image.is_main,
             'category': image.category or None,
             'note': image.note or None,

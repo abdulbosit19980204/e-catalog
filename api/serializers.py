@@ -320,6 +320,8 @@ class ThumbnailEntrySerializer(serializers.Serializer):
     entity_name = serializers.CharField(help_text="Entity nomi")
     image_id = serializers.IntegerField(help_text="Image primary key ID si")
     thumbnail_url = serializers.URLField(allow_null=True, help_text="Thumbnail rasm URL i")
+    thumbnail_dimensions = serializers.DictField(allow_null=True, help_text="Thumbnail rasm o'lchamlari va hajmi (width, height, format, size)")
+    original_dimensions = serializers.DictField(allow_null=True, help_text="Original rasm o'lchamlari va hajmi (width, height, format, size_bytes, size)")
     is_main = serializers.BooleanField(help_text="Asosiy rasm statusi")
     category = serializers.CharField(allow_null=True, help_text="Rasm toifasi", default=None)
     note = serializers.CharField(allow_null=True, help_text="Rasm izohi", default=None)

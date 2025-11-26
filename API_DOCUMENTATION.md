@@ -1059,37 +1059,134 @@ curl -X GET "http://localhost:8000/api/v1/client/export-xlsx/?description_status
 **GET** `/api/v1/thumbnails/`
 
 **Query Parameters:**
-- `entity_type` - Entity turi (`project`, `client`, `nomenklatura`)
+- `entity_type` - Entity turi (`project`, `client`, `nomenklatura`) - virgullar bilan ajratilgan
 - `is_main` - Asosiy rasm bo'yicha filter (true/false)
-- `status` - Rasm statusi bo'yicha filter
+- `status` - Rasm statusi bo'yicha filter (ImageStatus kodi)
+- `limit` - Qaytariladigan maksimal elementlar soni (default: 60, max: 200)
 
 **Response:**
 ```json
-{
-  "count": 100,
-  "results": [
-    {
-      "entity_type": "project",
-      "entity_code_1c": "PROJ001",
-      "entity_name": "Project Name",
-      "thumbnail_url": "http://localhost:8000/media/projects/thumb.jpg",
-      "is_main": true
-    }
-  ]
-}
+[
+  {
+    "entity_type": "project",
+    "entity_id": 1,
+    "code_1c": "PROJ001",
+    "entity_name": "Project Name",
+    "image_id": 5,
+    "thumbnail_url": "http://localhost:8000/media/CACHE/images/projects/image_thumbnail.jpg",
+    "thumbnail_dimensions": {
+      "width": 150,
+      "height": 150,
+      "format": "JPEG",
+      "size": "12.45 KB"
+    },
+    "original_dimensions": {
+      "width": 2000,
+      "height": 1500,
+      "format": "JPEG",
+      "size_bytes": 2457600,
+      "size": "2.34 MB"
+    },
+    "is_main": true,
+    "category": "product",
+    "note": "Asosiy rasm",
+    "status_code": "product_main",
+    "status_name": "Mahsulot - Asosiy rasm",
+    "source_name": "Admin User",
+    "source_type": "admin",
+    "created_at": "2025-01-01T00:00:00Z"
+  },
+  {
+    "entity_type": "client",
+    "entity_id": 2,
+    "code_1c": "CLI001",
+    "entity_name": "Client Name",
+    "image_id": 10,
+    "thumbnail_url": "http://localhost:8000/media/CACHE/images/clients/image_thumbnail.jpg",
+    "thumbnail_dimensions": {
+      "width": 150,
+      "height": 150,
+      "format": "JPEG",
+      "size": "11.23 KB"
+    },
+    "original_dimensions": {
+      "width": 1920,
+      "height": 1080,
+      "format": "JPEG",
+      "size_bytes": 1843200,
+      "size": "1.76 MB"
+    },
+    "is_main": true,
+    "category": "logo",
+    "note": "Kompaniya logotipi",
+    "status_code": null,
+    "status_name": null,
+    "source_name": null,
+    "source_type": null,
+    "created_at": "2025-01-01T00:00:00Z"
+  }
+]
 ```
+
+**Response Fields:**
+- `entity_type` - Entity turi (project, client, nomenklatura)
+- `entity_id` - Entity primary key ID
+- `code_1c` - Entity'ning 1C kodi
+- `entity_name` - Entity nomi
+- `image_id` - Rasm primary key ID
+- `thumbnail_url` - Thumbnail rasm URL'i
+- `thumbnail_dimensions` - Thumbnail rasm o'lchamlari va hajmi (width, height, format, size)
+- `original_dimensions` - Original rasm o'lchamlari va hajmi (width, height, format, size_bytes, size)
+- `is_main` - Asosiy rasm statusi
+- `category` - Rasm toifasi
+- `note` - Rasm izohi
+- `status_code` - ImageStatus kodi
+- `status_name` - ImageStatus nomi
+- `source_name` - Rasmni yuboruvchi nomi
+- `source_type` - Rasmni yuboruvchi turi (agent, client, admin, system, other)
+- `created_at` - Rasm yaratilgan vaqti
 
 ### 2. Project thumbnail rasmlari
 
 **GET** `/api/v1/thumbnails/projects/`
 
+**Query Parameters:**
+- `is_main` - Asosiy rasm bo'yicha filter (true/false)
+- `status` - Rasm statusi bo'yicha filter
+- `limit` - Qaytariladigan maksimal elementlar soni (default: 60, max: 200)
+
+**Response:** Xuddi yuqoridagi kabi, lekin faqat project rasmlari
+
 ### 3. Client thumbnail rasmlari
 
 **GET** `/api/v1/thumbnails/clients/`
 
+**Query Parameters:**
+- `is_main` - Asosiy rasm bo'yicha filter (true/false)
+- `status` - Rasm statusi bo'yicha filter
+- `limit` - Qaytariladigan maksimal elementlar soni (default: 60, max: 200)
+
+**Response:** Xuddi yuqoridagi kabi, lekin faqat client rasmlari
+
 ### 4. Nomenklatura thumbnail rasmlari
 
 **GET** `/api/v1/thumbnails/nomenklatura/`
+
+**Query Parameters:**
+- `is_main` - Asosiy rasm bo'yicha filter (true/false)
+- `status` - Rasm statusi bo'yicha filter
+- `limit` - Qaytariladigan maksimal elementlar soni (default: 60, max: 200)
+
+**Response:** Xuddi yuqoridagi kabi, lekin faqat nomenklatura rasmlari
+
+**⚠️ Muhim: Thumbnail API'da rasm o'lchamlari va hajmi**
+
+Thumbnail API'larida har bir rasm uchun quyidagi ma'lumotlar qaytariladi:
+
+- **thumbnail_dimensions** - Thumbnail rasm o'lchamlari (150x150 px) va hajmi (KB formatida)
+- **original_dimensions** - Original rasm o'lchamlari (yuklangan rasm o'z o'lchamida) va hajmi (KB yoki MB formatida)
+
+Bu ma'lumotlar mobil yoki frontend ilovalarida rasm yuklashdan oldin hajmni ko'rsatish yoki optimizatsiya qilish uchun foydalidir.
 
 ---
 
