@@ -21,6 +21,7 @@ const ProjectAdmin = () => {
   const [uploading, setUploading] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [descriptionStatus, setDescriptionStatus] = useState("");
+  const [imageStatus, setImageStatus] = useState("");
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
   const [updatedFrom, setUpdatedFrom] = useState("");
@@ -46,6 +47,7 @@ const ProjectAdmin = () => {
         page_size: pageSize,
         search: search || undefined,
         description_status: descriptionStatus || undefined,
+        image_status: imageStatus || undefined,
         created_from: createdFrom || undefined,
         created_to: createdTo || undefined,
         updated_from: updatedFrom || undefined,
@@ -65,7 +67,7 @@ const ProjectAdmin = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, descriptionStatus, createdFrom, createdTo, updatedFrom, updatedTo]);
+  }, [page, pageSize, search, descriptionStatus, imageStatus, createdFrom, createdTo, updatedFrom, updatedTo]);
 
   useEffect(() => {
     loadProjects();
@@ -210,6 +212,7 @@ const ProjectAdmin = () => {
   const handleResetFilters = () => {
     setSearch("");
     setDescriptionStatus("");
+    setImageStatus("");
     setCreatedFrom("");
     setCreatedTo("");
     setUpdatedFrom("");
@@ -275,6 +278,17 @@ const ProjectAdmin = () => {
               <option value="">Hammasi</option>
               <option value="with">Description bor</option>
               <option value="without">Description yo'q</option>
+            </select>
+          </div>
+          <div className="filter-field">
+            <label>Rasm holati</label>
+            <select
+              value={imageStatus}
+              onChange={(e) => setImageStatus(e.target.value)}
+            >
+              <option value="">Hammasi</option>
+              <option value="with">Rasm bor</option>
+              <option value="without">Rasm yo'q</option>
             </select>
           </div>
           <div className="filter-field">
