@@ -38,6 +38,47 @@ E-Catalog Microservice o'zgarishlar tarixi.
 
 ## [Unreleased]
 
+## [1.3.0] - 2025-11-26
+
+### Qo'shilgan
+- **Client Model Kengaytirildi** - Client modeliga keng qamrovli maydonlar qo'shildi
+  - Kompaniya ma'lumotlari: `company_name`, `tax_id`, `registration_number`, `legal_address`, `actual_address`
+  - Aloqa ma'lumotlari: `fax`, `website`, `social_media` (JSON), `additional_phones` (JSON)
+  - Biznes ma'lumotlari: `industry`, `business_type`, `employee_count`, `annual_revenue`, `established_date`
+  - Moliyaviy ma'lumotlar: `payment_terms`, `credit_limit`, `currency`
+  - Lokatsiya: `city`, `region`, `country`, `postal_code`
+  - Kontakt shaxs: `contact_person`, `contact_position`, `contact_email`, `contact_phone`
+  - Qo'shimcha: `notes`, `tags` (JSON), `rating`, `priority`, `source`, `metadata` (JSON)
+- **Nomenklatura Model Kengaytirildi** - Nomenklatura modeliga keng qamrovli maydonlar qo'shildi
+  - Mahsulot identifikatsiyasi: `sku`, `barcode`, `brand`, `manufacturer`, `model`, `series`, `vendor_code`
+  - Narx ma'lumotlari: `base_price`, `sale_price`, `cost_price`, `currency`, `discount_percent`, `tax_rate`
+  - Ombor ma'lumotlari: `stock_quantity`, `min_stock`, `max_stock`, `unit_of_measure`, `weight`, `dimensions`, `volume`
+  - Kategoriya: `category`, `subcategory`, `tags` (JSON)
+  - Texnik xususiyatlar: `color`, `size`, `material`, `warranty_period`, `expiry_date`, `production_date`
+  - Qo'shimcha: `notes`, `rating`, `popularity_score`, `seo_keywords`, `source`, `metadata` (JSON)
+- **Database Indexes** - Qidiruv va filtrlash uchun yangi indexlar qo'shildi
+  - Client: `city`, `region`, `industry`, `business_type`, `rating`, `priority`
+  - Nomenklatura: `sku`, `barcode`, `category`, `subcategory`, `brand`, `manufacturer`, `rating`, `popularity_score`
+- **Excel Export/Import Yangilandi** - Barcha yangi maydonlar Excel export/import qo'llab-quvvatlanadi
+  - Client: 33 ta maydon export/import qilinadi
+  - Nomenklatura: 38 ta maydon export/import qilinadi
+
+### O'zgartirilgan
+- **Admin Panellar** - Barcha yangi maydonlar fieldsets ga qo'shildi va tuzatildi
+  - Client admin: 10 ta fieldsets (Asosiy, Kompaniya, Aloqa, Biznes, Moliyaviy, Lokatsiya, Kontakt shaxs, Qo'shimcha, Status, Statistika, Vaqt)
+  - Nomenklatura admin: 9 ta fieldsets (Asosiy, Mahsulot identifikatsiyasi, Narx, Ombor, Kategoriya, Texnik xususiyatlar, Qo'shimcha, Status, Statistika, Vaqt)
+- **Search Fields** - Qidiruv maydonlari kengaytirildi
+  - Client: `company_name`, `tax_id`, `contact_person`, `city`, `region` qo'shildi
+  - Nomenklatura: `sku`, `barcode`, `brand`, `manufacturer`, `model`, `category` qo'shildi
+- **API Dokumentatsiya** - Barcha yangi maydonlar API dokumentatsiyasiga qo'shildi
+  - Response misollari yangilandi
+  - Request Body misollari yangilandi
+  - Optional fields ro'yxati to'liq qo'shildi
+
+### Tuzatilgan
+- Barcha yangi maydonlar ixtiyoriy (`blank=True, null=True`) - mavjud ma'lumotlar saqlanadi
+- Serializers avtomatik yangi maydonlarni qo'llab-quvvatlaydi (`fields = '__all__'`)
+
 ## [1.2.0] - 2025-11-26
 
 ### Qo'shilgan

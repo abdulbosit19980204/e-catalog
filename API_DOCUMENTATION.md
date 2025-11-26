@@ -276,7 +276,7 @@ curl -X POST http://localhost:8000/api/v1/project-image/ \
 **Query Parameters:**
 
 **Search:**
-- `search` - `client_code_1c`, `name`, `email` maydonlarida qidirish
+- `search` - `client_code_1c`, `name`, `email`, `company_name`, `tax_id`, `contact_person`, `city`, `region` maydonlarida qidirish
   - Misol: `?search=test`
 
 **Filtering:**
@@ -307,6 +307,37 @@ curl -X POST http://localhost:8000/api/v1/project-image/ \
   "email": "client@example.com",
   "phone": "+998901234567",
   "description": "<p>Mijoz haqida ma'lumot</p>",
+  "company_name": "Kompaniya Nomi",
+  "tax_id": "123456789",
+  "registration_number": "REG-001",
+  "legal_address": "Yuridik manzil",
+  "actual_address": "Haqiqiy manzil",
+  "fax": "+998901234568",
+  "website": "https://example.com",
+  "social_media": {"telegram": "@example", "instagram": "@example"},
+  "additional_phones": ["+998901234569"],
+  "industry": "IT",
+  "business_type": "LLC",
+  "employee_count": 50,
+  "annual_revenue": 1000000.00,
+  "established_date": "2020-01-01",
+  "payment_terms": "30 kun",
+  "credit_limit": 50000.00,
+  "currency": "UZS",
+  "city": "Toshkent",
+  "region": "Toshkent shahri",
+  "country": "Uzbekistan",
+  "postal_code": "100000",
+  "contact_person": "Ism Familiya",
+  "contact_position": "Direktor",
+  "contact_email": "contact@example.com",
+  "contact_phone": "+998901234570",
+  "notes": "Qo'shimcha izohlar",
+  "tags": ["vip", "premium"],
+  "rating": 4.5,
+  "priority": 80,
+  "source": "Website",
+  "metadata": {},
   "images": [],
   "is_active": true,
   "is_deleted": false,
@@ -327,6 +358,37 @@ curl -X POST http://localhost:8000/api/v1/project-image/ \
   "email": "newclient@example.com",
   "phone": "+998901234567",
   "description": "<p>Mijoz haqida ma'lumot</p>",
+  "company_name": "Kompaniya Nomi",
+  "tax_id": "123456789",
+  "registration_number": "REG-001",
+  "legal_address": "Yuridik manzil",
+  "actual_address": "Haqiqiy manzil",
+  "fax": "+998901234568",
+  "website": "https://example.com",
+  "social_media": {"telegram": "@example"},
+  "additional_phones": ["+998901234569"],
+  "industry": "IT",
+  "business_type": "LLC",
+  "employee_count": 50,
+  "annual_revenue": 1000000.00,
+  "established_date": "2020-01-01",
+  "payment_terms": "30 kun",
+  "credit_limit": 50000.00,
+  "currency": "UZS",
+  "city": "Toshkent",
+  "region": "Toshkent shahri",
+  "country": "Uzbekistan",
+  "postal_code": "100000",
+  "contact_person": "Ism Familiya",
+  "contact_position": "Direktor",
+  "contact_email": "contact@example.com",
+  "contact_phone": "+998901234570",
+  "notes": "Qo'shimcha izohlar",
+  "tags": ["vip", "premium"],
+  "rating": 4.5,
+  "priority": 80,
+  "source": "Website",
+  "metadata": {},
   "is_active": true
 }
 ```
@@ -336,10 +398,57 @@ curl -X POST http://localhost:8000/api/v1/project-image/ \
 - `name` - Nomi
 
 **Optional Fields:**
+
+**Asosiy ma'lumotlar:**
 - `email` - Email
 - `phone` - Telefon
 - `description` - Tavsif (HTML formatida)
 - `is_active` - Faollik holati (default: true)
+
+**Kompaniya ma'lumotlari:**
+- `company_name` - Kompaniya nomi
+- `tax_id` - INN/STIR
+- `registration_number` - Ro'yxatdan o'tish raqami
+- `legal_address` - Yuridik manzil
+- `actual_address` - Haqiqiy manzil
+
+**Aloqa ma'lumotlari:**
+- `fax` - Faks raqami
+- `website` - Veb-sayt
+- `social_media` - Ijtimoiy tarmoqlar (JSON object)
+- `additional_phones` - Qo'shimcha telefonlar (JSON array)
+
+**Biznes ma'lumotlari:**
+- `industry` - Soha/Industriya
+- `business_type` - Biznes turi
+- `employee_count` - Xodimlar soni
+- `annual_revenue` - Yillik daromad
+- `established_date` - Tashkil etilgan sana (YYYY-MM-DD)
+
+**Moliyaviy ma'lumotlar:**
+- `payment_terms` - To'lov shartlari
+- `credit_limit` - Kredit limiti
+- `currency` - Valyuta (default: UZS)
+
+**Lokatsiya:**
+- `city` - Shahar
+- `region` - Viloyat/Hudud
+- `country` - Davlat (default: Uzbekistan)
+- `postal_code` - Pochta indeksi
+
+**Kontakt shaxs:**
+- `contact_person` - Kontakt shaxs
+- `contact_position` - Lavozim
+- `contact_email` - Kontakt email
+- `contact_phone` - Kontakt telefon
+
+**Qo'shimcha:**
+- `notes` - Qo'shimcha izohlar
+- `tags` - Teglar (JSON array)
+- `rating` - Reyting (0-5)
+- `priority` - Prioritet (0-100)
+- `source` - Manba
+- `metadata` - Qo'shimcha meta ma'lumotlar (JSON object)
 
 ### 4. Client yangilash
 
@@ -399,7 +508,7 @@ is_main: true
 **Query Parameters:**
 
 **Search:**
-- `search` - `code_1c`, `name` maydonlarida qidirish
+- `search` - `code_1c`, `name`, `sku`, `barcode`, `brand`, `manufacturer`, `model`, `category` maydonlarida qidirish
   - Misol: `?search=test`
 
 **Filtering:**
@@ -427,6 +536,41 @@ is_main: true
   "name": "Nomenklatura Nomi",
   "title": "Sarlavha",
   "description": "<p>Nomenklatura haqida ma'lumot</p>",
+  "sku": "SKU-001",
+  "barcode": "1234567890123",
+  "brand": "Brend Nomi",
+  "manufacturer": "Ishlab chiqaruvchi",
+  "model": "Model Nomi",
+  "series": "Seriya",
+  "vendor_code": "VENDOR-001",
+  "base_price": 100000.00,
+  "sale_price": 90000.00,
+  "cost_price": 70000.00,
+  "currency": "UZS",
+  "discount_percent": 10.00,
+  "tax_rate": 12.00,
+  "stock_quantity": 100.00,
+  "min_stock": 10.00,
+  "max_stock": 500.00,
+  "unit_of_measure": "dona",
+  "weight": 1.5,
+  "dimensions": "10x20x30",
+  "volume": 0.006,
+  "category": "Kategoriya",
+  "subcategory": "Quyi kategoriya",
+  "tags": ["yangi", "aksiya"],
+  "color": "Qora",
+  "size": "L",
+  "material": "Mato",
+  "warranty_period": 12,
+  "expiry_date": "2026-12-31",
+  "production_date": "2025-01-01",
+  "notes": "Qo'shimcha izohlar",
+  "rating": 4.5,
+  "popularity_score": 85,
+  "seo_keywords": "mahsulot, tovar, aksiya",
+  "source": "1C",
+  "metadata": {},
   "images": [],
   "is_active": true,
   "is_deleted": false,
@@ -446,6 +590,41 @@ is_main: true
   "name": "Yangi Nomenklatura",
   "title": "Sarlavha",
   "description": "<p>Nomenklatura haqida ma'lumot</p>",
+  "sku": "SKU-001",
+  "barcode": "1234567890123",
+  "brand": "Brend Nomi",
+  "manufacturer": "Ishlab chiqaruvchi",
+  "model": "Model Nomi",
+  "series": "Seriya",
+  "vendor_code": "VENDOR-001",
+  "base_price": 100000.00,
+  "sale_price": 90000.00,
+  "cost_price": 70000.00,
+  "currency": "UZS",
+  "discount_percent": 10.00,
+  "tax_rate": 12.00,
+  "stock_quantity": 100.00,
+  "min_stock": 10.00,
+  "max_stock": 500.00,
+  "unit_of_measure": "dona",
+  "weight": 1.5,
+  "dimensions": "10x20x30",
+  "volume": 0.006,
+  "category": "Kategoriya",
+  "subcategory": "Quyi kategoriya",
+  "tags": ["yangi", "aksiya"],
+  "color": "Qora",
+  "size": "L",
+  "material": "Mato",
+  "warranty_period": 12,
+  "expiry_date": "2026-12-31",
+  "production_date": "2025-01-01",
+  "notes": "Qo'shimcha izohlar",
+  "rating": 4.5,
+  "popularity_score": 85,
+  "seo_keywords": "mahsulot, tovar, aksiya",
+  "source": "1C",
+  "metadata": {},
   "is_active": true
 }
 ```
@@ -455,9 +634,58 @@ is_main: true
 - `name` - Nomi
 
 **Optional Fields:**
+
+**Asosiy ma'lumotlar:**
 - `title` - Sarlavha
 - `description` - Tavsif (HTML formatida)
 - `is_active` - Faollik holati (default: true)
+
+**Mahsulot identifikatsiyasi:**
+- `sku` - SKU (Stock Keeping Unit)
+- `barcode` - Barkod
+- `brand` - Brend
+- `manufacturer` - Ishlab chiqaruvchi
+- `model` - Model
+- `series` - Seriya
+- `vendor_code` - Sotuvchi kodi
+
+**Narx ma'lumotlari:**
+- `base_price` - Asosiy narx
+- `sale_price` - Sotuv narxi
+- `cost_price` - Narx (xarajat)
+- `currency` - Valyuta (default: UZS)
+- `discount_percent` - Chegirma foizi
+- `tax_rate` - QQS foizi
+
+**Ombor ma'lumotlari:**
+- `stock_quantity` - Ombor miqdori
+- `min_stock` - Minimal ombor
+- `max_stock` - Maksimal ombor
+- `unit_of_measure` - O'lchov birligi
+- `weight` - Og'irlik (kg)
+- `dimensions` - O'lchamlari (LxWxH)
+- `volume` - Hajm (m³)
+
+**Kategoriya:**
+- `category` - Kategoriya
+- `subcategory` - Quyi kategoriya
+- `tags` - Teglar (JSON array)
+
+**Texnik xususiyatlar:**
+- `color` - Rang
+- `size` - O'lcham
+- `material` - Material
+- `warranty_period` - Kafolat muddati (oy)
+- `expiry_date` - Yaroqlilik muddati (YYYY-MM-DD)
+- `production_date` - Ishlab chiqarilgan sana (YYYY-MM-DD)
+
+**Qo'shimcha:**
+- `notes` - Qo'shimcha izohlar
+- `rating` - Reyting (0-5)
+- `popularity_score` - Mashhurligi (0-100)
+- `seo_keywords` - SEO kalit so'zlar
+- `source` - Manba
+- `metadata` - Qo'shimcha meta ma'lumotlar (JSON object)
 
 ### 4. Nomenklatura yangilash
 
@@ -590,7 +818,7 @@ curl -X GET "http://localhost:8000/api/v1/client/export-xlsx/?description_status
 **POST** `/api/v1/client/import-xlsx/`
 
 **Excel Format:**
-- Headers: `client_code_1c`, `name`, `email`, `phone`, `description`, `is_active`
+- Headers: `client_code_1c`, `name`, `email`, `phone`, `description`, `is_active`, `company_name`, `tax_id`, `registration_number`, `legal_address`, `actual_address`, `fax`, `website`, `industry`, `business_type`, `employee_count`, `annual_revenue`, `established_date`, `payment_terms`, `credit_limit`, `currency`, `city`, `region`, `country`, `postal_code`, `contact_person`, `contact_position`, `contact_email`, `contact_phone`, `notes`, `rating`, `priority`, `source`
 
 ### Nomenklatura Excel Export/Import
 
