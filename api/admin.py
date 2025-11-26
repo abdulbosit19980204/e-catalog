@@ -42,11 +42,32 @@ class DescriptionStatusFilter(admin.SimpleListFilter):
         return queryset
 
 
+class ImageStatusFilter(admin.SimpleListFilter):
+    title = "Rasm holati"
+    parameter_name = "image_status"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("with", "Rasm bor"),
+            ("without", "Rasm yo'q"),
+        )
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value == "with":
+            # Rasmlari bor bo'lganlar
+            return queryset.filter(images__is_deleted=False).distinct()
+        if value == "without":
+            # Rasmlari yo'q bo'lganlar
+            return queryset.exclude(images__is_deleted=False).distinct()
+        return queryset
+
+
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     """Project admin"""
     list_display = ['name', 'code_1c', 'title', 'images_count', 'is_active', 'is_deleted', 'created_at']
-    list_filter = ['is_active', 'is_deleted', DescriptionStatusFilter, 'created_at', 'updated_at']
+    list_filter = ['is_active', 'is_deleted', DescriptionStatusFilter, ImageStatusFilter, 'created_at', 'updated_at']
     search_fields = ['name', 'code_1c', 'title']
     readonly_fields = ['created_at', 'updated_at', 'images_count_display']
     inlines = [ProjectImageInline]

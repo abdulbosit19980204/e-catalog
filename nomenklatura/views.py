@@ -30,6 +30,11 @@ class NomenklaturaFilterSet(django_filters.FilterSet):
         method="filter_description",
         choices=(("with", "Description bor"), ("without", "Description yo'q")),
     )
+    image_status = django_filters.ChoiceFilter(
+        label="Image status",
+        method="filter_image_status",
+        choices=(("with", "Rasm bor"), ("without", "Rasm yo'q")),
+    )
     created_from = django_filters.DateFilter(field_name='created_at', lookup_expr='date__gte')
     created_to = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
     updated_from = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__gte')
@@ -37,13 +42,22 @@ class NomenklaturaFilterSet(django_filters.FilterSet):
 
     class Meta:
         model = Nomenklatura
-        fields = ['code_1c', 'name', 'description_status', 'created_from', 'created_to', 'updated_from', 'updated_to']
+        fields = ['code_1c', 'name', 'description_status', 'image_status', 'created_from', 'created_to', 'updated_from', 'updated_to']
 
     def filter_description(self, queryset, name, value):
         if value == "with":
             return queryset.exclude(Q(description__isnull=True) | Q(description__exact=""))
         if value == "without":
             return queryset.filter(Q(description__isnull=True) | Q(description__exact=""))
+        return queryset
+
+    def filter_image_status(self, queryset, name, value):
+        if value == "with":
+            # Rasmlari bor bo'lganlar
+            return queryset.filter(images__is_deleted=False).distinct()
+        if value == "without":
+            # Rasmlari yo'q bo'lganlar
+            return queryset.exclude(images__is_deleted=False).distinct()
         return queryset
 
 
@@ -100,6 +114,12 @@ class NomenklaturaImageFilterSet(django_filters.FilterSet):
                 required=False,
                 type=OpenApiTypes.STR,
                 description="Description bo'yicha filter (`with` | `without`)",
+            ),
+            OpenApiParameter(
+                name='image_status',
+                required=False,
+                type=OpenApiTypes.STR,
+                description="Rasm holati bo'yicha filter (`with` - rasm bor | `without` - rasm yo'q)",
             ),
             OpenApiParameter(
                 name='created_from',

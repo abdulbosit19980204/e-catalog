@@ -42,11 +42,32 @@ class DescriptionStatusFilter(admin.SimpleListFilter):
         return queryset
 
 
+class ImageStatusFilter(admin.SimpleListFilter):
+    title = "Rasm holati"
+    parameter_name = "image_status"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("with", "Rasm bor"),
+            ("without", "Rasm yo'q"),
+        )
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value == "with":
+            # Rasmlari bor bo'lganlar
+            return queryset.filter(images__is_deleted=False).distinct()
+        if value == "without":
+            # Rasmlari yo'q bo'lganlar
+            return queryset.exclude(images__is_deleted=False).distinct()
+        return queryset
+
+
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
     """Client admin"""
     list_display = ['name', 'client_code_1c', 'email', 'phone', 'city', 'industry', 'rating', 'images_count', 'is_active', 'is_deleted', 'created_at']
-    list_filter = ['is_active', 'is_deleted', DescriptionStatusFilter, 'city', 'region', 'country', 'industry', 'business_type', 'created_at', 'updated_at']
+    list_filter = ['is_active', 'is_deleted', DescriptionStatusFilter, ImageStatusFilter, 'city', 'region', 'country', 'industry', 'business_type', 'created_at', 'updated_at']
     search_fields = ['name', 'client_code_1c', 'email', 'phone', 'company_name', 'tax_id', 'contact_person', 'city', 'region']
     readonly_fields = ['created_at', 'updated_at', 'images_count_display']
     inlines = [ClientImageInline]

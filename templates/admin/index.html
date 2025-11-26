@@ -53,7 +53,11 @@
                                     <a href="{{ model.add_url }}">{% trans "Yaratish" %}</a>
                                 {% endif %}
                                 {% if model.admin_url %}
-                                    <a href="{{ model.admin_url }}">{% trans "Ko‘rish" %}</a>
+                                    <a href="{{ model.admin_url }}">{% trans "Ko'rish" %}</a>
+                                    {% if model.name == "Projects" or model.name == "Clients" or model.name == "Nomenklatura" %}
+                                        <a href="{{ model.admin_url }}?image_status__exact=with" class="filter-link" title="{% trans 'Rasm bor' %}">📷+</a>
+                                        <a href="{{ model.admin_url }}?image_status__exact=without" class="filter-link" title="{% trans 'Rasm yo\'q' %}">📷-</a>
+                                    {% endif %}
                                 {% endif %}
                             </span>
                         </li>
@@ -195,6 +199,18 @@
         margin-left: 10px;
         font-size: 12px;
         color: #475569;
+    }
+    .object-tools .filter-link {
+        margin-left: 6px;
+        font-size: 14px;
+        text-decoration: none;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: #f1f5f9;
+        transition: background 0.2s;
+    }
+    .object-tools .filter-link:hover {
+        background: #e2e8f0;
     }
     @media (max-width: 600px) {
         .hero-actions {
