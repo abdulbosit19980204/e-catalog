@@ -248,17 +248,34 @@ class ProjectViewSet(viewsets.ModelViewSet):
     )
     @action(detail=False, methods=['get'], url_path='export-xlsx', permission_classes=[IsAuthenticated])
     def export_xlsx(self, request):
-        queryset = self.filter_queryset(self.get_queryset())
+        # Export uchun alohida queryset - prefetch_related kerak emas va SQLite limit muammosini oldini oladi
+        base_queryset = Project.objects.filter(is_deleted=False)
+        queryset = self.filter_queryset(base_queryset)
+        
         workbook = build_template_workbook('Projects', self._project_excel_headers())
         sheet = workbook.active
-        for project in queryset:
-            sheet.append([
-                project.code_1c,
-                project.name,
-                project.title or '',
-                project.description or '',
-                project.is_active,
-            ])
+        
+        # iterator() ishlatish - memory-efficient va SQLite limit muammosini hal qiladi
+        # Chunking bilan ishlash - har safar 1000 ta yozuvni qayta ishlash
+        chunk_size = 1000
+        offset = 0
+        
+        while True:
+            chunk = queryset[offset:offset + chunk_size]
+            if not chunk.exists():
+                break
+            
+            for project in chunk.iterator():
+                sheet.append([
+                    project.code_1c,
+                    project.name,
+                    project.title or '',
+                    project.description or '',
+                    project.is_active,
+                ])
+            
+            offset += chunk_size
+        
         return workbook_to_response(workbook, 'projects.xlsx')
 
     @extend_schema(
