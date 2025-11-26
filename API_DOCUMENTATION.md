@@ -233,6 +233,48 @@ Barcha muvaffaqiyatli so'rovlar `200 OK` status code bilan qaytadi.
 **Pagination:**
 - `page` - Sahifa raqami
 
+**Response Example:**
+```json
+{
+  "id": 1,
+  "project": 1,
+  "image_url": "http://localhost:8000/media/projects/original.jpg",
+  "image_sm_url": "http://localhost:8000/media/CACHE/images/projects/image_sm.jpg",
+  "image_md_url": "http://localhost:8000/media/CACHE/images/projects/image_md.jpg",
+  "image_lg_url": "http://localhost:8000/media/CACHE/images/projects/image_lg.jpg",
+  "image_thumbnail_url": "http://localhost:8000/media/CACHE/images/projects/image_thumbnail.jpg",
+  "image_dimensions": {
+    "width": 2000,
+    "height": 1500,
+    "format": "JPEG"
+  },
+  "image_sm_dimensions": {
+    "width": 300,
+    "height": 300,
+    "format": "JPEG"
+  },
+  "image_md_dimensions": {
+    "width": 600,
+    "height": 600,
+    "format": "JPEG"
+  },
+  "image_lg_dimensions": {
+    "width": 1200,
+    "height": 1200,
+    "format": "JPEG"
+  },
+  "image_thumbnail_dimensions": {
+    "width": 150,
+    "height": 150,
+    "format": "JPEG"
+  },
+  "is_main": true,
+  "category": "product",
+  "note": "Asosiy rasm",
+  "created_at": "2025-01-01T00:00:00Z"
+}
+```
+
 ### 2. Bitta Project rasm olish
 
 **GET** `/api/v1/project-image/{id}/`
@@ -246,15 +288,36 @@ Barcha muvaffaqiyatli so'rovlar `200 OK` status code bilan qaytadi.
 project: 1
 image: [file]
 is_main: true
+category: product
+note: Rasm izohi
 ```
 
 **cURL Misol:**
 ```bash
 curl -X POST http://localhost:8000/api/v1/project-image/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
   -F "project=1" \
   -F "image=@/path/to/image.jpg" \
-  -F "is_main=true"
+  -F "is_main=true" \
+  -F "category=product" \
+  -F "note=Asosiy rasm"
 ```
+
+**⚠️ Muhim: Rasm o'lchamlari va saqlash**
+
+Rasm yuklanganda, tizim avtomatik ravishda original rasmni saqlab qoladi va quyidagi o'lchamlarda qo'shimcha versiyalar yaratadi:
+
+1. **Original rasm** - Yuklangan rasm o'z o'lchamida saqlanadi (o'zgartirilmaydi)
+2. **Thumbnail** - 150x150 px (JPEG, quality: 80%)
+3. **Small (SM)** - 300x300 px (JPEG, quality: 85%)
+4. **Medium (MD)** - 600x600 px (JPEG, quality: 85%)
+5. **Large (LG)** - 1200x1200 px (JPEG, quality: 90%)
+
+**Qo'shimcha ma'lumotlar:**
+- Original rasm o'z o'lchamida saqlanadi va hech qachon o'zgartirilmaydi
+- Barcha qo'shimcha o'lchamlar avtomatik yaratiladi va cache qilinadi
+- Rasm formatlari: JPEG, PNG, WEBP qo'llab-quvvatlanadi
+- Rasm yuklashda original o'lcham saqlanadi, shuning uchun keyinchalik kerak bo'lsa original rasmga kirish mumkin
 
 ### 4. Project rasm yangilash
 
@@ -486,6 +549,48 @@ curl -X POST http://localhost:8000/api/v1/project-image/ \
 **Pagination:**
 - `page` - Sahifa raqami
 
+**Response Example:**
+```json
+{
+  "id": 1,
+  "client": 1,
+  "image_url": "http://localhost:8000/media/clients/original.jpg",
+  "image_sm_url": "http://localhost:8000/media/CACHE/images/clients/image_sm.jpg",
+  "image_md_url": "http://localhost:8000/media/CACHE/images/clients/image_md.jpg",
+  "image_lg_url": "http://localhost:8000/media/CACHE/images/clients/image_lg.jpg",
+  "image_thumbnail_url": "http://localhost:8000/media/CACHE/images/clients/image_thumbnail.jpg",
+  "image_dimensions": {
+    "width": 1920,
+    "height": 1080,
+    "format": "JPEG"
+  },
+  "image_sm_dimensions": {
+    "width": 300,
+    "height": 300,
+    "format": "JPEG"
+  },
+  "image_md_dimensions": {
+    "width": 600,
+    "height": 600,
+    "format": "JPEG"
+  },
+  "image_lg_dimensions": {
+    "width": 1200,
+    "height": 1200,
+    "format": "JPEG"
+  },
+  "image_thumbnail_dimensions": {
+    "width": 150,
+    "height": 150,
+    "format": "JPEG"
+  },
+  "is_main": true,
+  "category": "logo",
+  "note": "Kompaniya logotipi",
+  "created_at": "2025-01-01T00:00:00Z"
+}
+```
+
 ### 2. Yangi Client rasm yuklash
 
 **POST** `/api/v1/client-image/`
@@ -495,7 +600,25 @@ curl -X POST http://localhost:8000/api/v1/project-image/ \
 client: 1
 image: [file]
 is_main: true
+category: logo
+note: Kompaniya logotipi
 ```
+
+**⚠️ Muhim: Rasm o'lchamlari va saqlash**
+
+Rasm yuklanganda, tizim avtomatik ravishda original rasmni saqlab qoladi va quyidagi o'lchamlarda qo'shimcha versiyalar yaratadi:
+
+1. **Original rasm** - Yuklangan rasm o'z o'lchamida saqlanadi (o'zgartirilmaydi)
+2. **Thumbnail** - 150x150 px (JPEG, quality: 80%)
+3. **Small (SM)** - 300x300 px (JPEG, quality: 85%)
+4. **Medium (MD)** - 600x600 px (JPEG, quality: 85%)
+5. **Large (LG)** - 1200x1200 px (JPEG, quality: 90%)
+
+**Qo'shimcha ma'lumotlar:**
+- Original rasm o'z o'lchamida saqlanadi va hech qachon o'zgartirilmaydi
+- Barcha qo'shimcha o'lchamlar avtomatik yaratiladi va cache qilinadi
+- Rasm formatlari: JPEG, PNG, WEBP qo'llab-quvvatlanadi
+- Rasm yuklashda original o'lcham saqlanadi, shuning uchun keyinchalik kerak bo'lsa original rasmga kirish mumkin
 
 ---
 
@@ -723,6 +846,48 @@ is_main: true
 **Pagination:**
 - `page` - Sahifa raqami
 
+**Response Example:**
+```json
+{
+  "id": 1,
+  "nomenklatura": 1,
+  "image_url": "http://localhost:8000/media/nomenklatura/original.jpg",
+  "image_sm_url": "http://localhost:8000/media/CACHE/images/nomenklatura/image_sm.jpg",
+  "image_md_url": "http://localhost:8000/media/CACHE/images/nomenklatura/image_md.jpg",
+  "image_lg_url": "http://localhost:8000/media/CACHE/images/nomenklatura/image_lg.jpg",
+  "image_thumbnail_url": "http://localhost:8000/media/CACHE/images/nomenklatura/image_thumbnail.jpg",
+  "image_dimensions": {
+    "width": 1600,
+    "height": 1200,
+    "format": "JPEG"
+  },
+  "image_sm_dimensions": {
+    "width": 300,
+    "height": 300,
+    "format": "JPEG"
+  },
+  "image_md_dimensions": {
+    "width": 600,
+    "height": 600,
+    "format": "JPEG"
+  },
+  "image_lg_dimensions": {
+    "width": 1200,
+    "height": 1200,
+    "format": "JPEG"
+  },
+  "image_thumbnail_dimensions": {
+    "width": 150,
+    "height": 150,
+    "format": "JPEG"
+  },
+  "is_main": true,
+  "category": "product",
+  "note": "Mahsulot rasmi",
+  "created_at": "2025-01-01T00:00:00Z"
+}
+```
+
 ### 2. Yangi Nomenklatura rasm yuklash
 
 **POST** `/api/v1/nomenklatura-image/`
@@ -732,7 +897,25 @@ is_main: true
 nomenklatura: 1
 image: [file]
 is_main: true
+category: product
+note: Mahsulot rasmi
 ```
+
+**⚠️ Muhim: Rasm o'lchamlari va saqlash**
+
+Rasm yuklanganda, tizim avtomatik ravishda original rasmni saqlab qoladi va quyidagi o'lchamlarda qo'shimcha versiyalar yaratadi:
+
+1. **Original rasm** - Yuklangan rasm o'z o'lchamida saqlanadi (o'zgartirilmaydi)
+2. **Thumbnail** - 150x150 px (JPEG, quality: 80%)
+3. **Small (SM)** - 300x300 px (JPEG, quality: 85%)
+4. **Medium (MD)** - 600x600 px (JPEG, quality: 85%)
+5. **Large (LG)** - 1200x1200 px (JPEG, quality: 90%)
+
+**Qo'shimcha ma'lumotlar:**
+- Original rasm o'z o'lchamida saqlanadi va hech qachon o'zgartirilmaydi
+- Barcha qo'shimcha o'lchamlar avtomatik yaratiladi va cache qilinadi
+- Rasm formatlari: JPEG, PNG, WEBP qo'llab-quvvatlanadi
+- Rasm yuklashda original o'lcham saqlanadi, shuning uchun keyinchalik kerak bo'lsa original rasmga kirish mumkin
 
 ---
 
