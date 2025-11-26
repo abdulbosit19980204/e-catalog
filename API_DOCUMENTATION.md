@@ -324,6 +324,9 @@ Rasm yuklanganda, tizim avtomatik ravishda original rasmni saqlab qoladi va quyi
 - Barcha qo'shimcha o'lchamlar avtomatik yaratiladi va cache qilinadi
 - Rasm formatlari: JPEG, PNG, WEBP qo'llab-quvvatlanadi
 - Rasm yuklashda original o'lcham saqlanadi, shuning uchun keyinchalik kerak bo'lsa original rasmga kirish mumkin
+- Har bir rasm variantining hajmi (KB yoki MB) API response'da ko'rsatiladi
+- Original rasm uchun `size_bytes` (baytlar soni) va `size` (KB/MB formatida) qaytariladi
+- Cache qilingan variantlar uchun faqat `size` (KB/MB formatida) qaytariladi
 
 ### 4. Project rasm yangilash
 
@@ -631,6 +634,9 @@ Rasm yuklanganda, tizim avtomatik ravishda original rasmni saqlab qoladi va quyi
 - Barcha qo'shimcha o'lchamlar avtomatik yaratiladi va cache qilinadi
 - Rasm formatlari: JPEG, PNG, WEBP qo'llab-quvvatlanadi
 - Rasm yuklashda original o'lcham saqlanadi, shuning uchun keyinchalik kerak bo'lsa original rasmga kirish mumkin
+- Har bir rasm variantining hajmi (KB yoki MB) API response'da ko'rsatiladi
+- Original rasm uchun `size_bytes` (baytlar soni) va `size` (KB/MB formatida) qaytariladi
+- Cache qilingan variantlar uchun faqat `size` (KB/MB formatida) qaytariladi
 
 ---
 
@@ -934,6 +940,9 @@ Rasm yuklanganda, tizim avtomatik ravishda original rasmni saqlab qoladi va quyi
 - Barcha qo'shimcha o'lchamlar avtomatik yaratiladi va cache qilinadi
 - Rasm formatlari: JPEG, PNG, WEBP qo'llab-quvvatlanadi
 - Rasm yuklashda original o'lcham saqlanadi, shuning uchun keyinchalik kerak bo'lsa original rasmga kirish mumkin
+- Har bir rasm variantining hajmi (KB yoki MB) API response'da ko'rsatiladi
+- Original rasm uchun `size_bytes` (baytlar soni) va `size` (KB/MB formatida) qaytariladi
+- Cache qilingan variantlar uchun faqat `size` (KB/MB formatida) qaytariladi
 
 ---
 
