@@ -21,8 +21,8 @@ http://localhost:8000/api/v1/
 
 **Search** - `?search=query` parametri orqali barcha `search_fields` maydonlarida qidirish:
 - Project: `code_1c`, `name`, `title` maydonlarida qidirish
-- Client: `client_code_1c`, `name`, `email` maydonlarida qidirish
-- Nomenklatura: `code_1c`, `name` maydonlarida qidirish
+- Client: `client_code_1c`, `name`, `email`, `company_name`, `tax_id`, `contact_person`, `city`, `region` maydonlarida qidirish
+- Nomenklatura: `code_1c`, `name`, `sku`, `barcode`, `brand`, `manufacturer`, `model`, `category` maydonlarida qidirish
 
 **Filtering** - `?field_name=value` parametri orqali aniq maydon bo'yicha filtrlash:
 - Project: `?code_1c=PROJ001&name=Test`
