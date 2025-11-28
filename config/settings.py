@@ -47,7 +47,7 @@ DEFAULT_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
     'http://178.218.200.120:1596',
-    'http://192.168.0.101'
+    'http://192.168.0.101',
     'http://192.168.0.110',
     'http://192.168.0.111',
     'http://192.168.0.129:8000',
@@ -246,8 +246,10 @@ CACHES = {
 #     'api.agentlocation': {'ops': 'get', 'timeout': 60},
 # }
 
-# Session cache - use Redis for sessions too
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+# Session backend - using database for reliability
+# If Redis is unavailable, cache-based sessions fail
+# Using database-backed sessions ensures sessions work even without Redis
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_CACHE_ALIAS = 'default'
 
 # ============================================================================
