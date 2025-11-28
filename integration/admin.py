@@ -45,6 +45,9 @@ class IntegrationAdmin(admin.ModelAdmin):
     
     def wsdl_url_short(self, obj):
         """WSDL URL'ni qisqartirish"""
+        if not obj or not hasattr(obj, 'wsdl_url') or not obj.wsdl_url:
+            return "-"
+        
         if len(obj.wsdl_url) > 50:
             return format_html(
                 '<span title="{}">{}...</span>',
@@ -56,6 +59,9 @@ class IntegrationAdmin(admin.ModelAdmin):
     
     def logs_count_display(self, obj):
         """Log'lar sonini ko'rsatish"""
+        if not obj or not obj.pk:
+            return "-"
+        
         count = obj.logs.count()
         completed = obj.logs.filter(status='completed').count()
         error = obj.logs.filter(status='error').count()
@@ -70,7 +76,7 @@ class IntegrationAdmin(admin.ModelAdmin):
     
     def action_buttons(self, obj):
         """List view'da sync button'lari"""
-        if not obj.is_active or obj.is_deleted:
+        if not obj or not obj.pk or not obj.is_active or obj.is_deleted:
             return "-"
         
         nomenklatura_url = reverse('admin:integration_integration_sync_nomenklatura', args=[obj.id])
@@ -85,7 +91,14 @@ class IntegrationAdmin(admin.ModelAdmin):
     
     def sync_buttons(self, obj):
         """Detail view'da sync button'lari"""
-        if not obj or not obj.is_active or obj.is_deleted:
+        # Yangi obyekt yaratish holati (obj None yoki pk None)
+        if not obj or not obj.pk:
+            return format_html(
+                '<p style="color: #666; font-style: italic;">Integration yaratib bo\'lgandan keyin sync operatsiyalarini ishlatishingiz mumkin.</p>'
+            )
+        
+        # Obyekt mavjud, lekin faol emas yoki o'chirilgan
+        if not obj.is_active or obj.is_deleted:
             return "Integration faol emas yoki o'chirilgan"
         
         nomenklatura_url = reverse('admin:integration_integration_sync_nomenklatura', args=[obj.id])
