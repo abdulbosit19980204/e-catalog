@@ -23,6 +23,9 @@ from .serializers import (
 import logging
 import uuid
 import time as time_module
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +35,282 @@ def clean_value(value):
     if not value or value in ["NULL", "None", "null", ""]:
         return None
     return str(value).strip()
+
+
+def clean_boolean(value):
+    """Boolean qiymatlarni tozalash va parse qilish"""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        value = value.strip().lower()
+        if value in ["true", "1", "yes", "t"]:
+            return True
+        elif value in ["false", "0", "no", "f", "null", "none", ""]:
+            return False
+    # Integer uchun
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return False
+
+
+def clean_integer(value):
+    """Integer qiymatlarni tozalash va parse qilish"""
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        value = clean_value(value)
+        if value is None:
+            return None
+        try:
+            return int(float(value))  # Float orqali int qilish (1.0 -> 1)
+        except (ValueError, TypeError):
+            return None
+    if isinstance(value, (float, Decimal)):
+        return int(value)
+    return None
+
+
+def clean_decimal(value):
+    """Decimal qiymatlarni tozalash va parse qilish"""
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, (int, float)):
+        try:
+            return Decimal(str(value))
+        except (InvalidOperation, ValueError):
+            return None
+    if isinstance(value, str):
+        value = clean_value(value)
+        if value is None:
+            return None
+        try:
+            return Decimal(value)
+        except (InvalidOperation, ValueError):
+            return None
+    return None
+
+
+def clean_date(value):
+    """Date qiymatlarni tozalash va parse qilish"""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, str):
+        value = clean_value(value)
+        if value is None:
+            return None
+        # Turli date formatlarni sinab ko'rish
+        date_formats = [
+            '%Y-%m-%d',
+            '%d.%m.%Y',
+            '%d/%m/%Y',
+            '%Y.%m.%d',
+            '%Y/%m/%d',
+            '%d-%m-%Y',
+        ]
+        for fmt in date_formats:
+            try:
+                return datetime.strptime(value, fmt).date()
+            except (ValueError, TypeError):
+                continue
+        return None
+    return None
+
+
+def clean_json(value):
+    """JSON qiymatlarni tozalash va parse qilish"""
+    if value is None:
+        return None
+    if isinstance(value, (dict, list)):
+        return value
+    if isinstance(value, str):
+        value = clean_value(value)
+        if value is None:
+            return None
+        try:
+            return json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            return None
+    return None
+
+
+def parse_client_item(item):
+    """
+    SOAP response'dan kelgan ClientItem'ni parse qilish
+    Barcha mavjud fieldlarni dinamik tarzda parse qiladi
+    """
+    # Field mapping: SOAP field nomi -> DB field nomi
+    field_mapping = {
+        # Asosiy fieldlar
+        'Code': 'client_code_1c',
+        'Name': 'name',
+        'Email': 'email',
+        'Phone': 'phone',
+        'Description': 'description',
+        'is_delete': 'is_deleted',
+        'is_active': 'is_active',
+        
+        # Company Information
+        'CompanyName': 'company_name',
+        'Company_Name': 'company_name',
+        'TaxId': 'tax_id',
+        'Tax_ID': 'tax_id',
+        'INN': 'tax_id',
+        'STIR': 'tax_id',
+        'RegistrationNumber': 'registration_number',
+        'Registration_Number': 'registration_number',
+        'LegalAddress': 'legal_address',
+        'Legal_Address': 'legal_address',
+        'ActualAddress': 'actual_address',
+        'Actual_Address': 'actual_address',
+        
+        # Contact Information
+        'Fax': 'fax',
+        'Website': 'website',
+        'WebSite': 'website',
+        'SocialMedia': 'social_media',
+        'Social_Media': 'social_media',
+        'AdditionalPhones': 'additional_phones',
+        'Additional_Phones': 'additional_phones',
+        
+        # Business Information
+        'Industry': 'industry',
+        'BusinessType': 'business_type',
+        'Business_Type': 'business_type',
+        'EmployeeCount': 'employee_count',
+        'Employee_Count': 'employee_count',
+        'AnnualRevenue': 'annual_revenue',
+        'Annual_Revenue': 'annual_revenue',
+        'EstablishedDate': 'established_date',
+        'Established_Date': 'established_date',
+        
+        # Financial Information
+        'PaymentTerms': 'payment_terms',
+        'Payment_Terms': 'payment_terms',
+        'CreditLimit': 'credit_limit',
+        'Credit_Limit': 'credit_limit',
+        'Currency': 'currency',
+        
+        # Location Information
+        'City': 'city',
+        'Region': 'region',
+        'Country': 'country',
+        'PostalCode': 'postal_code',
+        'Postal_Code': 'postal_code',
+        
+        # Contact Person
+        'ContactPerson': 'contact_person',
+        'Contact_Person': 'contact_person',
+        'ContactPosition': 'contact_position',
+        'Contact_Position': 'contact_position',
+        'ContactEmail': 'contact_email',
+        'Contact_Email': 'contact_email',
+        'ContactPhone': 'contact_phone',
+        'Contact_Phone': 'contact_phone',
+        
+        # Additional Information
+        'Notes': 'notes',
+        'Tags': 'tags',
+        'Rating': 'rating',
+        'Priority': 'priority',
+        'Source': 'source',
+        'Metadata': 'metadata',
+    }
+    
+    # Field type mapping: qaysi fieldlar qanday type'ga convert qilinadi
+    field_types = {
+        # Boolean fields
+        'is_deleted': clean_boolean,
+        'is_active': clean_boolean,
+        
+        # Integer fields
+        'employee_count': clean_integer,
+        'priority': clean_integer,
+        
+        # Decimal fields
+        'annual_revenue': clean_decimal,
+        'credit_limit': clean_decimal,
+        'rating': clean_decimal,
+        
+        # Date fields
+        'established_date': clean_date,
+        
+        # JSON fields
+        'social_media': clean_json,
+        'additional_phones': clean_json,
+        'tags': clean_json,
+        'metadata': clean_json,
+    }
+    
+    parsed_data = {}
+    
+    # Avval mapping'da belgilangan fieldlarni parse qilish
+    for soap_field, db_field in field_mapping.items():
+        try:
+            # SOAP response'dan field'ni olish
+            raw_value = getattr(item, soap_field, None)
+            
+            # Agar field mavjud bo'lsa
+            if raw_value is not None:
+                # Type conversion
+                if db_field in field_types:
+                    converted_value = field_types[db_field](raw_value)
+                else:
+                    # String fieldlar uchun
+                    converted_value = clean_value(raw_value)
+                
+                if converted_value is not None:
+                    parsed_data[db_field] = converted_value
+        except Exception as e:
+            logger.warning(f"Error parsing field {soap_field} -> {db_field}: {e}")
+            continue
+    
+    # Qo'shimcha: SOAP response'dan kelgan barcha fieldlarni avtomatik aniqlash
+    # (mapping'da bo'lmagan fieldlar uchun)
+    try:
+        # Zeep object'ning barcha attribute'larini olish
+        if hasattr(item, '__dict__'):
+            for attr_name in dir(item):
+                # Private attribute'larni va mapping'da bo'lgan fieldlarni tashlab o'tish
+                if attr_name.startswith('_') or attr_name in field_mapping:
+                    continue
+                
+                try:
+                    raw_value = getattr(item, attr_name, None)
+                    
+                    # Agar bu callable emas va None emas bo'lsa
+                    if raw_value is not None and not callable(raw_value):
+                        # DB field nomini aniqlash (snake_case ga o'tkazish)
+                        db_field = attr_name.lower().replace(' ', '_')
+                        
+                        # Agar bu field Client modelida mavjud bo'lsa
+                        if hasattr(Client, db_field):
+                            # Type conversion
+                            if db_field in field_types:
+                                converted_value = field_types[db_field](raw_value)
+                            else:
+                                converted_value = clean_value(raw_value)
+                            
+                            if converted_value is not None:
+                                parsed_data[db_field] = converted_value
+                except Exception as e:
+                    logger.debug(f"Error parsing additional field {attr_name}: {e}")
+                    continue
+    except Exception as e:
+        logger.debug(f"Error getting additional fields from SOAP item: {e}")
+    
+    # Majburiy fieldlarni tekshirish
+    if not parsed_data.get('client_code_1c') or not parsed_data.get('name'):
+        return None
+    
+    return parsed_data
 
 
 def get_zeep_client(wsdl_url):
@@ -69,8 +348,25 @@ def get_clients_from_1c(integration):
         method = getattr(zeep_client.service, integration.method_clients)
         response = method()
         
+        # SOAP response strukturasi: GetClientListResponse -> return -> ClientItem[]
+        # Python'da 'return' reserved keyword, shuning uchun getattr ishlatamiz
+        return_obj = getattr(response, 'return', None)
+        if return_obj:
+            if hasattr(return_obj, 'ClientItem'):
+                items = return_obj.ClientItem
+                # Agar bitta item bo'lsa, list qilamiz
+                if not isinstance(items, list):
+                    items = [items]
+                return items
+            elif isinstance(return_obj, list):
+                return return_obj
+        
+        # Eski format uchun fallback
         if hasattr(response, 'ClientItem'):
-            return response.ClientItem
+            items = response.ClientItem
+            if not isinstance(items, list):
+                items = [items]
+            return items
         elif isinstance(response, list):
             return response
         else:
@@ -238,23 +534,20 @@ def process_clients_chunk(items, integration, chunk_size=100, log_obj=None):
         parsed_items = []
         for item in items:
             try:
-                client_code_1c = clean_value(getattr(item, 'Code', None))
-                name = clean_value(getattr(item, 'Name', None))
-                email = clean_value(getattr(item, 'Email', None))
-                phone = clean_value(getattr(item, 'Phone', None))
-                description = clean_value(getattr(item, 'Description', None))
+                # Barcha fieldlarni dinamik tarzda parse qilish
+                parsed_data = parse_client_item(item)
                 
-                if not client_code_1c or not name:
+                if not parsed_data:
                     error_count += 1
                     continue
                 
-                parsed_items.append({
-                    'client_code_1c': client_code_1c,
-                    'name': name,
-                    'email': email,
-                    'phone': phone,
-                    'description': description,
-                })
+                # Default qiymatlarni o'rnatish
+                if 'is_deleted' not in parsed_data:
+                    parsed_data['is_deleted'] = False
+                if 'is_active' not in parsed_data:
+                    parsed_data['is_active'] = True
+                
+                parsed_items.append(parsed_data)
             except Exception as e:
                 logger.error(f"Error parsing client item: {e}")
                 error_count += 1
@@ -269,12 +562,11 @@ def process_clients_chunk(items, integration, chunk_size=100, log_obj=None):
                     # Barcha client_code_1c larni olish
                     codes_1c = [item['client_code_1c'] for item in chunk]
                     
-                    # Mavjud client'larni olish
+                    # Mavjud client'larni olish - is_deleted=False bo'lganlarini ham olamiz
                     existing_dict = {
                         obj.client_code_1c: obj 
                         for obj in Client.objects.filter(
-                            client_code_1c__in=codes_1c,
-                            is_deleted=False
+                            client_code_1c__in=codes_1c
                         )
                     }
                     
@@ -285,25 +577,28 @@ def process_clients_chunk(items, integration, chunk_size=100, log_obj=None):
                         client_code_1c = item_data['client_code_1c']
                         
                         if client_code_1c in existing_dict:
-                            # Update
+                            # Update - barcha fieldlarni yangilash
                             existing = existing_dict[client_code_1c]
-                            existing.name = item_data['name']
-                            existing.email = item_data['email']
-                            existing.phone = item_data['phone']
-                            existing.description = item_data['description']
+                            
+                            # Barcha fieldlarni yangilash
+                            for field_name, field_value in item_data.items():
+                                if hasattr(existing, field_name) and field_name not in ['id', 'created_at']:
+                                    try:
+                                        setattr(existing, field_name, field_value)
+                                    except Exception as e:
+                                        logger.warning(f"Error setting field {field_name} on client {client_code_1c}: {e}")
+                            
                             existing.updated_at = timezone.now()
                             to_update.append(existing)
                         else:
-                            # Create
-                            to_create.append(Client(
-                                client_code_1c=client_code_1c,
-                                name=item_data['name'],
-                                email=item_data['email'],
-                                phone=item_data['phone'],
-                                description=item_data['description'],
-                                is_active=True,
-                                is_deleted=False
-                            ))
+                            # Create - barcha fieldlar bilan yaratish
+                            try:
+                                new_client = Client(**item_data)
+                                to_create.append(new_client)
+                            except Exception as e:
+                                logger.error(f"Error creating client {client_code_1c}: {e}")
+                                error_count += 1
+                                continue
                     
                     # Bulk operations
                     if to_create:
@@ -311,9 +606,44 @@ def process_clients_chunk(items, integration, chunk_size=100, log_obj=None):
                         created_count += len(to_create)
                     
                     if to_update:
+                        # Barcha yangilanishi kerak bo'lgan fieldlarni aniqlash
+                        # Client modelining barcha fieldlarini olish (auto fieldlar va foreign key'larni tashlab)
+                        update_fields = set()
+                        
+                        # Birinchi client'dan barcha o'zgargan field nomlarini olish
+                        sample_client = to_update[0]
+                        for field in sample_client._meta.get_fields():
+                            field_name = field.name
+                            # Auto fieldlar, many-to-many va foreign key'larni tashlab o'tish
+                            if (field_name not in ['id', 'created_at'] and 
+                                not field.many_to_many and 
+                                not (hasattr(field, 'related_model') and field.related_model)):
+                                # Agar bu field Client modelida mavjud bo'lsa
+                                if hasattr(Client, field_name):
+                                    update_fields.add(field_name)
+                        
+                        # updated_at har doim qo'shiladi
+                        update_fields.add('updated_at')
+                        
+                        # Agar update_fields bo'sh bo'lsa, default fieldlarni ishlatamiz
+                        if not update_fields or len(update_fields) < 3:
+                            update_fields = {
+                                'name', 'email', 'phone', 'description', 
+                                'is_deleted', 'is_active', 'updated_at',
+                                'company_name', 'tax_id', 'registration_number',
+                                'legal_address', 'actual_address', 'fax', 'website',
+                                'social_media', 'additional_phones', 'industry',
+                                'business_type', 'employee_count', 'annual_revenue',
+                                'established_date', 'payment_terms', 'credit_limit',
+                                'currency', 'city', 'region', 'country', 'postal_code',
+                                'contact_person', 'contact_position', 'contact_email',
+                                'contact_phone', 'notes', 'tags', 'rating', 'priority',
+                                'source', 'metadata'
+                            }
+                        
                         Client.objects.bulk_update(
                             to_update, 
-                            ['name', 'email', 'phone', 'description', 'updated_at'],
+                            list(update_fields),
                             batch_size=chunk_size
                         )
                         updated_count += len(to_update)
