@@ -45,14 +45,29 @@ pip install -r requirements.txt
 
 ### 3. Environment Variables
 
-`.env` faylini yaratish:
+Production uchun `.env` faylini yaratish:
+
+```bash
+# .env.example ni .env ga copy qiling
+cp .env.example .env  # Linux/Mac
+copy .env.example .env  # Windows
+
+# .env faylini tahrirlang va qiymatlarni o'zgartiring
+nano .env  # Linux/Mac
+notepad .env  # Windows
+```
+
+**Batafsil ko'rsatma**: [ENV_SETUP.md](ENV_SETUP.md)
+
+Asosiy environment variables:
 
 ```env
-SECRET_KEY=your-secret-key-here
-DEBUG=True
+SECRET_KEY=your-secret-key-here  # Production'da kuchli key yarating!
+DEBUG=True  # Production'da False!
 ALLOWED_HOSTS=localhost,127.0.0.1
-DATABASE_URL=sqlite:///db.sqlite3
+DATABASE_URL=sqlite:///db.sqlite3  # Production'da PostgreSQL
 CORS_ALLOWED_ORIGINS=http://localhost:3000
+REACT_APP_API_URL=http://localhost:8000/api/v1  # Frontend uchun
 ```
 
 ### 4. Migrations
