@@ -52,6 +52,8 @@ DEFAULT_TRUSTED_ORIGINS = [
     'http://192.168.0.111',
     'http://192.168.0.129',
     'http://192.168.0.129:8000',
+    'http://178.218.200.120:1596',
+    'http://178.218.200.120/'
 ]
 CSRF_TRUSTED_ORIGINS = [
     origin.strip() for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
@@ -612,6 +614,7 @@ DEFAULT_CORS_ALLOWED_ORIGINS = [
     "http://178.218.200.120:1596",
     "http://192.168.0.129",
     "http://192.168.0.129:8000",
+    'http://178.218.200.120/',
 ]
 CORS_ALLOWED_ORIGINS = [
     origin.strip() for origin in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
