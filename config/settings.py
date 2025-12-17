@@ -342,6 +342,7 @@ Bu API Project, Nomenklatura va Client ma'lumotlarini boshqarish uchun yaratilga
 - `GET /api/v1/client/` — `search`, `client_code_1c`, `name`, `page`, `page_size`.
 - `POST /api/v1/client/` va `PUT/PATCH/DELETE /api/v1/client/{client_code_1c}/`.
 - Rasmlar:
+  - `GET /api/v1/client-images/` — filterlar: `client` (ID), `client_code_1c`, `is_main`.
   - `POST /api/v1/client-images/`
   - `POST /api/v1/client-images/bulk-upload/` — `client=<code>` va `images[]`.
 

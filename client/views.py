@@ -68,13 +68,13 @@ class ClientFilterSet(django_filters.FilterSet):
 
 
 class ClientImageFilterSet(django_filters.FilterSet):
-    client = django_filters.CharFilter(field_name='client__client_code_1c')
+    client_code_1c = django_filters.CharFilter(field_name='client__client_code_1c')
     created_from = django_filters.DateFilter(field_name='created_at', lookup_expr='date__gte')
     created_to = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
 
     class Meta:
         model = ClientImage
-        fields = ['client', 'is_main', 'category', 'created_from', 'created_to']
+        fields = ['client', 'client_code_1c', 'is_main', 'category', 'created_from', 'created_to']
 
 
 @extend_schema_view(
@@ -383,13 +383,19 @@ class ClientViewSet(viewsets.ModelViewSet):
     list=extend_schema(
         tags=['Clients'],
         summary="Client rasmlari ro'yxatini olish",
-        description="Client rasmlarini `client` va `is_main` bo'yicha filterlash mumkin.",
+        description="Client rasmlarini `client` (ID) va `client_code_1c` bo'yicha filterlash mumkin.",
         parameters=[
             OpenApiParameter(
                 name='client',
                 required=False,
+                type=OpenApiTypes.INT,
+                description="Client ID bo'yicha filter",
+            ),
+            OpenApiParameter(
+                name='client_code_1c',
+                required=False,
                 type=OpenApiTypes.STR,
-                description="Client code_1c bo'yicha filter",
+                description="Client client_code_1c bo'yicha filter",
             ),
             OpenApiParameter(
                 name='is_main',
@@ -451,8 +457,8 @@ class ClientImageViewSet(viewsets.ModelViewSet):
         summary="Client uchun bir nechta rasm yuklash",
         description=(
             "Multipart form-data formatida bir nechta rasm faylini birdaniga yuklaydi. "
-            "`client` maydoniga `client_code_1c` qiymati yuboriladi. Ixtiyoriy ravishda `category` "
-            "va `note` maydonlari orqali rasmlarga umumiy teg yoki izoh berish mumkin."
+            "`client` maydoniga `client_code_1c` qiymati yuboriladi. Ixtiyoriy ravishda "
+            "`category` va `note` maydonlari orqali rasmlarga umumiy teg yoki izoh berish mumkin."
         ),
         request=ClientImageBulkUploadSerializer,
         responses={
