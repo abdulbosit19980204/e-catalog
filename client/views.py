@@ -68,6 +68,7 @@ class ClientFilterSet(django_filters.FilterSet):
 
 
 class ClientImageFilterSet(django_filters.FilterSet):
+    client = django_filters.CharFilter(field_name='client__client_code_1c')
     created_from = django_filters.DateFilter(field_name='created_at', lookup_expr='date__gte')
     created_to = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
 
@@ -482,9 +483,10 @@ class ClientImageViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        try:
-            client = Client.objects.get(client_code_1c=client_code, is_deleted=False)
-        except Client.DoesNotExist:
+        # Fix: get() o'rniga filter().first() ishlatamiz (duplicate code bo'lsa 500 xato bermasligi uchun)
+        client = Client.objects.filter(client_code_1c=client_code, is_deleted=False).first()
+        
+        if not client:
             return Response(
                 {'error': 'Client topilmadi'},
                 status=status.HTTP_404_NOT_FOUND
