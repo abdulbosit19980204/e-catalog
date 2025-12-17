@@ -1237,8 +1237,19 @@ class ClientThumbnailView(ThumbnailFeedMixin, APIView):
         limit = self._parse_limit(request.query_params.get('limit'))
         is_main = self._parse_bool(request.query_params.get('is_main'))
         status_code = request.query_params.get('status')
+        client_id = request.query_params.get('client_id')
+        client_code_1c = request.query_params.get('client_code_1c')
 
-        entries = self._collect_client_thumbnails(request, limit, is_main, status_code)
+        entries = self._collect_client_thumbnails(
+            request=request,
+            limit=limit,
+            is_main=is_main,
+            status_code=status_code,
+            client_id=client_id,
+            client_code_1c=client_code_1c,
+        )
+        
+        # entries = self._collect_client_thumbnails(request, limit, is_main, status_code)
         serialized = ThumbnailEntrySerializer(entries, many=True)
         
         # Umumiy hajmni hisoblash
