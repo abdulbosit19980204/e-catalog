@@ -131,7 +131,7 @@ class OneCAuthService:
                 return None, data.get('message', 'Authorization failed')
                 
             # Success - Create or Update User
-            user = cls.update_or_create_user(login, data)
+            user = cls.update_or_create_user(project, login, data)
             tokens = cls.get_tokens_for_user(user)
             
             return {
@@ -148,16 +148,19 @@ class OneCAuthService:
             return None, f"Connection Error: {str(e)}"
 
     @staticmethod
-    def update_or_create_user(login, data):
+    def update_or_create_user(project, login, data):
         # User logic
-        # Should we assume 'login' from client is the username? Or define username from 1C data?
-        # User request says: "userni oldin royxatdan otmagan bolsa userlistga register qilish kerak"
+        # Collision prevention: different projects can have same login (e.g. TP-3)
+        # Strategy: Scoped username = "{project_code}_{login}"
         
-        # We use the provided 'login' as username.
-        user, created = User.objects.get_or_create(username=login)
+        scoped_username = f"{project.project_code}_{login}"
+        
+        # We use the scoped username for Django User.
+        user, created = User.objects.get_or_create(username=scoped_username)
         
         # Update user fields
-        user.first_name = data.get('name', '')[:30] # Truncate if too long (max 150 usually)
+        # Store original "Name" from 1C in first_name (e.g. "XOLIQOV MIRKOMIL")
+        user.first_name = data.get('name', '')[:30] 
         if not user.is_active:
             user.is_active = True
         user.save()
