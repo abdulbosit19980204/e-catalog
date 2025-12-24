@@ -340,7 +340,7 @@ Body:
 {
     "login": "ТП-3",
     "password": "your_password",
-    "project_code": "EVYAP"
+    "project_name": "Evyap"
 }
 ```
 

@@ -37,16 +37,19 @@ class OneCAuthService:
                 'm': 'http://www.sample-package.org'
             }
             
-            # Find return element
-            # Path: Body -> GetUserResponse -> return
-            body = root.find('soap:Body', ns)
-            if body is None: return None
+            if body is None:
+                print("DEBUG: soap:Body not found")
+                return None
             
             response = body.find('m:GetUserResponse', ns)
-            if response is None: return None
+            if response is None:
+                print("DEBUG: m:GetUserResponse not found")
+                return None
             
             data = response.find('m:return', ns)
-            if data is None: return None
+            if data is None:
+                print("DEBUG: m:return not found")
+                return None
             
             return {
                 'code': data.find('m:Code', ns).text,
@@ -59,14 +62,19 @@ class OneCAuthService:
             }
         except Exception as e:
             print(f"XML Parse Error: {e}")
+            print(f"Raw Response Content: {response_content.decode('utf-8', errors='ignore')}")
             return None
 
     @classmethod
-    def authenticate(cls, project_code, login, password):
+    def authenticate(cls, project_name, login, password):
         try:
-            project = AuthProject.objects.get(project_code=project_code, is_active=True)
-        except AuthProject.DoesNotExist:
-            return None, "Project not found or inactive"
+            # Helper: name bo'yicha qidirish (case-insensitive qulay bo'lishi mumkin, lekin hozir exact match)
+            # filter().first() duplicate bo'lsa xato bermasligi uchun
+            project = AuthProject.objects.filter(name=project_name, is_active=True).first()
+            if not project:
+                return None, f"Project '{project_name}' not found or inactive"
+        except Exception as e:
+            return None, f"Project lookup error: {str(e)}"
 
         url = project.service_url or project.wsdl_url
         payload = cls.get_soap_body(login, password)
@@ -85,6 +93,8 @@ class OneCAuthService:
             data = cls.parse_response(response.content)
             
             if not data:
+                print(f"DEBUG: Parse failed. Status: {response.status_code}")
+                print(f"DEBUG: Raw Body: {response.text}")
                 return None, "Invalid XML response from 1C"
                 
             if data.get('code_error') != '1': # Assuming 1 is success based on example "Авторизация прошла успешно!!!"

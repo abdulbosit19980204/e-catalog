@@ -18,7 +18,7 @@ class OneCLoginView(APIView):
             fields={
                 'login': serializers.CharField(required=True, help_text="1C Login (username)"),
                 'password': serializers.CharField(required=True, help_text="1C Parol"),
-                'project_code': serializers.CharField(required=True, help_text="Auth Project Code (masalan: EVYAP)"),
+                'project_name': serializers.CharField(required=True, help_text="Auth Project Nomi (masalan: Evyap)"),
             }
         ),
         responses={
@@ -46,9 +46,9 @@ class OneCLoginView(APIView):
         
         login = serializer.validated_data['login']
         password = serializer.validated_data['password']
-        project_code = serializer.validated_data['project_code']
+        project_name = serializer.validated_data['project_name']
 
-        result, error = OneCAuthService.authenticate(project_code, login, password)
+        result, error = OneCAuthService.authenticate(project_name, login, password)
 
         if error:
             # Determine status code based on error
@@ -69,4 +69,4 @@ class OneCLoginView(APIView):
 class LoginSerializer(serializers.Serializer):
     login = serializers.CharField(required=True)
     password = serializers.CharField(required=True)
-    project_code = serializers.CharField(required=True)
+    project_name = serializers.CharField(required=True)
