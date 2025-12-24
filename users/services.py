@@ -100,10 +100,16 @@ class OneCAuthService:
             return None, f"Project lookup error: {str(e)}"
 
         url = project.service_url or project.wsdl_url
+        # Clean URL: remove ?wsdl or ?WSDL if present
+        if url.lower().endswith('?wsdl'):
+            url = url[:-5]
+            
+        print(f"DEBUG: Sending POST to 1C URL: {url}") # Debug log
+
         payload = cls.get_soap_body(login, password)
         headers = {
             'Content-Type': 'application/soap+xml; charset=utf-8', # SOAP 1.2 content type
-            # 'SOAPAction': 'http://www.sample-package.org/GetUser' # May be needed
+            # 'SOAPAction': 'http://www.sample-package.org/GetUser' # May be needed if 1C requires it
         }
 
         try:
