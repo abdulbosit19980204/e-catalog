@@ -365,6 +365,19 @@ Har bir obyekt (Project, Client, Nomenklatura) uchun **faqat bitta** asosiy rasm
 > **⚠️ Logic:** 
 > Agar siz yangi rasm yuklasangiz yoki eski rasmni `is_main=true` qilib yangilasangiz, tizim avtomatik ravishda **boshqa barcha rasmlarni** `is_main=false` holatiga o'tkazadi.
 
+#### Rasmni "Main" qilish (Asosiy qilish)
+
+Buning uchun rasm ID sini bilgan holda unga `PATCH` so'rov yuboring:
+
+**Endpoint:** `PATCH /api/v1/client-images/{id}/` (yoki `project-images`, `nomenklatura-images`)
+
+**Body:**
+```json
+{
+    "is_main": true
+}
+```
+
 ### Bulk Upload (Ko'plab yuklash)
 Bir vaqtning o'zida ko'plab rasm yuklash uchun `bulk-upload` endpointlardan foydalaning.
 - **Format**: `multipart/form-data`
