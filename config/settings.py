@@ -88,6 +88,7 @@ INSTALLED_APPS = [
     'nomenklatura',
     'api',
     'integration',
+    'users',  # Auth & User management
 ]
 
 MIDDLEWARE = [
