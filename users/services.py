@@ -180,7 +180,13 @@ class OneCAuthService:
     @staticmethod
     def get_tokens_for_user(user):
         refresh = RefreshToken.for_user(user)
+        
+        # Calculate expiry times based on settings (or token payload)
+        # refresh.access_token.payload['exp'] is a timestamp
+        
         return {
             'refresh': str(refresh),
             'access': str(refresh.access_token),
+            'access_expires_at': refresh.access_token['exp'],
+            'refresh_expires_at': refresh['exp'],
         }

@@ -303,48 +303,24 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     'TITLE': 'E-Catalog API',
     'DESCRIPTION': '''
-# E-Catalog Microservice API Documentation
+# E-Catalog Microservice Developer Guide
 
-Bu API Project, Nomenklatura va Client ma'lumotlarini boshqarish uchun yaratilgan Django REST Framework asosidagi microservice.
+Bu API **Project**, **Nomenklatura** va **Client** ma'lumotlarini markazlashgan holda boshqarish, mobil agentlardan geolokatsiya yig'ish va 1C tizimi bilan integratsiya qilish uchun mo'ljallangan.
 
-## Asosiy Xususiyatlar
+---
 
-- **Project Management** — Project'lar va ularning rasmlarini boshqarish
-- **Nomenklatura Management** — Nomenklatura'lar va ularning rasmlarini boshqarish
-- **Client Management** — Client'lar va ularning rasmlarini boshqarish (Authentication talab qilinadi)
-- **Agent Locations** — Mobil agentlar tomonidan yuborilgan geolokatsiya va qurilma ma'lumotlari
-- **Image Management** — Image Status va Image Source boshqaruvi
-- **1C Integration** — 1C dan ma'lumotlarni yuklab olish
-- **Excel Import/Export** — Project, Nomenklatura va Client'lar uchun Excel formatida import/export
-- **Image Processing** — Rasmlarni turli o'lchamlarda (sm, md, lg, thumbnail) saqlash
-- **JWT Authentication** — Token-based authentication
-- **Pagination** — Sahifalash bilan ma'lumotlarni olish
-- **Search & Filtering** — Qidirish va filtrlash imkoniyatlari
+## 🚀 Tezkor Boshlash
 
-## Authentication
+### Authentication (Kirish)
 
-1. `POST /api/token/` — `username` va `password` yuboring. Javobda `access` va `refresh` token olasiz.
-2. `Authorization: Bearer <access_token>` header'ini barcha himoyalangan endpointlarda yuboring.
-3. `POST /api/token/refresh/` — `refresh` token yuborib yangi `access` token oling.
-3. `POST /api/token/refresh/` — `refresh` token yuborib yangi `access` token oling.
-4. `POST /api/token/verify/` — mavjud tokenning yaroqliligini tekshiring.
+Tizimda 2 xil autentifikatsiya mavjud:
 
-### 1C Authentication (Tavsiya etiladi)
+#### 1. 1C Login (Tavsiya etiladi)
+Mobil ilovalar va agentlar uchun maxsus. 1C login va parolingiz bilan kirasiz.
+- **Endpoint**: `POST /api/v1/auth/1c-login/`
+- **Body**: `{ "login": "ТП-3", "password": "...", "project_name": "Evyap" }`
 
-Maxsus endpoint orqali 1C login/parol yordamida autentifikatsiya qilish va avtomatik user yaratish/yangilash:
-
-**POST /api/v1/auth/1c-login/**
-
-Body:
-```json
-{
-    "login": "ТП-3",
-    "password": "your_password",
-    "project_name": "Evyap"
-}
-```
-
-Response:
+**Response:**
 ```json
 {
     "user": {
@@ -354,378 +330,85 @@ Response:
     },
     "tokens": {
         "refresh": "...",
-        "access": "..."
+        "access": "...",
+        "access_expires_at": 1735133456,
+        "refresh_expires_at": 1735651856
     },
     "message": "Авторизация прошла успешно!!!"
 }
 ```
 
-> Test uchun: `http POST http://localhost:8000/api/token/ username=admin password=secret`
-
-## Projects
-
-### Project CRUD Operatsiyalari
-
-- **GET /api/v1/project/** — Project'lar ro'yxatini olish
-  
-  **Filterlar:**
-  - `search` — `code_1c`, `name`, `title` bo'yicha qidirish
-  - `code_1c` — Aniq code bo'yicha filter
-  - `name` — Aniq nom bo'yicha filter
-  - `description_status` — `with` (description bor) | `without` (description yo'q)
-  - `image_status` — `with` (rasm bor) | `without` (rasm yo'q)
-  - `created_from` — Yaratilgan sanadan boshlab (YYYY-MM-DD)
-  - `created_to` — Yaratilgan sana chegarasi (YYYY-MM-DD)
-  - `updated_from` — Yangilangan sanadan boshlab (YYYY-MM-DD)
-  - `updated_to` — Yangilangan sana chegarasi (YYYY-MM-DD)
-  - `page` — Sahifa raqami (default: 1)
-  - `page_size` — Sahifadagi elementlar soni (default: 20, max: 100)
-
-- **GET /api/v1/project/{code_1c}/** — Bitta project ma'lumotini olish
-- **POST /api/v1/project/** — Yangi project yaratish (`code_1c`, `name`, `title`, `description`, `is_active`)
-- **PUT /api/v1/project/{code_1c}/** — Project'ni to'liq yangilash
-- **PATCH /api/v1/project/{code_1c}/** — Project'ni qisman yangilash
-- **DELETE /api/v1/project/{code_1c}/** — Project'ni soft-delete qilish
-
-### Project Excel Operatsiyalari
-
-- **GET /api/v1/project/export-xlsx/** — Project'larni Excel formatda eksport qilish (Authentication talab qilinadi)
-- **GET /api/v1/project/template-xlsx/** — Excel shablon faylini yuklab olish (Authentication talab qilinadi)
-- **POST /api/v1/project/import-xlsx/** — Excel fayldan Project'larni import qilish (Authentication talab qilinadi)
-
-### Project Rasmlari
-
-- **GET /api/v1/project-images/** — Project rasmlari ro'yxatini olish
-  
-  **Filterlar:**
-  - `project` — Project ID bo'yicha filter
-  - `is_main` — Asosiy rasm bo'yicha filter (true/false)
-  - `category` — Rasm toifasi bo'yicha filter
-  - `created_from` — Yaratilgan sanadan boshlab (YYYY-MM-DD)
-  - `created_to` — Yaratilgan sana chegarasi (YYYY-MM-DD)
-
-- **POST /api/v1/project-images/** — Bitta rasm yuklash (multipart/form-data)
-- **POST /api/v1/project-images/bulk-upload/** — Bir nechta rasm yuklash
-  - `project` — Project code_1c qiymati
-  - `images[]` — Bir yoki bir nechta rasm fayli
-  - `category` (optional) — Barcha rasmlar uchun umumiy toifa
-  - `note` (optional) — Barcha rasmlar uchun umumiy izoh
-
-## Clients
-
-> **Diqqat:** Barcha client endpointlari JWT authentication talab qiladi.
-
-### Client CRUD Operatsiyalari
-
-- **GET /api/v1/client/** — Client'lar ro'yxatini olish (Authentication talab qilinadi)
-  
-  **Filterlar:**
-  - `search` — `client_code_1c`, `name`, `email` bo'yicha qidirish
-  - `client_code_1c` — Aniq code bo'yicha filter
-  - `name` — Aniq nom bo'yicha filter
-  - `email` — Email bo'yicha filter
-  - `description_status` — `with` (description bor) | `without` (description yo'q)
-  - `image_status` — `with` (rasm bor) | `without` (rasm yo'q)
-  - `created_from` — Yaratilgan sanadan boshlab (YYYY-MM-DD)
-  - `created_to` — Yaratilgan sana chegarasi (YYYY-MM-DD)
-  - `updated_from` — Yangilangan sanadan boshlab (YYYY-MM-DD)
-  - `updated_to` — Yangilangan sana chegarasi (YYYY-MM-DD)
-  - `page` — Sahifa raqami (default: 1)
-  - `page_size` — Sahifadagi elementlar soni (default: 20, max: 100)
-
-- **GET /api/v1/client/{client_code_1c}/** — Bitta client ma'lumotini olish (Authentication talab qilinadi)
-- **POST /api/v1/client/** — Yangi client yaratish (Authentication talab qilinadi)
-- **PUT /api/v1/client/{client_code_1c}/** — Client'ni to'liq yangilash (Authentication talab qilinadi)
-- **PATCH /api/v1/client/{client_code_1c}/** — Client'ni qisman yangilash (Authentication talab qilinadi)
-  > **Eslatma:** `client_code_1c` o'zgartirilmaydi
-- **DELETE /api/v1/client/{client_code_1c}/** — Client'ni soft-delete qilish (Authentication talab qilinadi)
-
-### Client Excel Operatsiyalari
-
-- **GET /api/v1/client/export-xlsx/** — Client'larni Excel formatda eksport qilish (Authentication talab qilinadi)
-- **GET /api/v1/client/template-xlsx/** — Excel shablon faylini yuklab olish (Authentication talab qilinadi)
-- **POST /api/v1/client/import-xlsx/** — Excel fayldan Client'larni import qilish (Authentication talab qilinadi)
-
-### Client Rasmlari
-
-- **GET /api/v1/client-images/** — Client rasmlari ro'yxatini olish (Authentication talab qilinadi)
-  
-  **Filterlar:**
-  - `client` — Client ID (database ID) bo'yicha filter (Integer)
-  - `client_code_1c` — Client 1C kodi bo'yicha filter (String)
-  - `is_main` — Asosiy rasm bo'yicha filter (true/false)
-  - `category` — Rasm toifasi bo'yicha filter
-  - `created_from` — Yaratilgan sanadan boshlab (YYYY-MM-DD)
-  - `created_to` — Yaratilgan sana chegarasi (YYYY-MM-DD)
-
-- **POST /api/v1/client-images/** — Bitta rasm yuklash (multipart/form-data) (Authentication talab qilinadi)
-- **POST /api/v1/client-images/bulk-upload/** — Bir nechta rasm yuklash (Authentication talab qilinadi)
-  - `client` — Client client_code_1c qiymati
-  - `images[]` — Bir yoki bir nechta rasm fayli
-  - `category` (optional) — Barcha rasmlar uchun umumiy toifa
-  - `note` (optional) — Barcha rasmlar uchun umumiy izoh
-
-## Nomenklatura
-
-### Nomenklatura CRUD Operatsiyalari
-
-- **GET /api/v1/nomenklatura/** — Nomenklatura'lar ro'yxatini olish
-  
-  **Filterlar:**
-  - `search` — `code_1c`, `name` bo'yicha qidirish
-  - `code_1c` — Aniq code bo'yicha filter
-  - `name` — Aniq nom bo'yicha filter
-  - `description_status` — `with` (description bor) | `without` (description yo'q)
-  - `image_status` — `with` (rasm bor) | `without` (rasm yo'q)
-  - `created_from` — Yaratilgan sanadan boshlab (YYYY-MM-DD)
-  - `created_to` — Yaratilgan sana chegarasi (YYYY-MM-DD)
-  - `updated_from` — Yangilangan sanadan boshlab (YYYY-MM-DD)
-  - `updated_to` — Yangilangan sana chegarasi (YYYY-MM-DD)
-  - `page` — Sahifa raqami (default: 1)
-  - `page_size` — Sahifadagi elementlar soni (default: 20, max: 100)
-
-- **GET /api/v1/nomenklatura/{code_1c}/** — Bitta nomenklatura ma'lumotini olish
-- **POST /api/v1/nomenklatura/** — Yangi nomenklatura yaratish
-- **PUT /api/v1/nomenklatura/{code_1c}/** — Nomenklatura'ni to'liq yangilash
-- **PATCH /api/v1/nomenklatura/{code_1c}/** — Nomenklatura'ni qisman yangilash
-- **DELETE /api/v1/nomenklatura/{code_1c}/** — Nomenklatura'ni soft-delete qilish
-
-### Nomenklatura Excel Operatsiyalari
-
-- **GET /api/v1/nomenklatura/export-xlsx/** — Nomenklatura'larni Excel formatda eksport qilish (Authentication talab qilinadi)
-- **GET /api/v1/nomenklatura/template-xlsx/** — Excel shablon faylini yuklab olish (Authentication talab qilinadi)
-- **POST /api/v1/nomenklatura/import-xlsx/** — Excel fayldan Nomenklatura'larni import qilish (Authentication talab qilinadi)
-
-### Nomenklatura Rasmlari
-
-- **GET /api/v1/nomenklatura-images/** — Nomenklatura rasmlari ro'yxatini olish
-  
-  **Filterlar:**
-  - `nomenklatura` — Nomenklatura ID bo'yicha filter
-  - `is_main` — Asosiy rasm bo'yicha filter (true/false)
-  - `category` — Rasm toifasi bo'yicha filter
-  - `created_from` — Yaratilgan sanadan boshlab (YYYY-MM-DD)
-  - `created_to` — Yaratilgan sana chegarasi (YYYY-MM-DD)
-
-- **POST /api/v1/nomenklatura-images/** — Bitta rasm yuklash (multipart/form-data)
-- **POST /api/v1/nomenklatura-images/bulk-upload/** — Bir nechta rasm yuklash
-  - `nomenklatura` — Nomenklatura code_1c qiymati
-  - `images[]` — Bir yoki bir nechta rasm fayli
-  - `category` (optional) — Barcha rasmlar uchun umumiy toifa
-  - `note` (optional) — Barcha rasmlar uchun umumiy izoh
-
-## Agent Locations
-
-Mobil agentlar tomonidan yuborilgan geolokatsiya yozuvlari. Qurilma, lokatsiya, tarmoq, sensor va boshqa ma'lumotlar bilan birga saqlanadi.
-
-> **Diqqat:** Barcha agent location endpointlari JWT authentication talab qiladi (GET so'rovlari uchun).
-
-- **GET /api/v1/agent-locations/** — Agent lokatsiya yozuvlari ro'yxati (Authentication talab qilinadi)
-  
-  **Filterlar:**
-  - `agent_code` — Agent kodi bo'yicha filter
-  - `region` — Hudud bo'yicha filter
-  - `platform` — Platforma (Android/iOS) bo'yicha filter
-  - `device_id` — Qurilma ID bo'yicha filter
-  - `date_from` — Yaratilgan sanadan boshlab (DateTime)
-  - `date_to` — Yaratilgan sana chegarasi (DateTime)
-  - `page` — Sahifa raqami
-  - `page_size` — Sahifadagi elementlar soni
-
-- **POST /api/v1/agent-locations/** — Yangi lokatsiya yozuvini yaratish
-- **GET /api/v1/agent-locations/{id}/** — Bitta yozuvni olish (Authentication talab qilinadi)
-- **PUT /api/v1/agent-locations/{id}/** — Yozuvni to'liq yangilash (Authentication talab qilinadi)
-- **PATCH /api/v1/agent-locations/{id}/** — Yozuvni qisman yangilash (Authentication talab qilinadi)
-- **DELETE /api/v1/agent-locations/{id}/** — Soft-delete qilish (Authentication talab qilinadi)
-
-### AgentLocation Maydonlari
-
-**Majburiy maydonlar:**
-- `agent_code` (string) — Agent kodi
-- `latitude` (decimal) — Latitude (WGS84)
-- `longitude` (decimal) — Longitude (WGS84)
-
-**Agent ma'lumotlari:**
-- `agent_name`, `agent_phone`, `region`
-
-**Qurilma ma'lumotlari:**
-- `device_id`, `device_name`, `device_manufacturer`, `device_model`
-- `platform`, `os_version`, `screen_width`, `screen_height`, `screen_density`
-- `ram_total`, `ram_available`, `storage_total`, `storage_available`
-- `camera_front`, `camera_back`, `camera_resolution`
-
-**App ma'lumotlari:**
-- `app_version`, `app_build_number`, `app_installation_date`, `app_last_update`
-
-**Lokatsiya ma'lumotlari:**
-- `accuracy`, `altitude`, `speed`, `heading`
-- `city`, `country`, `postal_code`, `timezone`, `location_provider`, `address`
-
-**Batareya ma'lumotlari:**
-- `battery_level`, `is_charging`, `battery_health`, `battery_temperature`, `battery_voltage`
-
-**Tarmoq ma'lumotlari:**
-- `signal_strength`, `network_type`, `wifi_ssid`, `wifi_bssid`
-- `cellular_operator`, `cellular_network_type`, `ip_address`, `connection_type`
-
-**Sensor ma'lumotlari:**
-- `accelerometer_x/y/z`, `gyroscope_x/y/z`, `magnetometer_x/y/z`
-- `proximity_sensor`, `light_sensor`
-
-**Atrof-muhit ma'lumotlari:**
-- `temperature`, `humidity`, `pressure`
-
-**Xavfsizlik ma'lumotlari:**
-- `device_fingerprint`, `is_rooted`, `is_jailbroken`, `encryption_enabled`, `screen_lock_type`
-
-**Qo'shimcha:**
-- `logged_at`, `note`, `metadata` (JSON)
-
-## Image Status va Image Source
-
-### Image Status
-
-Rasm statuslari — rasmning qaysi maqsadda ishlatilishini belgilaydi.
-
-- **GET /api/v1/image-statuses/** — Image Status ro'yxati
-- **POST /api/v1/image-statuses/** — Yangi status yaratish (Authentication talab qilinadi)
-- **GET /api/v1/image-statuses/{id}/** — Bitta statusni olish
-- **PUT/PATCH /api/v1/image-statuses/{id}/** — Statusni yangilash (Authentication talab qilinadi)
-- **DELETE /api/v1/image-statuses/{id}/** — Statusni soft-delete qilish (Authentication talab qilinadi)
-
-**Maydonlar:**
-- `code` — Status kodi (masalan: 'store_before', 'store_after')
-- `name` — Status nomi
-- `description` — Tavsif
-- `icon` — Icon nomi
-- `order` — Ko'rinish tartibi
-
-### Image Source
-
-Rasmni yuboruvchi haqida ma'lumotlar.
-
-- **GET /api/v1/image-sources/** — Image Source ro'yxati
-- **POST /api/v1/image-sources/** — Yangi source yaratish (Authentication talab qilinadi)
-- **GET /api/v1/image-sources/{id}/** — Bitta source'ni olish
-- **PUT/PATCH /api/v1/image-sources/{id}/** — Source'ni yangilash (Authentication talab qilinadi)
-- **DELETE /api/v1/image-sources/{id}/** — Source'ni soft-delete qilish (Authentication talab qilinadi)
-
-**Maydonlar:**
-- `uploader_name` — Yuboruvchi ismi
-- `uploader_type` — Yuboruvchi turi (agent, client, admin, system, other)
-- `uploader_contact` — Kontakt ma'lumotlari
-- `upload_location` — Yuklangan joy
-- `upload_device` — Qurilma
-- `notes` — Qo'shimcha izohlar
+> **🔔 Muhim Struktura:** 
+> Tizim userlarni project bo'yicha ajratadi. 
+> Masalan: Agar siz **Evyap** projectida **ТП-3** bo'lsangiz, tizim sizni bazada `EVYAP_TP-3` deb saqlaydi. 
+> Bu har xil projectlarda bir xil login ishlatish imkonini beradi.
 
-## Integration (1C Sinxronizatsiya)
+#### 2. Standard Login (Admin/Manajerlar)
+Username va password orqali token olish.
+- **Endpoint**: `POST /api/token/`
+- **Header**: Barcha himoyalangan so'rovlarda `Authorization: Bearer <access_token>` yuborilishi shart.
 
-> **Diqqat:** Barcha integration endpointlari JWT authentication talab qilinadi.
+---
 
-- **GET /api/v1/integration/** — Integration sozlamalari ro'yxati (Authentication talab qilinadi)
-- **POST /api/v1/integration/{id}/sync-nomenklatura/** — 1C dan nomenklatura'larni fon rejimida yuklash (Authentication talab qilinadi)
-- **POST /api/v1/integration/{id}/sync-clients/** — 1C dan client'larni yuklash (Authentication talab qilinadi)
-- **GET /api/v1/integration/sync-status/{task_id}/** — Fon jarayonining progressini kuzatish
+## 🖼️ Rasmlar Bilan Ishlash (Image Management)
 
-**Sync javobida `task_id` qaytadi. Uni ishlatib status endpointiga murojaat qiling:**
+Tizim rasmlarni avtomatik optimizatsiya qiladi va 4 xil o'lchamda saqlaydi:
+1. **Original** - To'liq o'lcham
+2. **Large (lg)** - 1200x1200px (Desktop)
+3. **Medium (md)** - 600x600px (Tablet)
+4. **Small (sm)** - 300x300px (Mobile)
+5. **Thumbnail** - 150x150px (Lists)
 
-**Statuslar:**
-- `fetching` — 1C dan ma'lumotlar olinmoqda
-- `processing` — Ma'lumotlar bazaga yozilmoqda
-- `completed` — Jarayon muvaffaqiyatli yakunlandi
-- `error` — Xatolik yuz berdi
+### "Main Image" Qoidasi
+Har bir obyekt (Project, Client, Nomenklatura) uchun **faqat bitta** asosiy rasm (`is_main=true`) bo'lishi mumkin.
 
-### Integration Sozlamalari
+> **⚠️ Logic:** 
+> Agar siz yangi rasm yuklasangiz yoki eski rasmni `is_main=true` qilib yangilasangiz, tizim avtomatik ravishda **boshqa barcha rasmlarni** `is_main=false` holatiga o'tkazadi.
 
-`IntegrationSerializer` maydonlari:
+### Bulk Upload (Ko'plab yuklash)
+Bir vaqtning o'zida ko'plab rasm yuklash uchun `bulk-upload` endpointlardan foydalaning.
+- **Format**: `multipart/form-data`
+- **Parametr**: `images` (List of files)
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Integration nomi (unikal) |
-| `project` | integer | Project ID (ForeignKey) |
-| `wsdl_url` | string (URL) | 1C web-service WSDL manzili |
-| `method_nomenklatura` | string | 1C dagi nomenklaturani qaytaruvchi method nomi |
-| `method_clients` | string | 1C dagi clientlarni qaytaruvchi method nomi |
-| `chunk_size` | integer | Bir qo'ng'iroqda qayta ishlanadigan elementlar soni |
-| `description` | rich text | Integration haqida qo'shimcha ma'lumot |
+---
 
-### 1C → E-Catalog Ma'lumot Mapping
+## 🔄 1C Integratsiya
 
-#### Nomenklatura Item
+Backend 1C web-xizmatlari (SOAP) bilan gaplashadi.
 
-- `Code` → `code_1c`
-- `Name` → `name`
-- `Title` → `title`
-- `Description` → `description`
-- `Project` → Project nomi
-- `Images` → Rasm URL'lari (`Image`, `ImageSm`, `ImageMd`, `ImageLg`, `IsMain`)
+1. **Sinxronizatsiya**: Nomenklatura va Clientlar 1C dan avtomatik tortib olinadi.
+2. **Jarayon**: Bu "Background Task" (fon jarayoni). So'rov yuborganingizda sizga `task_id` qaytadi.
+3. **Status**: `GET /api/v1/integration/sync-status/{task_id}/` orqali jarayon tugaganini tekshirasiz.
 
-#### Client Item
+---
 
-- `Code` → `client_code_1c`
-- `Name` → `name`
-- `Email` → `email`
-- `Phone` → `phone`
-- `Description` → `description`
-- `Images` → Rasm URL'lari
+## 📍 Agent Locations
 
-## Image Formats
+Mobil agentlarning harakatini kuzatish tizimi. 
+- **Ma'lumotlar**: GPS, Batareya, Tarmoq, Device Info.
+- **Talab**: `agent_code`, `latitude`, `longitude` majburiy.
 
-Har bir rasm 4 xil o'lchamda saqlanadi:
+---
 
-- **image_url** — Original rasm
-- **image_sm_url** — Kichik (300x300px) — mobil qurilmalar uchun
-- **image_md_url** — O'rta (600x600px) — planshetlar uchun
-- **image_lg_url** — Katta (1200x1200px) — desktop qurilmalar uchun
-- **image_thumbnail_url** — Thumbnail (150x150px) — ro'yxatlar uchun
+## 🔎 Qidiruv va Filtrlash (Filter Guide)
 
-Barcha rasmlar JPEG formatida automatic ravishda generate qilinadi.
+Deyarli barcha ro'yxat (List) endpointlarida quyidagi imkoniyatlar bor:
 
-## Pagination
+| Parametr | Tavsif | Misol |
+|----------|--------|-------|
+| `search` | Umumiy qidiruv (Nom, Kod, Info) | `?search=Coca-Cola` |
+| `page` | Sahifa raqami | `?page=2` |
+| `page_size` | Sahifadagi elementlar soni | `?page_size=50` |
+| `ordering` | Saralash (`-` teskari tartib) | `?ordering=-created_at` |
+| `created_from` | Sana (dan) | `?created_from=2023-01-01` |
+| `created_to` | Sana (gacha) | `?created_to=2023-12-31` |
 
-Barcha ro'yxat endpointlari pagination qiladi:
+---
 
-- `page` — Sahifa raqami (default: 1)
-- `page_size` — Sahifadagi elementlar soni (default: 20, max: 100)
+## 📚 Qo'shimcha Resurslar
 
-**Response formati:**
-```json
-{
-  "count": 100,
-  "next": "http://localhost:8000/api/v1/project/?page=2",
-  "previous": null,
-  "results": [...]
-}
-```
-
-## Search & Filtering
-
-### Search
-
-`search` parametri — Barcha `search_fields` maydonlarida qidirish.
-
-**Misol:**
-- `/api/v1/client/?search=ABC` — `client_code_1c`, `name`, `email` da 'ABC' qidiruvchi
-
-### Ordering
-
-`ordering` parametri — Tartiblash.
-
-**Misol:**
-- `/api/v1/project/?ordering=name` — Nom bo'yicha A-Z tartiblash
-- `/api/v1/project/?ordering=-created_at` — Yaratilgan sanasi bo'yicha teskari tartiblash
-
-## Status Management
-
-Barcha modellar `is_active` va `is_deleted` field'lariga ega:
-
-- Soft delete: `PATCH /api/v1/{endpoint}/{id}/` — `{"is_deleted": true}`
-- Active/Inactive: `PATCH /api/v1/{endpoint}/{id}/` — `{"is_active": false}`
-
-## Qo'shimcha Ma'lumotlar
-
-- **Swagger UI**: http://localhost:8000/api/docs/
-- **ReDoc**: http://localhost:8000/api/redoc/
+- **Swagger UI**: Interaktiv test qilish uchun (`/api/docs/`)
+- **Redoc**: O'qish uchun qulay qo'llanma (`/api/redoc/`)
     ''',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
@@ -780,7 +463,7 @@ Barcha modellar `is_active` va `is_deleted` field'lariga ega:
 # JWT Settings
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
