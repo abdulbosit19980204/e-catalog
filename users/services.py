@@ -24,45 +24,68 @@ class OneCAuthService:
     @staticmethod
     def parse_response(response_content):
         """
-        Parses the SOAP response and returns a dictionary of user data.
+        Parses the SOAP response in a namespace-agnostic way.
         """
         try:
-            # Remove namespaces for easier parsing or handle them
-            # This is a naive parser based on the example provided
             root = ET.fromstring(response_content)
             
-            # Namespaces map (based on provided XML)
-            ns = {
-                'soap': 'http://www.w3.org/2003/05/soap-envelope',
-                'm': 'http://www.sample-package.org'
-            }
-            
+            # Helper to check tag name ignoring namespace
+            def is_tag(element, name):
+                return element.tag.endswith(f"}}{name}") or element.tag == name
+
+            # 1. Find Body
+            body = None
+            for child in root:
+                if is_tag(child, 'Body'):
+                    body = child
+                    break
             if body is None:
-                print("DEBUG: soap:Body not found")
+                print("DEBUG: Body not found")
                 return None
             
-            response = body.find('m:GetUserResponse', ns)
-            if response is None:
-                print("DEBUG: m:GetUserResponse not found")
+            # 2. Find GetUserResponse
+            response_xml = None
+            for child in body:
+                if is_tag(child, 'GetUserResponse'):
+                    response_xml = child
+                    break
+            if response_xml is None:
+                print("DEBUG: GetUserResponse not found")
                 return None
             
-            data = response.find('m:return', ns)
-            if data is None:
-                print("DEBUG: m:return not found")
+            # 3. Find return
+            ret_data = None
+            for child in response_xml:
+                if is_tag(child, 'return'):
+                    ret_data = child
+                    break
+            if ret_data is None:
+                print("DEBUG: return element not found")
                 return None
             
+            # 4. Extract data into a dictionary
+            data_map = {}
+            for child in ret_data:
+                # Remove namespace from tag
+                tag_name = child.tag.split('}', 1)[1] if '}' in child.tag else child.tag
+                data_map[tag_name] = child.text
+
             return {
-                'code': data.find('m:Code', ns).text,
-                'name': data.find('m:Name', ns).text,
-                'type': data.find('m:Type', ns).text,
-                'code_project': data.find('m:CodeProject', ns).text,
-                'code_error': data.find('m:CodeError', ns).text,
-                'message': data.find('m:Message', ns).text,
-                'code_sklad': data.find('m:CodeSklad', ns).text,
+                'code': data_map.get('Code'),
+                'name': data_map.get('Name'),
+                'type': data_map.get('Type'),
+                'code_project': data_map.get('CodeProject'),
+                'code_error': data_map.get('CodeError'),
+                'message': data_map.get('Message'),
+                'code_sklad': data_map.get('CodeSklad'),
             }
+
         except Exception as e:
             print(f"XML Parse Error: {e}")
-            print(f"Raw Response Content: {response_content.decode('utf-8', errors='ignore')}")
+            try:
+                print(f"Raw Response Content: {response_content.decode('utf-8', errors='ignore')}")
+            except:
+                pass
             return None
 
     @classmethod
