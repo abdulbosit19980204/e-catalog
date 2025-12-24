@@ -326,7 +326,39 @@ Bu API Project, Nomenklatura va Client ma'lumotlarini boshqarish uchun yaratilga
 1. `POST /api/token/` — `username` va `password` yuboring. Javobda `access` va `refresh` token olasiz.
 2. `Authorization: Bearer <access_token>` header'ini barcha himoyalangan endpointlarda yuboring.
 3. `POST /api/token/refresh/` — `refresh` token yuborib yangi `access` token oling.
+3. `POST /api/token/refresh/` — `refresh` token yuborib yangi `access` token oling.
 4. `POST /api/token/verify/` — mavjud tokenning yaroqliligini tekshiring.
+
+### 1C Authentication (Tavsiya etiladi)
+
+Maxsus endpoint orqali 1C login/parol yordamida autentifikatsiya qilish va avtomatik user yaratish/yangilash:
+
+**POST /api/v1/auth/1c-login/**
+
+Body:
+```json
+{
+    "login": "ТП-3",
+    "password": "your_password",
+    "project_code": "EVYAP"
+}
+```
+
+Response:
+```json
+{
+    "user": {
+        "username": "ТП-3",
+        "full_name": "XOLIQOV MIRKOMIL...",
+        "code_1c": "000000326"
+    },
+    "tokens": {
+        "refresh": "...",
+        "access": "..."
+    },
+    "message": "Авторизация прошла успешно!!!"
+}
+```
 
 > Test uchun: `http POST http://localhost:8000/api/token/ username=admin password=secret`
 
