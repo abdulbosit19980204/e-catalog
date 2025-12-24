@@ -149,3 +149,12 @@ class ClientImage(BaseModel):
             models.Index(fields=['client', 'is_deleted']),
             models.Index(fields=['is_main', 'is_deleted']),
         ]
+
+    def save(self, *args, **kwargs):
+        if self.is_main:
+            # Ushbu client uchun boshqa barcha rasmlarni is_main=False qilish
+            ClientImage.objects.filter(
+                client=self.client, 
+                is_main=True
+            ).exclude(pk=self.pk).update(is_main=False)
+        super().save(*args, **kwargs)

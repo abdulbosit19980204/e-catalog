@@ -152,3 +152,12 @@ class NomenklaturaImage(BaseModel):
             models.Index(fields=['is_main', 'is_deleted']),
         ]
 
+    def save(self, *args, **kwargs):
+        if self.is_main:
+            # Ushbu nomenklatura uchun boshqa barcha rasmlarni is_main=False qilish
+            NomenklaturaImage.objects.filter(
+                nomenklatura=self.nomenklatura, 
+                is_main=True
+            ).exclude(pk=self.pk).update(is_main=False)
+        super().save(*args, **kwargs)
+

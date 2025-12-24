@@ -198,6 +198,15 @@ class ProjectImage(BaseModel):
             models.Index(fields=['is_main', 'is_deleted']),
         ]
 
+    def save(self, *args, **kwargs):
+        if self.is_main:
+            # Ushbu project uchun boshqa barcha rasmlarni is_main=False qilish
+            ProjectImage.objects.filter(
+                project=self.project, 
+                is_main=True
+            ).exclude(pk=self.pk).update(is_main=False)
+        super().save(*args, **kwargs)
+
 
 class AgentLocation(BaseModel):
     """Mobil agentlar tomonidan yuborilgan geolokatsiya yozuvlari"""
