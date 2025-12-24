@@ -117,8 +117,9 @@ class OneCAuthService:
             
             if not data:
                 print(f"DEBUG: Parse failed. Status: {response.status_code}")
-                print(f"DEBUG: Raw Body: {response.text}")
-                return None, "Invalid XML response from 1C"
+                # Return raw content in error message for debugging (truncated)
+                raw_preview = response.text[:1000] if response.text else "Empty response"
+                return None, f"Invalid XML response from 1C. Raw content: {raw_preview}"
                 
             if data.get('code_error') != '1': # Assuming 1 is success based on example "Авторизация прошла успешно!!!"
                 return None, data.get('message', 'Authorization failed')
