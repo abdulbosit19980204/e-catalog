@@ -193,7 +193,11 @@ class ClientViewSet(viewsets.ModelViewSet):
         """Optimizatsiya: prefetch_related bilan images yuklash - N+1 query muammosini hal qiladi"""
         return Client.objects.filter(
             is_deleted=False
-        ).prefetch_related('images').order_by('-created_at')
+        ).prefetch_related(
+            'images',
+            'images__status',
+            'images__source'
+        ).order_by('-created_at')
     
     def get_serializer_context(self):
         context = super().get_serializer_context()

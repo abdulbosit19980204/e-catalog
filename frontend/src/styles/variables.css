@@ -1,0 +1,50 @@
+:root {
+    /* Colors - Modern HSL Palette */
+    --primary-h: 220;
+    --primary-s: 100%;
+    --primary-l: 60%;
+    --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
+    --primary-hover: hsl(var(--primary-h), var(--primary-s), 50%);
+    --primary-light: hsl(var(--primary-h), var(--primary-s), 95%);
+    --primary-glass: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.1);
+
+    --secondary-h: 250;
+    --secondary-s: 80%;
+    --secondary-l: 65%;
+    --secondary: hsl(var(--secondary-h), var(--secondary-s), var(--secondary-l));
+
+    --accent-h: 340;
+    --accent: hsl(var(--accent-h), 90%, 65%);
+
+    --success: hsl(150, 80%, 40%);
+    --warning: hsl(40, 95%, 55%);
+    --danger: hsl(0, 85%, 60%);
+
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-sidebar: #0f172a;
+
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --text-white: #ffffff;
+
+    --border-color: #e2e8f0;
+    --border-radius-sm: 8px;
+    --border-radius-md: 12px;
+    --border-radius-lg: 20px;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.3s ease;
+}
+
+[data-theme='dark'] {
+    --bg-main: #020617;
+    --bg-card: #0f172a;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border-color: #1e293b;
+}

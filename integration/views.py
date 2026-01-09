@@ -441,15 +441,16 @@ def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None)
                         project_name = item_data['project_name']
                         
                         # Project'ni topish yoki cache'dan olish
+                        project_to_add = None
                         if project_name:
                             if project_name not in project_cache:
                                 project_cache[project_name], _ = Project.objects.get_or_create(
                                     name=project_name,
                                     defaults={'code_1c': project_name, 'is_active': True, 'is_deleted': False}
                                 )
-                            project = project_cache[project_name]
+                            project_to_add = project_cache[project_name]
                         else:
-                            project = default_project
+                            project_to_add = default_project
                         
                         if code_1c in existing_dict:
                             # Update
@@ -459,22 +460,26 @@ def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None)
                             existing.description = item_data['description']
                             existing.updated_at = timezone.now()
                             to_update.append(existing)
+                            
+                            # M2M project'ni qo'shish
+                            if project_to_add:
+                                existing.projects.add(project_to_add)
                         else:
                             # Create
-                            to_create.append(Nomenklatura(
+                            new_obj = Nomenklatura(
                                 code_1c=code_1c,
                                 name=item_data['name'],
                                 title=item_data['title'],
                                 description=item_data['description'],
                                 is_active=True,
                                 is_deleted=False
-                            ))
+                            )
+                            new_obj.save() # Bulk create da M2M qo'shib bo'lmaydi, shuning uchun oddiy save ishlatamiz yoki bulk_create dan keyin add qilamiz
+                            if project_to_add:
+                                new_obj.projects.add(project_to_add)
+                            created_count += 1
                     
-                    # Bulk operations
-                    if to_create:
-                        Nomenklatura.objects.bulk_create(to_create, ignore_conflicts=True)
-                        created_count += len(to_create)
-                    
+                    # Bulk update for fields
                     if to_update:
                         Nomenklatura.objects.bulk_update(
                             to_update, 

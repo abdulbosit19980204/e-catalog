@@ -1,96 +1,107 @@
 .admin-layout {
   display: flex;
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: var(--bg-main);
 }
 
 .admin-sidebar {
-  width: 250px;
-  background: white;
-  color: #212529;
+  width: 280px;
+  background: var(--bg-sidebar);
+  color: #94a3b8;
   display: flex;
   flex-direction: column;
-  transition: width 0.3s;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
-  border-right: 1px solid #e0e0e0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  z-index: 100;
 }
 
 .admin-sidebar.closed {
-  width: 70px;
+  width: 88px;
 }
 
 .sidebar-header {
-  padding: 20px;
+  padding: 32px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .sidebar-header h2 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   white-space: nowrap;
   overflow: hidden;
-  color: #007bff;
-  font-weight: 700;
+  color: white;
+  font-weight: 800;
+  letter-spacing: -0.5px;
 }
 
 .sidebar-toggle {
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  color: #212529;
-  padding: 5px 10px;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.2s;
+  font-size: 0.9rem;
+  transition: all var(--transition-fast);
 }
 
 .sidebar-toggle:hover {
-  background: #007bff;
-  color: white;
-  border-color: #007bff;
+  background: var(--primary);
+  border-color: var(--primary);
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 20px 0;
+  padding: 32px 16px;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 12px 20px;
-  color: #212529;
+  gap: 16px;
+  padding: 14px 16px;
+  color: #94a3b8;
   text-decoration: none;
-  transition: all 0.2s;
-  border-left: 3px solid transparent;
+  transition: all var(--transition-fast);
+  border-radius: 12px;
+  font-weight: 500;
+  font-size: 0.95rem;
 }
 
 .nav-item:hover {
-  background: #f8f9fa;
-  color: #007bff;
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
 }
 
 .nav-item.active {
-  background: rgba(0, 123, 255, 0.1);
-  color: #007bff;
-  border-left-color: #007bff;
-  font-weight: 600;
+  background: linear-gradient(90deg, var(--primary) 0%, rgba(59, 130, 246, 0.5) 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
 }
 
 .nav-icon {
-  font-size: 1.2rem;
-  min-width: 20px;
-  text-align: center;
+  font-size: 1.3rem;
+  min-width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sidebar-footer {
-  padding: 20px;
-  border-top: 1px solid #e0e0e0;
+  padding: 24px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .logout-button {
@@ -98,22 +109,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 20px;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  color: #212529;
-  border-radius: 8px;
+  padding: 14px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-radius: 12px;
   cursor: pointer;
   font-size: 0.95rem;
-  font-weight: 500;
-  transition: all 0.2s;
+  font-weight: 600;
+  transition: all var(--transition-fast);
   font-family: inherit;
 }
 
 .logout-button:hover {
-  background: #e9ecef;
-  border-color: #adb5bd;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .admin-main {
@@ -121,30 +133,32 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 
 .admin-header {
-  background: white;
-  padding: 20px 30px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-bottom: 1px solid #dee2e6;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px);
+  padding: 24px 40px;
+  border-bottom: 1px solid var(--border-color);
+  z-index: 50;
 }
 
 .admin-header h1 {
   margin: 0;
-  color: #212529;
-  font-size: 1.75rem;
-  font-weight: 600;
+  color: var(--text-main);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
 }
 
 .admin-content {
   flex: 1;
-  padding: 30px;
+  padding: 40px;
   overflow-y: auto;
-  background-color: #f8f9fa;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .admin-sidebar {
     position: fixed;
     left: 0;

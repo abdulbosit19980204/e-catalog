@@ -68,7 +68,7 @@ const ClientAdmin = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, descriptionStatus, imageStatus, createdFrom, createdTo, updatedFrom, updatedTo]);
+  }, [page, pageSize, search, descriptionStatus, imageStatus, createdFrom, createdTo, updatedFrom, updatedTo, showError]);
 
   useEffect(() => {
     loadClients();
@@ -249,9 +249,9 @@ const ClientAdmin = () => {
   return (
     <div className="admin-crud">
       <div className="crud-header">
-        <h2>Clients Boshqaruvi</h2>
+        <h2>👥 Clients</h2>
         <button onClick={handleCreate} className="btn-primary">
-          + Yangi Client
+          <span>+</span> Yangi Client
         </button>
       </div>
 
@@ -264,11 +264,11 @@ const ClientAdmin = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
           />
-          <button type="submit" className="btn-secondary">
-            Qidirish
+          <button type="submit" className="btn-primary">
+            🔍 Qidirish
           </button>
           <button type="button" className="btn-tertiary" onClick={handleResetFilters}>
-            Tozalash
+            🔄 Tozalash
           </button>
         </div>
         <div className="filter-row">
@@ -342,61 +342,6 @@ const ClientAdmin = () => {
         </div>
       ) : (
         <>
-          {totalPages > 1 && (
-            <div className="pagination">
-              <button
-                onClick={() => handlePageChange(page - 1)}
-                disabled={page === 1}
-                className="page-button"
-              >
-                Oldingi
-              </button>
-              <div className="page-numbers">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (page <= 3) {
-                    pageNum = i + 1;
-                  } else if (page >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = page - 2 + i;
-                  }
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`page-number ${page === pageNum ? "active" : ""}`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                onClick={() => handlePageChange(page + 1)}
-                disabled={page === totalPages}
-                className="page-button"
-              >
-                Keyingi
-              </button>
-              <span className="page-info">
-                Sahifa {page} / {totalPages} (Jami: {totalCount})
-              </span>
-              <select
-                value={pageSize}
-                onChange={handlePageSizeChange}
-                className="page-size-select"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
-          )}
-
           <div className="table-container">
             <table className="data-table">
               <thead>
@@ -424,29 +369,19 @@ const ClientAdmin = () => {
                       <td>{client.email || "-"}</td>
                       <td>{client.phone || "-"}</td>
                       <td>
-                        <div className="status-controls">
-                          <label className="toggle-switch">
-                            <input
-                              type="checkbox"
-                              checked={client.is_active}
-                              onChange={() => handleToggleActive(client)}
-                            />
-                            <span className="toggle-slider"></span>
-                            <span className="toggle-label">
-                              {client.is_active ? "Active" : "Inactive"}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <span 
+                            className={`status-badge ${client.is_active ? 'active' : 'inactive'}`}
+                            onClick={() => handleToggleActive(client)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {client.is_active ? "● Faol" : "○ Faol emas"}
+                          </span>
+                          {client.is_deleted && (
+                            <span className="status-badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                              🗑️ O'chirilgan
                             </span>
-                          </label>
-                          <label className="toggle-switch">
-                            <input
-                              type="checkbox"
-                              checked={client.is_deleted}
-                              onChange={() => handleToggleDeleted(client)}
-                            />
-                            <span className="toggle-slider"></span>
-                            <span className="toggle-label">
-                              {client.is_deleted ? "Deleted" : "Not Deleted"}
-                            </span>
-                          </label>
+                          )}
                         </div>
                       </td>
                       <td>
@@ -463,7 +398,7 @@ const ClientAdmin = () => {
                             className="btn-upload"
                             title="Rasmlar yuklash"
                           >
-                            📷
+                            📸
                           </button>
                           <button
                             onClick={() => handleDelete(client.client_code_1c)}
@@ -480,6 +415,65 @@ const ClientAdmin = () => {
               </tbody>
             </table>
           </div>
+
+          {totalPages > 1 && (
+            <div className="pagination">
+              <div className="pagination-controls">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                  className="page-button"
+                >
+                  Oldingi
+                </button>
+                <div className="page-numbers">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (page <= 3) {
+                      pageNum = i + 1;
+                    } else if (page >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = page - 2 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`page-number ${page === pageNum ? "active" : ""}`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages}
+                  className="page-button"
+                >
+                  Keyingi
+                </button>
+              </div>
+              <div className="pagination-controls">
+                <span className="page-info">
+                  Sahifa {page} / {totalPages} (Jami: {totalCount})
+                </span>
+                <select
+                  value={pageSize}
+                  onChange={handlePageSizeChange}
+                  className="page-size-select"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+          )}
         </>
       )}
 

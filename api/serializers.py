@@ -38,7 +38,11 @@ class APINomenklaturaImageSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = NomenklaturaImage
-        fields = '__all__'
+        fields = [
+            'id', 'nomenklatura', 'image', 'is_main', 'category', 'note',
+            'status', 'source', 'created_at', 'updated_at', 'is_active', 'is_deleted',
+            'image_url', 'image_sm_url', 'image_md_url', 'image_lg_url', 'image_thumbnail_url'
+        ]
     
     def get_image_url(self, obj) -> Optional[str]:
         if obj.image:
@@ -85,7 +89,10 @@ class APINomenklaturaSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Nomenklatura
-        fields = '__all__'
+        fields = [
+            'id', 'code_1c', 'name', 'title', 'description', 'images', 'projects',
+            'is_active', 'is_deleted', 'created_at', 'updated_at'
+        ]
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -99,11 +106,6 @@ class ProjectImageSerializer(serializers.ModelSerializer):
     image_md_url = serializers.SerializerMethodField()
     image_lg_url = serializers.SerializerMethodField()
     image_thumbnail_url = serializers.SerializerMethodField()
-    image_dimensions = serializers.SerializerMethodField()
-    image_sm_dimensions = serializers.SerializerMethodField()
-    image_md_dimensions = serializers.SerializerMethodField()
-    image_lg_dimensions = serializers.SerializerMethodField()
-    image_thumbnail_dimensions = serializers.SerializerMethodField()
     status = ImageStatusSerializer(read_only=True)
     status_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     source = ImageSourceSerializer(read_only=True)
@@ -122,11 +124,6 @@ class ProjectImageSerializer(serializers.ModelSerializer):
             'image_md_url',
             'image_lg_url',
             'image_thumbnail_url',
-            'image_dimensions',
-            'image_sm_dimensions',
-            'image_md_dimensions',
-            'image_lg_dimensions',
-            'image_thumbnail_dimensions',
             'is_main',
             'status',
             'status_id',
@@ -202,113 +199,6 @@ class ProjectImageSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.image_thumbnail.url)
             return obj.image_thumbnail.url
         return None
-    
-    def _get_image_dimensions(self, image_field) -> Optional[Dict[str, any]]:
-        """Rasm o'lchamlarini va hajmini olish"""
-        if not image_field:
-            return None
-        try:
-            if hasattr(image_field, 'file') and image_field.file:
-                with Image.open(image_field.file) as img:
-                    # Fayl hajmini olish
-                    file_size = 0
-                    if hasattr(image_field.file, 'size'):
-                        file_size = image_field.file.size
-                    elif hasattr(image_field, 'size'):
-                        file_size = image_field.size
-                    
-                    # KB yoki MB ga aylantirish
-                    if file_size >= 1024 * 1024:  # MB
-                        size_str = f"{file_size / (1024 * 1024):.2f} MB"
-                    elif file_size >= 1024:  # KB
-                        size_str = f"{file_size / 1024:.2f} KB"
-                    else:  # Bytes
-                        size_str = f"{file_size} B"
-                    
-                    return {
-                        'width': img.width,
-                        'height': img.height,
-                        'format': img.format or 'JPEG',
-                        'size_bytes': file_size,
-                        'size': size_str
-                    }
-        except Exception:
-            pass
-        return None
-    
-    @extend_schema_field(OpenApiTypes.OBJECT)
-    def get_image_dimensions(self, obj) -> Optional[Dict[str, int]]:
-        """Original rasm o'lchamlari"""
-        return self._get_image_dimensions(obj.image)
-    
-    def _get_cached_image_size(self, image_field) -> Optional[str]:
-        """Cache qilingan rasm hajmini olish"""
-        if not image_field:
-            return None
-        try:
-            if hasattr(image_field, 'file') and image_field.file:
-                file_size = image_field.file.size
-                if file_size >= 1024 * 1024:  # MB
-                    return f"{file_size / (1024 * 1024):.2f} MB"
-                elif file_size >= 1024:  # KB
-                    return f"{file_size / 1024:.2f} KB"
-                else:  # Bytes
-                    return f"{file_size} B"
-        except Exception:
-            pass
-        return None
-    
-    @extend_schema_field(OpenApiTypes.OBJECT)
-    def get_image_sm_dimensions(self, obj) -> Optional[Dict[str, any]]:
-        """Kichik rasm o'lchamlari (300x300)"""
-        if obj.image_sm:
-            size_str = self._get_cached_image_size(obj.image_sm)
-            return {
-                'width': 300,
-                'height': 300,
-                'format': 'JPEG',
-                'size': size_str
-            }
-        return None
-    
-    @extend_schema_field(OpenApiTypes.OBJECT)
-    def get_image_md_dimensions(self, obj) -> Optional[Dict[str, any]]:
-        """O'rta rasm o'lchamlari (600x600)"""
-        if obj.image_md:
-            size_str = self._get_cached_image_size(obj.image_md)
-            return {
-                'width': 600,
-                'height': 600,
-                'format': 'JPEG',
-                'size': size_str
-            }
-        return None
-    
-    @extend_schema_field(OpenApiTypes.OBJECT)
-    def get_image_lg_dimensions(self, obj) -> Optional[Dict[str, any]]:
-        """Katta rasm o'lchamlari (1200x1200)"""
-        if obj.image_lg:
-            size_str = self._get_cached_image_size(obj.image_lg)
-            return {
-                'width': 1200,
-                'height': 1200,
-                'format': 'JPEG',
-                'size': size_str
-            }
-        return None
-    
-    @extend_schema_field(OpenApiTypes.OBJECT)
-    def get_image_thumbnail_dimensions(self, obj) -> Optional[Dict[str, any]]:
-        """Thumbnail rasm o'lchamlari (150x150)"""
-        if obj.image_thumbnail:
-            size_str = self._get_cached_image_size(obj.image_thumbnail)
-            return {
-                'width': 150,
-                'height': 150,
-                'format': 'JPEG',
-                'size': size_str
-            }
-        return None
 
 
 class ThumbnailEntrySerializer(serializers.Serializer):
@@ -344,7 +234,10 @@ class ProjectSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Project
-        fields = '__all__'
+        fields = [
+            'id', 'code_1c', 'name', 'title', 'description', 'is_active', 'is_deleted',
+            'created_at', 'updated_at', 'images'
+        ]
         read_only_fields = ['id', 'created_at', 'updated_at']
         extra_kwargs = {
             'code_1c': {'required': False}  # Update qilganda required emas
@@ -360,6 +253,13 @@ class ProjectSerializer(serializers.ModelSerializer):
         """Update qilganda code_1c o'zgartirilmasligi kerak"""
         validated_data.pop('code_1c', None)  # code_1c o'zgartirilmaydi
         return super().update(instance, validated_data)
+
+
+class ProjectDetailSerializer(ProjectSerializer):
+    nomenclatures = APINomenklaturaSerializer(many=True, read_only=True)
+    
+    class Meta(ProjectSerializer.Meta):
+        fields = ProjectSerializer.Meta.fields + ['nomenclatures']
 
 
 class ProjectImageBulkUploadSerializer(serializers.Serializer):

@@ -246,9 +246,9 @@ const ProjectAdmin = () => {
   return (
     <div className="admin-crud">
       <div className="crud-header">
-        <h2>Projects Boshqaruvi</h2>
+        <h2>📁 Projects</h2>
         <button onClick={handleCreate} className="btn-primary">
-          + Yangi Project
+          <span>+</span> Yangi Project
         </button>
       </div>
 
@@ -261,11 +261,11 @@ const ProjectAdmin = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
           />
-          <button type="submit" className="btn-secondary">
-            Qidirish
+          <button type="submit" className="btn-primary">
+            🔍 Qidirish
           </button>
           <button type="button" className="btn-tertiary" onClick={handleResetFilters}>
-            Tozalash
+            🔄 Tozalash
           </button>
         </div>
         <div className="filter-row">
@@ -339,61 +339,6 @@ const ProjectAdmin = () => {
         </div>
       ) : (
         <>
-          {totalPages > 1 && (
-            <div className="pagination">
-              <button
-                onClick={() => handlePageChange(page - 1)}
-                disabled={page === 1}
-                className="page-button"
-              >
-                Oldingi
-              </button>
-              <div className="page-numbers">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (page <= 3) {
-                    pageNum = i + 1;
-                  } else if (page >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = page - 2 + i;
-                  }
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`page-number ${page === pageNum ? "active" : ""}`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                onClick={() => handlePageChange(page + 1)}
-                disabled={page === totalPages}
-                className="page-button"
-              >
-                Keyingi
-              </button>
-              <span className="page-info">
-                Sahifa {page} / {totalPages} (Jami: {totalCount})
-              </span>
-              <select
-                value={pageSize}
-                onChange={handlePageSizeChange}
-                className="page-size-select"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
-          )}
-
           <div className="table-container">
             <table className="data-table">
               <thead>
@@ -419,29 +364,19 @@ const ProjectAdmin = () => {
                       <td>{project.name}</td>
                       <td>{project.title || "-"}</td>
                       <td>
-                        <div className="status-controls">
-                          <label className="toggle-switch">
-                            <input
-                              type="checkbox"
-                              checked={project.is_active}
-                              onChange={() => handleToggleActive(project)}
-                            />
-                            <span className="toggle-slider"></span>
-                            <span className="toggle-label">
-                              {project.is_active ? "Active" : "Inactive"}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <span 
+                            className={`status-badge ${project.is_active ? 'active' : 'inactive'}`}
+                            onClick={() => handleToggleActive(project)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {project.is_active ? "● Faol" : "○ Faol emas"}
+                          </span>
+                          {project.is_deleted && (
+                            <span className="status-badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                              🗑️ O'chirilgan
                             </span>
-                          </label>
-                          <label className="toggle-switch">
-                            <input
-                              type="checkbox"
-                              checked={project.is_deleted}
-                              onChange={() => handleToggleDeleted(project)}
-                            />
-                            <span className="toggle-slider"></span>
-                            <span className="toggle-label">
-                              {project.is_deleted ? "Deleted" : "Not Deleted"}
-                            </span>
-                          </label>
+                          )}
                         </div>
                       </td>
                       <td>
@@ -458,7 +393,7 @@ const ProjectAdmin = () => {
                             className="btn-upload"
                             title="Rasmlar yuklash"
                           >
-                            📷
+                            📸
                           </button>
                           <button
                             onClick={() => handleDelete(project.code_1c)}
@@ -475,6 +410,65 @@ const ProjectAdmin = () => {
               </tbody>
             </table>
           </div>
+
+          {totalPages > 1 && (
+            <div className="pagination">
+              <div className="pagination-controls">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                  className="page-button"
+                >
+                  Oldingi
+                </button>
+                <div className="page-numbers">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (page <= 3) {
+                      pageNum = i + 1;
+                    } else if (page >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = page - 2 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`page-number ${page === pageNum ? "active" : ""}`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages}
+                  className="page-button"
+                >
+                  Keyingi
+                </button>
+              </div>
+              <div className="pagination-controls">
+                <span className="page-info">
+                  Sahifa {page} / {totalPages} (Jami: {totalCount})
+                </span>
+                <select
+                  value={pageSize}
+                  onChange={handlePageSizeChange}
+                  className="page-size-select"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+          )}
         </>
       )}
 

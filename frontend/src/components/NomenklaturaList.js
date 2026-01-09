@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { nomenklaturaAPI } from "../api";
 import "./NomenklaturaList.css";
 
@@ -17,7 +17,7 @@ const NomenklaturaList = () => {
 
   useEffect(() => {
     loadNomenklatura();
-  }, [page, search, createdFrom, createdTo]);
+  }, [page, search, createdFrom, createdTo, loadNomenklatura]);
 
   useEffect(() => {
     if (showDetailModal) {
@@ -31,7 +31,7 @@ const NomenklaturaList = () => {
     };
   }, [showDetailModal]);
 
-  const loadNomenklatura = async () => {
+  const loadNomenklatura = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -52,7 +52,7 @@ const NomenklaturaList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, search, createdFrom, createdTo]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -336,6 +336,19 @@ const NomenklaturaList = () => {
                     {selectedItem.is_active ? "Active" : "Inactive"}
                   </span>
                 </div>
+
+                {selectedItem.projects && selectedItem.projects.length > 0 && (
+                  <div className="info-block">
+                    <h3>Bog'langan loyihalar</h3>
+                    <div className="project-tags">
+                      {selectedItem.projects.map((proj) => (
+                        <span key={proj.id} className="project-tag">
+                          {proj.name} ({proj.code_1c})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {selectedItem.description && (
                   <div className="info-block">

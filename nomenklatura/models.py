@@ -13,6 +13,7 @@ class BaseModel(models.Model):
         abstract = True
 
 class Nomenklatura(BaseModel):
+    projects = models.ManyToManyField('api.Project', related_name='nomenclatures', blank=True)
     code_1c = models.CharField(max_length=255, db_index=True)
     name = models.CharField(max_length=255, db_index=True)
     title = models.CharField(max_length=255, blank=True, null=True)

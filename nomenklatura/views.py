@@ -35,6 +35,8 @@ class NomenklaturaFilterSet(django_filters.FilterSet):
         method="filter_image_status",
         choices=(("with", "Rasm bor"), ("without", "Rasm yo'q")),
     )
+    project = django_filters.CharFilter(field_name='projects__code_1c', label="Project code_1c")
+    project_id = django_filters.NumberFilter(field_name='projects__id', label="Project ID")
     created_from = django_filters.DateFilter(field_name='created_at', lookup_expr='date__gte')
     created_to = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
     updated_from = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__gte')
@@ -42,7 +44,7 @@ class NomenklaturaFilterSet(django_filters.FilterSet):
 
     class Meta:
         model = Nomenklatura
-        fields = ['code_1c', 'name', 'description_status', 'image_status', 'created_from', 'created_to', 'updated_from', 'updated_to']
+        fields = ['code_1c', 'name', 'description_status', 'image_status', 'project', 'project_id', 'created_from', 'created_to', 'updated_from', 'updated_to']
 
     def filter_description(self, queryset, name, value):
         if value == "with":
@@ -140,6 +142,18 @@ class NomenklaturaImageFilterSet(django_filters.FilterSet):
                 description="Yangilangan sanadan boshlab (YYYY-MM-DD)",
             ),
             OpenApiParameter(
+                name='project',
+                required=False,
+                type=OpenApiTypes.STR,
+                description="Project code_1c bo'yicha filter",
+            ),
+            OpenApiParameter(
+                name='project_id',
+                required=False,
+                type=OpenApiTypes.INT,
+                description="Project ID bo'yicha filter",
+            ),
+            OpenApiParameter(
                 name='updated_to',
                 required=False,
                 type=OpenApiTypes.DATE,
@@ -182,10 +196,15 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
     search_fields = ['code_1c', 'name']
     
     def get_queryset(self):
-        """Optimizatsiya: prefetch_related bilan images yuklash - N+1 query muammosini hal qiladi"""
+        """Optimizatsiya: prefetch_related bilan images va projects yuklash - N+1 query muammosini hal qiladi"""
         return Nomenklatura.objects.filter(
             is_deleted=False
-        ).prefetch_related('images').order_by('-created_at')
+        ).prefetch_related(
+            'images',
+            'images__status',
+            'images__source',
+            'projects'
+        ).order_by('-created_at')
     
     def get_serializer_context(self):
         context = super().get_serializer_context()

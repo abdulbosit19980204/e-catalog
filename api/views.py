@@ -34,6 +34,7 @@ from .serializers import (
     ProjectImageBulkUploadSerializer,
     ProjectImageSerializer,
     ProjectSerializer,
+    ProjectDetailSerializer,
     ImageStatusSerializer,
     ImageSourceSerializer,
     ThumbnailEntrySerializer,
@@ -198,6 +199,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
     filterset_class = ProjectFilterSet
     search_fields = ['code_1c', 'name', 'title']
     
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return ProjectDetailSerializer
+        return ProjectSerializer
+    
     def get_queryset(self):
         """Optimizatsiya: prefetch_related bilan images yuklash - N+1 query muammosini hal qiladi"""
         # Cache key based on filters
@@ -206,7 +212,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if cached_qs is None:
             qs = Project.objects.filter(
                 is_deleted=False
-            ).prefetch_related('images').order_by('-created_at')
+            ).prefetch_related(
+                'images',
+                'images__status',
+                'images__source'
+            ).order_by('-created_at')
             cache.set(cache_key, qs, 300)  # Cache for 5 minutes
             return qs
         return cached_qs

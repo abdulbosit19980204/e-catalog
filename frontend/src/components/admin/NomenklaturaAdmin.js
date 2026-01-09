@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import QuillEditor from "./QuillEditor";
-import { nomenklaturaAPI } from "../../api";
+import { nomenklaturaAPI, projectAPI } from "../../api";
 import { useNotification } from "../../contexts/NotificationContext";
 import "./AdminCRUD.css";
 
@@ -32,11 +32,28 @@ const NomenklaturaAdmin = () => {
     title: "",
     description: "",
     is_active: true,
+    project_ids: [],
   });
   const [imageMeta, setImageMeta] = useState({
     category: "",
     note: "",
   });
+
+  const [projectsList, setProjectsList] = useState([]);
+  const [filterProject, setFilterProject] = useState("");
+
+  const loadProjects = useCallback(async () => {
+    try {
+      const resp = await projectAPI.getProjects({ page_size: 1000 });
+      setProjectsList(resp.data.results || resp.data);
+    } catch (err) {
+      console.error("Error loading projects for selection:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
 
   const loadNomenklatura = useCallback(async () => {
     try {
@@ -52,6 +69,7 @@ const NomenklaturaAdmin = () => {
         created_to: createdTo || undefined,
         updated_from: updatedFrom || undefined,
         updated_to: updatedTo || undefined,
+        project_id: filterProject || undefined,
       };
       const response = await nomenklaturaAPI.getNomenklatura(params);
       setNomenklatura(response.data.results || response.data);
@@ -67,7 +85,7 @@ const NomenklaturaAdmin = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, descriptionStatus, imageStatus, createdFrom, createdTo, updatedFrom, updatedTo]);
+  }, [page, pageSize, search, descriptionStatus, imageStatus, createdFrom, createdTo, updatedFrom, updatedTo, filterProject, showError]);
 
   useEffect(() => {
     loadNomenklatura();
@@ -81,6 +99,7 @@ const NomenklaturaAdmin = () => {
       title: "",
       description: "",
       is_active: true,
+      project_ids: [],
     });
     setShowModal(true);
   };
@@ -93,6 +112,7 @@ const NomenklaturaAdmin = () => {
       title: item.title || "",
       description: item.description || "",
       is_active: item.is_active !== undefined ? item.is_active : true,
+      project_ids: item.projects ? item.projects.map((p) => p.id) : [],
     });
     setShowModal(true);
   };
@@ -217,6 +237,7 @@ const NomenklaturaAdmin = () => {
     setCreatedTo("");
     setUpdatedFrom("");
     setUpdatedTo("");
+    setFilterProject("");
     setPage(1);
   };
 
@@ -246,9 +267,9 @@ const NomenklaturaAdmin = () => {
   return (
     <div className="admin-crud">
       <div className="crud-header">
-        <h2>Nomenklatura Boshqaruvi</h2>
+        <h2>📦 Nomenklatura</h2>
         <button onClick={handleCreate} className="btn-primary">
-          + Yangi Nomenklatura
+          <span>+</span> Yangi Nomenklatura
         </button>
       </div>
 
@@ -261,11 +282,11 @@ const NomenklaturaAdmin = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
           />
-          <button type="submit" className="btn-secondary">
-            Qidirish
+          <button type="submit" className="btn-primary">
+            🔍 Qidirish
           </button>
           <button type="button" className="btn-tertiary" onClick={handleResetFilters}>
-            Tozalash
+            🔄 Tozalash
           </button>
         </div>
         <div className="filter-row">
@@ -323,6 +344,20 @@ const NomenklaturaAdmin = () => {
               onChange={(e) => setUpdatedTo(e.target.value)}
             />
           </div>
+          <div className="filter-field">
+            <label>Loyiha bo'yicha</label>
+            <select
+              value={filterProject}
+              onChange={(e) => setFilterProject(e.target.value)}
+            >
+              <option value="">Hammasi</option>
+              {projectsList.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </form>
 
@@ -339,70 +374,15 @@ const NomenklaturaAdmin = () => {
         </div>
       ) : (
         <>
-          {totalPages > 1 && (
-            <div className="pagination">
-              <button
-                onClick={() => handlePageChange(page - 1)}
-                disabled={page === 1}
-                className="page-button"
-              >
-                Oldingi
-              </button>
-              <div className="page-numbers">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (page <= 3) {
-                    pageNum = i + 1;
-                  } else if (page >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = page - 2 + i;
-                  }
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`page-number ${page === pageNum ? "active" : ""}`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                onClick={() => handlePageChange(page + 1)}
-                disabled={page === totalPages}
-                className="page-button"
-              >
-                Keyingi
-              </button>
-              <span className="page-info">
-                Sahifa {page} / {totalPages} (Jami: {totalCount})
-              </span>
-              <select
-                value={pageSize}
-                onChange={handlePageSizeChange}
-                className="page-size-select"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
-          )}
-
           <div className="table-container">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Code 1C</th>
-                  <th>Name</th>
+                  <th style={{ width: '120px' }}>Code 1C</th>
+                  <th>Nomi</th>
                   <th>Title</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th style={{ width: '150px' }}>Status</th>
+                  <th style={{ width: '150px' }}>Amallar</th>
                 </tr>
               </thead>
               <tbody>
@@ -419,29 +399,19 @@ const NomenklaturaAdmin = () => {
                       <td>{item.name}</td>
                       <td>{item.title || "-"}</td>
                       <td>
-                        <div className="status-controls">
-                          <label className="toggle-switch">
-                            <input
-                              type="checkbox"
-                              checked={item.is_active}
-                              onChange={() => handleToggleActive(item)}
-                            />
-                            <span className="toggle-slider"></span>
-                            <span className="toggle-label">
-                              {item.is_active ? "Active" : "Inactive"}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <span 
+                            className={`status-badge ${item.is_active ? 'active' : 'inactive'}`}
+                            onClick={() => handleToggleActive(item)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {item.is_active ? "● Faol" : "○ Faol emas"}
+                          </span>
+                          {item.is_deleted && (
+                            <span className="status-badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                              🗑️ O'chirilgan
                             </span>
-                          </label>
-                          <label className="toggle-switch">
-                            <input
-                              type="checkbox"
-                              checked={item.is_deleted}
-                              onChange={() => handleToggleDeleted(item)}
-                            />
-                            <span className="toggle-slider"></span>
-                            <span className="toggle-label">
-                              {item.is_deleted ? "Deleted" : "Not Deleted"}
-                            </span>
-                          </label>
+                          )}
                         </div>
                       </td>
                       <td>
@@ -458,7 +428,7 @@ const NomenklaturaAdmin = () => {
                             className="btn-upload"
                             title="Rasmlar yuklash"
                           >
-                            📷
+                            📸
                           </button>
                           <button
                             onClick={() => handleDelete(item.code_1c)}
@@ -475,6 +445,65 @@ const NomenklaturaAdmin = () => {
               </tbody>
             </table>
           </div>
+
+          {totalPages > 1 && (
+            <div className="pagination">
+              <div className="pagination-controls">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                  className="page-button"
+                >
+                  Oldingi
+                </button>
+                <div className="page-numbers">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (page <= 3) {
+                      pageNum = i + 1;
+                    } else if (page >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = page - 2 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`page-number ${page === pageNum ? "active" : ""}`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages}
+                  className="page-button"
+                >
+                  Keyingi
+                </button>
+              </div>
+              <div className="pagination-controls">
+                <span className="page-info">
+                  Sahifa {page} / {totalPages} (Jami: {totalCount})
+                </span>
+                <select
+                  value={pageSize}
+                  onChange={handlePageSizeChange}
+                  className="page-size-select"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -538,6 +567,26 @@ const NomenklaturaAdmin = () => {
                   className="quill-editor"
                   style={{ height: '200px' }}
                 />
+              </div>
+              <div className="form-group">
+                <label>Loyihalar</label>
+                <select
+                  multiple
+                  value={formData.project_ids}
+                  onChange={(e) => {
+                    const values = Array.from(e.target.selectedOptions, option => parseInt(option.value));
+                    setFormData({ ...formData, project_ids: values });
+                  }}
+                  className="form-input multi-select"
+                  style={{ height: '100px' }}
+                >
+                  {projectsList.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.code_1c})
+                    </option>
+                  ))}
+                </select>
+                <small className="form-help">Ctrl (yoki Cmd) bosib turing va bir nechta loyihani tanlang</small>
               </div>
               <div className="form-group">
                 <label className="checkbox-label">

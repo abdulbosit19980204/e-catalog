@@ -197,8 +197,16 @@ STATIC_APP_DIR = BASE_DIR / 'static'
 if STATIC_APP_DIR.exists():
     STATICFILES_DIRS.append(STATIC_APP_DIR)
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# In development, use standard storage. In production, use whitenoise compressed storage
+if DEBUG:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Whitenoise settings
 WHITENOISE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+WHITENOISE_AUTOREFRESH = DEBUG
+WHITENOISE_USE_FINDERS = DEBUG
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

@@ -47,6 +47,7 @@ const AdminDashboard = () => {
     <div className="admin-dashboard">
       <div className="stats-grid">
         <div className="stat-card">
+          <div className="stat-icon">📁</div>
           <div className="stat-info">
             <h3>Projects</h3>
             <p className="stat-number">{stats.projects}</p>
@@ -54,6 +55,7 @@ const AdminDashboard = () => {
         </div>
         
         <div className="stat-card">
+          <div className="stat-icon">👥</div>
           <div className="stat-info">
             <h3>Clients</h3>
             <p className="stat-number">{stats.clients}</p>
@@ -61,6 +63,7 @@ const AdminDashboard = () => {
         </div>
         
         <div className="stat-card">
+          <div className="stat-icon">📦</div>
           <div className="stat-info">
             <h3>Nomenklatura</h3>
             <p className="stat-number">{stats.nomenklatura}</p>
@@ -72,16 +75,20 @@ const AdminDashboard = () => {
         <h2>Tezkor Amallar</h2>
         <div className="actions-grid">
           <a href="/admin/projects" className="action-card">
-            <span>Yangi Project</span>
+            <span className="action-label">📁 Projects</span>
+            <span className="action-desc">Loyihalarni boshqarish va tahrirlash</span>
           </a>
           <a href="/admin/clients" className="action-card">
-            <span>Yangi Client</span>
+            <span className="action-label">👥 Clients</span>
+            <span className="action-desc">Mijozlar bazasini ko'rish va yangilash</span>
           </a>
           <a href="/admin/nomenklatura" className="action-card">
-            <span>Yangi Nomenklatura</span>
+            <span className="action-label">📦 Nomenklatura</span>
+            <span className="action-desc">Mahsulotlar katalogini boshqarish</span>
           </a>
           <a href="/admin/integration" className="action-card">
-            <span>Integration</span>
+            <span className="action-label">🔗 Integration</span>
+            <span className="action-desc">1C bilan ma'lumotlarni sinxronlash</span>
           </a>
         </div>
       </div>

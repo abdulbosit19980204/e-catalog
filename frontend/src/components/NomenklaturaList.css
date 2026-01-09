@@ -580,6 +580,23 @@
   }
 }
 
+.project-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.project-tag {
+  background-color: #f0f4ff;
+  color: #3f51b5;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid #d1d9ff;
+}
+
 @media (max-width: 480px) {
   .page-heading h1 {
     font-size: 1.6rem;
