@@ -813,19 +813,22 @@ const ClientAdmin = () => {
                       <td><strong>{client.name}</strong></td>
                       <td>
                         <div className="project-tags">
-                          {client.projects && client.projects.map(p => (
-                            <span key={p.id} className="project-tag" style={{
-                              fontSize: '0.7rem',
-                              padding: '2px 6px',
-                              backgroundColor: '#f1f1f1',
-                              borderRadius: '4px',
-                              marginRight: '4px',
-                              border: '1px solid #ddd'
-                            }}>
-                              {p.name}
+                          {client.project ? (
+                            <span 
+                              className="project-tag" 
+                              style={{
+                                fontSize: '0.8rem',
+                                padding: '3px 8px',
+                                backgroundColor: client.project.is_integration ? '#e3f2fd' : '#f1f1f1',
+                                borderRadius: '4px',
+                                border: '1px solid #ddd'
+                              }}
+                            >
+                              {client.project.name}
                             </span>
-                          ))}
-                          {(!client.projects || client.projects.length === 0) && <span style={{fontSize: '0.7rem', color: '#999'}}>Bog'lanmagan</span>}
+                          ) : (
+                            <span style={{fontSize: '0.75rem', color: '#999'}}>Bog'lanmagan</span>
+                          )}
                         </div>
                       </td>
                       <td>
