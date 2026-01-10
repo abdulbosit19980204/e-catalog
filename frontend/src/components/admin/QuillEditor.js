@@ -30,6 +30,7 @@ const QuillEditor = ({
   const editorRef = useRef(null);
   const modulesRef = useRef(DEFAULT_MODULES);
   const onChangeRef = useRef(onChange);
+  const isInternalChange = useRef(false);
 
   useEffect(() => {
     modulesRef.current = modules || DEFAULT_MODULES;
@@ -45,9 +46,12 @@ const QuillEditor = ({
     }
 
     const hostElement = containerRef.current;
-    hostElement.innerHTML = "";
+    
+    // Clear and create editor container
+    hostElement.innerHTML = "<div></div>";
+    const editArea = hostElement.firstChild;
 
-    const quill = new Quill(hostElement, {
+    const quill = new Quill(editArea, {
       theme: "snow",
       modules: modulesRef.current,
       placeholder,
@@ -58,6 +62,8 @@ const QuillEditor = ({
     }
 
     const handleChange = () => {
+      if (isInternalChange.current) return;
+      
       const html = sanitizeEmpty(quill.root.innerHTML);
       if (onChangeRef.current) {
         onChangeRef.current(html);
@@ -70,9 +76,7 @@ const QuillEditor = ({
     return () => {
       quill.off("text-change", handleChange);
       editorRef.current = null;
-      if (containerRef.current) {
-        containerRef.current.innerHTML = "";
-      }
+      hostElement.innerHTML = "";
     };
   }, [placeholder]);
 
@@ -83,21 +87,33 @@ const QuillEditor = ({
     const current = sanitizeEmpty(quill.root.innerHTML);
     const next = sanitizeEmpty(value);
 
+    // Only update if external value is meaningfully different from editor content
     if (next !== undefined && next !== current) {
+      isInternalChange.current = true;
       const selection = quill.getSelection();
       quill.clipboard.dangerouslyPasteHTML(next || "");
       if (selection) {
         quill.setSelection(selection);
       }
+      isInternalChange.current = false;
     }
   }, [value]);
 
   return (
     <div
       className={`quill-editor-container ${className}`.trim()}
-      style={{ minHeight: 220, ...style }}
+      style={{ 
+        minHeight: 250, 
+        display: 'flex', 
+        flexDirection: 'column',
+        border: '1px solid var(--border-color)',
+        borderRadius: '10px',
+        overflow: 'hidden',
+        background: 'var(--bg-main)',
+        ...style 
+      }}
     >
-      <div ref={containerRef} />
+      <div ref={containerRef} style={{ flex: 1, display: 'flex', flexDirection: 'column' }} />
     </div>
   );
 };

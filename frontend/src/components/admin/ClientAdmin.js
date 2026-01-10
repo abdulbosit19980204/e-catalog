@@ -15,29 +15,57 @@ const ClientAdmin = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const [showModal, setShowModal] = useState(false);
-  const [showImageModal, setShowImageModal] = useState(false);
-  const [selectedClient, setSelectedClient] = useState(null);
-  const [selectedImages, setSelectedImages] = useState([]);
+  const [activeTab, setActiveTab] = useState("asosiy");
   const [uploading, setUploading] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
+  
+  // Filters
   const [descriptionStatus, setDescriptionStatus] = useState("");
   const [imageStatus, setImageStatus] = useState("");
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
   const [updatedFrom, setUpdatedFrom] = useState("");
   const [updatedTo, setUpdatedTo] = useState("");
-  const [formData, setFormData] = useState({
+
+  const initialFormData = {
     client_code_1c: "",
     name: "",
     email: "",
     phone: "",
     description: "",
     is_active: true,
-  });
-  const [imageMeta, setImageMeta] = useState({
-    category: "",
-    note: "",
-  });
+    company_name: "",
+    tax_id: "",
+    registration_number: "",
+    legal_address: "",
+    actual_address: "",
+    fax: "",
+    website: "",
+    industry: "",
+    business_type: "",
+    employee_count: "",
+    annual_revenue: "",
+    established_date: "",
+    payment_terms: "",
+    credit_limit: "",
+    currency: "UZS",
+    city: "",
+    region: "",
+    country: "Uzbekistan",
+    postal_code: "",
+    contact_person: "",
+    contact_position: "",
+    contact_email: "",
+    contact_phone: "",
+    notes: "",
+    rating: "",
+    priority: 0,
+    source: "",
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [imageMeta, setImageMeta] = useState({ category: "", note: "" });
 
   const loadClients = useCallback(async () => {
     try {
@@ -64,7 +92,6 @@ const ClientAdmin = () => {
       const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
       setError(errorMsg);
       showError(errorMsg);
-      console.error("Error loading clients:", err);
     } finally {
       setLoading(false);
     }
@@ -76,113 +103,40 @@ const ClientAdmin = () => {
 
   const handleCreate = () => {
     setEditingClient(null);
-    setFormData({
-      client_code_1c: "",
-      name: "",
-      email: "",
-      phone: "",
-      description: "",
-      is_active: true,
-    });
+    setFormData(initialFormData);
+    setActiveTab("asosiy");
     setShowModal(true);
   };
 
   const handleEdit = (client) => {
     setEditingClient(client);
     setFormData({
-      client_code_1c: client.client_code_1c,
-      name: client.name,
-      email: client.email || "",
-      phone: client.phone || "",
-      description: client.description || "",
-      is_active: client.is_active !== undefined ? client.is_active : true,
+      ...initialFormData,
+      ...client,
+      established_date: client.established_date || "",
     });
+    setActiveTab("asosiy");
     setShowModal(true);
   };
 
   const handleDelete = async (clientCode1c) => {
-    if (!window.confirm("Bu client'ni o'chirishni xohlaysizmi?")) {
-      return;
-    }
-
+    if (!window.confirm("Bu client'ni o'chirishni xohlaysizmi?")) return;
     try {
       await clientAPI.deleteClient(clientCode1c);
       loadClients();
       success("Client muvaffaqiyatli o'chirildi");
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
-      setError(errorMsg);
-      showError(errorMsg);
-      console.error("Error deleting client:", err);
+      showError(err.response?.data?.detail || "O'chirishda xatolik");
     }
   };
 
   const handleToggleActive = async (client) => {
     try {
-      await clientAPI.updateClient(client.client_code_1c, {
-        is_active: !client.is_active,
-      });
+      await clientAPI.updateClient(client.client_code_1c, { is_active: !client.is_active });
       loadClients();
-      success(`Client ${!client.is_active ? 'faollashtirildi' : 'deaktivlashtirildi'}`);
+      success(`Client statusi o'zgartirildi`);
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
-      setError(errorMsg);
-      showError(errorMsg);
-      console.error("Error toggling active status:", err);
-    }
-  };
-
-  const handleToggleDeleted = async (client) => {
-    try {
-      await clientAPI.updateClient(client.client_code_1c, {
-        is_deleted: !client.is_deleted,
-      });
-      loadClients();
-      success(`Client ${!client.is_deleted ? 'o\'chirildi' : 'qayta tiklandi'}`);
-    } catch (err) {
-      const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
-      setError(errorMsg);
-      showError(errorMsg);
-      console.error("Error toggling deleted status:", err);
-    }
-  };
-
-  const handleUploadImages = (client) => {
-    setSelectedClient(client);
-    setSelectedImages([]);
-    setImageMeta({ category: "", note: "" });
-    setError(null);
-    setShowImageModal(true);
-  };
-
-  const handleImageSelect = (e) => {
-    const files = Array.from(e.target.files);
-    setSelectedImages(files);
-  };
-
-  const handleBulkUpload = async () => {
-    if (!selectedClient || selectedImages.length === 0) {
-      setError("Iltimos, kamida bitta rasm tanlang");
-      return;
-    }
-
-    try {
-      setUploading(true);
-      setError(null);
-      await clientAPI.bulkUploadImages(selectedClient.client_code_1c, selectedImages, imageMeta);
-      setShowImageModal(false);
-      setSelectedImages([]);
-      setSelectedClient(null);
-      setImageMeta({ category: "", note: "" });
-      loadClients();
-      success(`${selectedImages.length} ta rasm muvaffaqiyatli yuklandi!`);
-    } catch (err) {
-      const errorMsg = err.response?.data?.error || err.response?.data?.detail || "Rasmlar yuklashda xatolik";
-      setError(errorMsg);
-      showError(errorMsg);
-      console.error("Error uploading images:", err);
-    } finally {
-      setUploading(false);
+      showError("Statusni o'zgartirib bo'lmadi");
     }
   };
 
@@ -199,51 +153,410 @@ const ClientAdmin = () => {
       setShowModal(false);
       loadClients();
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
-      setError(errorMsg);
-      showError(errorMsg);
-      console.error("Error saving client:", err);
+      showError(err.response?.data?.detail || "Saqlashda xatolik yuz berdi");
     }
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setPage(1);
-    loadClients();
+  const handleImageSelect = (e) => {
+    setSelectedImages(Array.from(e.target.files));
   };
 
-  const handleResetFilters = () => {
-    setSearch("");
-    setDescriptionStatus("");
-    setImageStatus("");
-    setCreatedFrom("");
-    setCreatedTo("");
-    setUpdatedFrom("");
-    setUpdatedTo("");
-    setPage(1);
-  };
-
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setPage(newPage);
+  const handleBulkUpload = async () => {
+    if (!editingClient || selectedImages.length === 0) return;
+    try {
+      setUploading(true);
+      await clientAPI.bulkUploadImages(editingClient.client_code_1c, selectedImages, imageMeta);
+      // Reload the client data to refresh images tab
+      const updated = await clientAPI.getClient(editingClient.client_code_1c);
+      setEditingClient(updated.data);
+      setSelectedImages([]);
+      setImageMeta({ category: "", note: "" });
+      success("Rasmlar muvaffaqiyatli yuklandi!");
+    } catch (err) {
+      showError("Rasmlar yuklashda xatolik");
+    } finally {
+      setUploading(false);
     }
   };
 
-  const handlePageSizeChange = (e) => {
-    const newSize = parseInt(e.target.value);
-    setPageSize(newSize);
-    setPage(1);
+  const handleDeleteImage = async (imageId) => {
+    if (!window.confirm("Bu rasmni o'chirishni xohlaysizmi?")) return;
+    try {
+      await clientAPI.deleteClientImage(imageId);
+      const updated = await clientAPI.getClient(editingClient.client_code_1c);
+      setEditingClient(updated.data);
+      success("Rasm o'chirildi");
+    } catch (err) {
+      showError("Rasmni o'chirib bo'lmadi");
+    }
   };
 
-  const quillModules = {
-    toolbar: [
-      [{ header: [1, 2, 3, false] }],
-      ["bold", "italic", "underline", "strike"],
-      [{ list: "ordered" }, { list: "bullet" }],
-      [{ align: [] }],
-      ["link", "image"],
-      ["clean"],
-    ],
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "asosiy":
+        return (
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Client Code 1C *</label>
+              <input
+                type="text"
+                value={formData.client_code_1c}
+                onChange={(e) => setFormData({ ...formData, client_code_1c: e.target.value })}
+                required
+                className="form-input"
+                disabled={!!editingClient}
+              />
+            </div>
+            <div className="form-group">
+              <label>Full Name *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Email</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Phone</label>
+              <input
+                type="text"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group full-width">
+              <label>Description</label>
+              <QuillEditor
+                value={formData.description}
+                onChange={(val) => setFormData({ ...formData, description: val })}
+                className="quill-editor"
+              />
+            </div>
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                />
+                Faol
+              </label>
+            </div>
+          </div>
+        );
+      case "kompaniya":
+        return (
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Kompaniya nomi</label>
+              <input
+                type="text"
+                value={formData.company_name}
+                onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>INN / STIR</label>
+              <input
+                type="text"
+                value={formData.tax_id}
+                onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Ro'yxatdan o'tish raqami</label>
+              <input
+                type="text"
+                value={formData.registration_number}
+                onChange={(e) => setFormData({ ...formData, registration_number: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Tashkil etilgan sana</label>
+              <input
+                type="date"
+                value={formData.established_date}
+                onChange={(e) => setFormData({ ...formData, established_date: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Soha / Industry</label>
+              <input
+                type="text"
+                value={formData.industry}
+                onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Biznes turi</label>
+              <input
+                type="text"
+                value={formData.business_type}
+                onChange={(e) => setFormData({ ...formData, business_type: e.target.value })}
+                className="form-input"
+              />
+            </div>
+          </div>
+        );
+      case "manzillar":
+        return (
+          <div className="form-grid">
+            <div className="form-group full-width">
+              <label>Yuridik manzil</label>
+              <textarea
+                value={formData.legal_address}
+                onChange={(e) => setFormData({ ...formData, legal_address: e.target.value })}
+                className="form-textarea"
+                rows={2}
+              />
+            </div>
+            <div className="form-group full-width">
+              <label>Haqiqiy manzil</label>
+              <textarea
+                value={formData.actual_address}
+                onChange={(e) => setFormData({ ...formData, actual_address: e.target.value })}
+                className="form-textarea"
+                rows={2}
+              />
+            </div>
+            <div className="form-group">
+              <label>Viloyat / Hudud</label>
+              <input
+                type="text"
+                value={formData.region}
+                onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Shahar</label>
+              <input
+                type="text"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Davlat</label>
+              <input
+                type="text"
+                value={formData.country}
+                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Pochta indeksi</label>
+              <input
+                type="text"
+                value={formData.postal_code}
+                onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                className="form-input"
+              />
+            </div>
+          </div>
+        );
+      case "moliya":
+        return (
+          <div className="form-grid">
+            <div className="form-group">
+              <label>To'lov shartlari</label>
+              <input
+                type="text"
+                value={formData.payment_terms}
+                onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Kredit limiti</label>
+              <input
+                type="number"
+                value={formData.credit_limit}
+                onChange={(e) => setFormData({ ...formData, credit_limit: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Valyuta</label>
+              <input
+                type="text"
+                value={formData.currency}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Yillik daromad</label>
+              <input
+                type="number"
+                value={formData.annual_revenue}
+                onChange={(e) => setFormData({ ...formData, annual_revenue: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Xodimlar soni</label>
+              <input
+                type="number"
+                value={formData.employee_count}
+                onChange={(e) => setFormData({ ...formData, employee_count: e.target.value })}
+                className="form-input"
+              />
+            </div>
+          </div>
+        );
+      case "kontakt":
+        return (
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Kontakt shaxs</label>
+              <input
+                type="text"
+                value={formData.contact_person}
+                onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Lavozimi</label>
+              <input
+                type="text"
+                value={formData.contact_position}
+                onChange={(e) => setFormData({ ...formData, contact_position: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Kontakt Email</label>
+              <input
+                type="email"
+                value={formData.contact_email}
+                onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Kontakt Telefon</label>
+              <input
+                type="text"
+                value={formData.contact_phone}
+                onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Veb-sayt</label>
+              <input
+                type="url"
+                value={formData.website}
+                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Faks</label>
+              <input
+                type="text"
+                value={formData.fax}
+                onChange={(e) => setFormData({ ...formData, fax: e.target.value })}
+                className="form-input"
+              />
+            </div>
+          </div>
+        );
+      case "rasmlar":
+        return (
+          <div className="image-management-tab">
+            {!editingClient ? (
+              <p className="form-info">Rasm yuklash uchun avval clientni saqlang.</p>
+            ) : (
+              <>
+                <div className="image-upload-section">
+                  <h4>Yangi rasm yuklash</h4>
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <input type="file" multiple onChange={handleImageSelect} className="form-input" />
+                    </div>
+                    <div className="form-group">
+                      <input 
+                        type="text" 
+                        placeholder="Toifa (vitrina, hisobot...)" 
+                        value={imageMeta.category}
+                        onChange={(e) => setImageMeta({...imageMeta, category: e.target.value})}
+                        className="form-input" 
+                      />
+                    </div>
+                    <div className="form-group full-width">
+                      <textarea 
+                        placeholder="Izoh..." 
+                        value={imageMeta.note}
+                        onChange={(e) => setImageMeta({...imageMeta, note: e.target.value})}
+                        className="form-textarea" 
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={handleBulkUpload} 
+                    className="btn-primary" 
+                    disabled={uploading || selectedImages.length === 0}
+                    style={{ marginTop: '10px' }}
+                  >
+                    {uploading ? "Yuklanmoqda..." : `Yuklash (${selectedImages.length})`}
+                  </button>
+                </div>
+
+                <div className="current-images-section" style={{ marginTop: '30px' }}>
+                  <h4>Hozirgi rasmlar</h4>
+                  {editingClient.images && editingClient.images.length > 0 ? (
+                    <div className="image-management-grid">
+                      {editingClient.images.map(img => (
+                        <div key={img.id} className="image-item">
+                          <img src={img.image_thumbnail_url} alt={img.category} />
+                          {img.is_main && <span className="main-badge">Asosiy</span>}
+                          <div className="image-item-actions">
+                            <button 
+                              type="button" 
+                              onClick={() => handleDeleteImage(img.id)} 
+                              className="btn-mini-delete"
+                              title="O'chirish"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>Rasmlar mavjud emas.</p>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -255,91 +568,24 @@ const ClientAdmin = () => {
         </button>
       </div>
 
-      <form onSubmit={handleSearch} className="search-form">
+      <form onSubmit={(e) => {e.preventDefault(); setPage(1); loadClients();}} className="search-form">
         <div className="search-row">
           <input
             type="text"
-            placeholder="Qidirish..."
+            placeholder="Qidirish (ism, email, phone, code)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
           />
-          <button type="submit" className="btn-primary">
-            🔍 Qidirish
-          </button>
-          <button type="button" className="btn-tertiary" onClick={handleResetFilters}>
-            🔄 Tozalash
-          </button>
-        </div>
-        <div className="filter-row">
-          <div className="filter-field">
-            <label>Description holati</label>
-            <select
-              value={descriptionStatus}
-              onChange={(e) => setDescriptionStatus(e.target.value)}
-            >
-              <option value="">Hammasi</option>
-              <option value="with">Description bor</option>
-              <option value="without">Description yo'q</option>
-            </select>
-          </div>
-          <div className="filter-field">
-            <label>Rasm holati</label>
-            <select
-              value={imageStatus}
-              onChange={(e) => setImageStatus(e.target.value)}
-            >
-              <option value="">Hammasi</option>
-              <option value="with">Rasm bor</option>
-              <option value="without">Rasm yo'q</option>
-            </select>
-          </div>
-          <div className="filter-field">
-            <label>Yaratilgan (dan)</label>
-            <input
-              type="date"
-              value={createdFrom}
-              onChange={(e) => setCreatedFrom(e.target.value)}
-            />
-          </div>
-          <div className="filter-field">
-            <label>Yaratilgan (gacha)</label>
-            <input
-              type="date"
-              value={createdTo}
-              onChange={(e) => setCreatedTo(e.target.value)}
-            />
-          </div>
-          <div className="filter-field">
-            <label>Yangilangan (dan)</label>
-            <input
-              type="date"
-              value={updatedFrom}
-              onChange={(e) => setUpdatedFrom(e.target.value)}
-            />
-          </div>
-          <div className="filter-field">
-            <label>Yangilangan (gacha)</label>
-            <input
-              type="date"
-              value={updatedTo}
-              onChange={(e) => setUpdatedTo(e.target.value)}
-            />
-          </div>
+          <button type="submit" className="btn-primary">🔍 Qidirish</button>
+          <button type="button" className="btn-tertiary" onClick={() => {setSearch(""); setPage(1); loadClients();}}>🔄 Tozalash</button>
         </div>
       </form>
 
-      {error && (
-        <div className="error-message">
-          <p>{error}</p>
-        </div>
-      )}
+      {error && <div className="error-message"><p>{error}</p></div>}
 
       {loading ? (
-        <div className="loading">
-          <div className="spinner"></div>
-          <p>Yuklanmoqda...</p>
-        </div>
+        <div className="loading"><div className="spinner"></div><p>Yuklanmoqda...</p></div>
       ) : (
         <>
           <div className="table-container">
@@ -348,65 +594,38 @@ const ClientAdmin = () => {
                 <tr>
                   <th>Code 1C</th>
                   <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
+                  <th>Email / Phone</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {clients.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="no-data">
-                      Ma'lumot topilmadi
-                    </td>
-                  </tr>
+                  <tr><td colSpan="5" className="no-data">Ma'lumot topilmadi</td></tr>
                 ) : (
                   clients.map((client) => (
                     <tr key={client.id}>
-                      <td>{client.client_code_1c}</td>
-                      <td>{client.name}</td>
-                      <td>{client.email || "-"}</td>
-                      <td>{client.phone || "-"}</td>
+                      <td><span className="code-tag">{client.client_code_1c}</span></td>
+                      <td><strong>{client.name}</strong></td>
                       <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <span 
-                            className={`status-badge ${client.is_active ? 'active' : 'inactive'}`}
-                            onClick={() => handleToggleActive(client)}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            {client.is_active ? "● Faol" : "○ Faol emas"}
-                          </span>
-                          {client.is_deleted && (
-                            <span className="status-badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
-                              🗑️ O'chirilgan
-                            </span>
-                          )}
+                        <div style={{fontSize: '0.8rem'}}>
+                          {client.email && <div>✉️ {client.email}</div>}
+                          {client.phone && <div>📞 {client.phone}</div>}
                         </div>
                       </td>
                       <td>
+                        <span 
+                          className={`status-badge ${client.is_active ? 'active' : 'inactive'}`}
+                          onClick={() => handleToggleActive(client)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {client.is_active ? "● Faol" : "○ Faol emas"}
+                        </span>
+                      </td>
+                      <td>
                         <div className="action-buttons">
-                          <button
-                            onClick={() => handleEdit(client)}
-                            className="btn-edit"
-                            title="Tahrirlash"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={() => handleUploadImages(client)}
-                            className="btn-upload"
-                            title="Rasmlar yuklash"
-                          >
-                            📸
-                          </button>
-                          <button
-                            onClick={() => handleDelete(client.client_code_1c)}
-                            className="btn-delete"
-                            title="O'chirish"
-                          >
-                            🗑️
-                          </button>
+                          <button onClick={() => handleEdit(client)} className="btn-edit" title="Tahrirlash">✏️</button>
+                          <button onClick={() => handleDelete(client.client_code_1c)} className="btn-delete" title="O'chirish">🗑️</button>
                         </div>
                       </td>
                     </tr>
@@ -419,57 +638,23 @@ const ClientAdmin = () => {
           {totalPages > 1 && (
             <div className="pagination">
               <div className="pagination-controls">
-                <button
-                  onClick={() => handlePageChange(page - 1)}
-                  disabled={page === 1}
-                  className="page-button"
-                >
-                  Oldingi
-                </button>
+                <button onClick={() => setPage(page - 1)} disabled={page === 1} className="page-button">Oldingi</button>
                 <div className="page-numbers">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (page <= 3) {
-                      pageNum = i + 1;
-                    } else if (page >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = page - 2 + i;
-                    }
+                    let pageNum = totalPages <= 5 || page <= 3 ? i + 1 : (page >= totalPages - 2 ? totalPages - 4 + i : page - 2 + i);
                     return (
-                      <button
-                        key={pageNum}
-                        onClick={() => handlePageChange(pageNum)}
-                        className={`page-number ${page === pageNum ? "active" : ""}`}
-                      >
+                      <button key={pageNum} onClick={() => setPage(pageNum)} className={`page-number ${page === pageNum ? "active" : ""}`}>
                         {pageNum}
                       </button>
                     );
                   })}
                 </div>
-                <button
-                  onClick={() => handlePageChange(page + 1)}
-                  disabled={page === totalPages}
-                  className="page-button"
-                >
-                  Keyingi
-                </button>
+                <button onClick={() => setPage(page + 1)} disabled={page === totalPages} className="page-button">Keyingi</button>
               </div>
               <div className="pagination-controls">
-                <span className="page-info">
-                  Sahifa {page} / {totalPages} (Jami: {totalCount})
-                </span>
-                <select
-                  value={pageSize}
-                  onChange={handlePageSizeChange}
-                  className="page-size-select"
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
+                <span className="page-info">Jami: {totalCount}</span>
+                <select value={pageSize} onChange={(e) => {setPageSize(parseInt(e.target.value)); setPage(1);}} className="page-size-select">
+                  {[10, 20, 50, 100].map(sz => <option key={sz} value={sz}>{sz}</option>)}
                 </select>
               </div>
             </div>
@@ -479,186 +664,29 @@ const ClientAdmin = () => {
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>{editingClient ? "Client Tahrirlash" : "Yangi Client"}</h3>
-              <button
-                className="modal-close"
-                onClick={() => setShowModal(false)}
-              >
-                ×
-              </button>
+              <h3>{editingClient ? `Client Tahrirlash: ${editingClient.name}` : "Yangi Client"}</h3>
+              <button className="modal-close" onClick={() => setShowModal(false)}>×</button>
             </div>
+            
+            <div className="tabs-navigation">
+              <button onClick={() => setActiveTab("asosiy")} className={`tab-btn ${activeTab === "asosiy" ? "active" : ""}`}>Asosiy</button>
+              <button onClick={() => setActiveTab("kompaniya")} className={`tab-btn ${activeTab === "kompaniya" ? "active" : ""}`}>Kompaniya</button>
+              <button onClick={() => setActiveTab("manzillar")} className={`tab-btn ${activeTab === "manzillar" ? "active" : ""}`}>Manzillar</button>
+              <button onClick={() => setActiveTab("moliya")} className={`tab-btn ${activeTab === "moliya" ? "active" : ""}`}>Moliya</button>
+              <button onClick={() => setActiveTab("kontakt")} className={`tab-btn ${activeTab === "kontakt" ? "active" : ""}`}>Kontakt</button>
+              <button onClick={() => setActiveTab("rasmlar")} className={`tab-btn ${activeTab === "rasmlar" ? "active" : ""}`}>Rasmlar</button>
+            </div>
+
             <form onSubmit={handleSubmit} className="modal-form">
-              <div className="form-group">
-                <label>Client Code 1C *</label>
-                <input
-                  type="text"
-                  value={formData.client_code_1c}
-                  onChange={(e) =>
-                    setFormData({ ...formData, client_code_1c: e.target.value })
-                  }
-                  required
-                  className="form-input"
-                  disabled={!!editingClient}
-                />
-              </div>
-              <div className="form-group">
-                <label>Name *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>Phone</label>
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>Description</label>
-                <QuillEditor
-                  value={formData.description}
-                  onChange={(value) =>
-                    setFormData({ ...formData, description: value })
-                  }
-                  modules={quillModules}
-                  className="quill-editor"
-                  style={{ height: '200px' }}
-                />
-              </div>
-              <div className="form-group">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_active}
-                    onChange={(e) =>
-                      setFormData({ ...formData, is_active: e.target.checked })
-                    }
-                  />
-                  Active
-                </label>
-              </div>
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="btn-secondary"
-                >
-                  Bekor qilish
-                </button>
-                <button type="submit" className="btn-primary">
-                  Saqlash
-                </button>
+              {renderTabContent()}
+              
+              <div className="modal-actions" style={{position: 'sticky', bottom: 0, background: 'var(--bg-card)', zIndex: 10, paddingBottom: 0}}>
+                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">Bekor qilish</button>
+                <button type="submit" className="btn-primary">Saqlash</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {showImageModal && (
-        <div className="modal-overlay" onClick={() => setShowImageModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Rasmlar Yuklash - {selectedClient?.name}</h3>
-              <button
-                className="modal-close"
-                onClick={() => setShowImageModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-form">
-              <div className="form-group">
-                <label>Rasmlarni tanlang (bir nechta tanlash mumkin)</label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  className="form-input"
-                  disabled={uploading}
-                />
-                {selectedImages.length > 0 && (
-                  <p className="image-count">
-                    {selectedImages.length} ta rasm tanlandi
-                  </p>
-                )}
-              </div>
-              <div className="meta-grid">
-                <div className="form-group">
-                  <label>Toifa (ixtiyoriy)</label>
-                  <input
-                    type="text"
-                    value={imageMeta.category}
-                    onChange={(e) =>
-                      setImageMeta((prev) => ({ ...prev, category: e.target.value }))
-                    }
-                    className="form-input"
-                    placeholder="Masalan: vitrina, hisobot"
-                    disabled={uploading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Izoh (ixtiyoriy)</label>
-                  <textarea
-                    value={imageMeta.note}
-                    onChange={(e) =>
-                      setImageMeta((prev) => ({ ...prev, note: e.target.value }))
-                    }
-                    className="form-textarea"
-                    rows={3}
-                    placeholder="Qo'shimcha ma'lumot..."
-                    disabled={uploading}
-                  />
-                </div>
-              </div>
-              {error && (
-                <div className="error-message">
-                  <p>{error}</p>
-                </div>
-              )}
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowImageModal(false)}
-                  className="btn-secondary"
-                  disabled={uploading}
-                >
-                  Bekor qilish
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBulkUpload}
-                  className="btn-primary"
-                  disabled={uploading || selectedImages.length === 0}
-                >
-                  {uploading ? "Yuklanmoqda..." : `Yuklash (${selectedImages.length})`}
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}

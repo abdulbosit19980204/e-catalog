@@ -15,45 +15,76 @@ const NomenklaturaAdmin = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const [showModal, setShowModal] = useState(false);
-  const [showImageModal, setShowImageModal] = useState(false);
-  const [selectedNomenklatura, setSelectedNomenklatura] = useState(null);
-  const [selectedImages, setSelectedImages] = useState([]);
+  const [activeTab, setActiveTab] = useState("asosiy");
   const [uploading, setUploading] = useState(false);
   const [editingNomenklatura, setEditingNomenklatura] = useState(null);
+
+  // Filters
   const [descriptionStatus, setDescriptionStatus] = useState("");
   const [imageStatus, setImageStatus] = useState("");
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
   const [updatedFrom, setUpdatedFrom] = useState("");
   const [updatedTo, setUpdatedTo] = useState("");
-  const [formData, setFormData] = useState({
+  const [filterProject, setFilterProject] = useState("");
+
+  const [projectsList, setProjectsList] = useState([]);
+
+  const initialFormData = {
     code_1c: "",
     name: "",
     title: "",
     description: "",
     is_active: true,
     project_ids: [],
-  });
-  const [imageMeta, setImageMeta] = useState({
+    sku: "",
+    barcode: "",
+    brand: "",
+    manufacturer: "",
+    model: "",
+    series: "",
+    vendor_code: "",
+    base_price: "",
+    sale_price: "",
+    cost_price: "",
+    currency: "UZS",
+    discount_percent: "",
+    tax_rate: "",
+    stock_quantity: "",
+    min_stock: "",
+    max_stock: "",
+    unit_of_measure: "",
+    weight: "",
+    dimensions: "",
+    volume: "",
     category: "",
-    note: "",
-  });
+    subcategory: "",
+    tags: [],
+    color: "",
+    size: "",
+    material: "",
+    warranty_period: "",
+    expiry_date: "",
+    production_date: "",
+    notes: "",
+    rating: "",
+    popularity_score: 0,
+    seo_keywords: "",
+    source: "",
+  };
 
-  const [projectsList, setProjectsList] = useState([]);
-  const [filterProject, setFilterProject] = useState("");
+  const [formData, setFormData] = useState(initialFormData);
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [imageMeta, setImageMeta] = useState({ category: "", note: "" });
 
   const loadProjects = useCallback(async () => {
     try {
       const resp = await projectAPI.getProjects({ page_size: 1000 });
       setProjectsList(resp.data.results || resp.data);
     } catch (err) {
-      console.error("Error loading projects for selection:", err);
+      console.error("Error loading projects:", err);
     }
   }, []);
-
-  useEffect(() => {
-    loadProjects();
-  }, [loadProjects]);
 
   const loadNomenklatura = useCallback(async () => {
     try {
@@ -81,125 +112,54 @@ const NomenklaturaAdmin = () => {
       const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
       setError(errorMsg);
       showError(errorMsg);
-      console.error("Error loading nomenklatura:", err);
     } finally {
       setLoading(false);
     }
   }, [page, pageSize, search, descriptionStatus, imageStatus, createdFrom, createdTo, updatedFrom, updatedTo, filterProject, showError]);
 
   useEffect(() => {
+    loadProjects();
     loadNomenklatura();
-  }, [loadNomenklatura]);
+  }, [loadProjects, loadNomenklatura]);
 
   const handleCreate = () => {
     setEditingNomenklatura(null);
-    setFormData({
-      code_1c: "",
-      name: "",
-      title: "",
-      description: "",
-      is_active: true,
-      project_ids: [],
-    });
+    setFormData(initialFormData);
+    setActiveTab("asosiy");
     setShowModal(true);
   };
 
   const handleEdit = (item) => {
     setEditingNomenklatura(item);
     setFormData({
-      code_1c: item.code_1c,
-      name: item.name,
-      title: item.title || "",
-      description: item.description || "",
-      is_active: item.is_active !== undefined ? item.is_active : true,
-      project_ids: item.projects ? item.projects.map((p) => p.id) : [],
+      ...initialFormData,
+      ...item,
+      project_ids: item.projects ? item.projects.map(p => p.id) : [],
+      expiry_date: item.expiry_date || "",
+      production_date: item.production_date || "",
     });
+    setActiveTab("asosiy");
     setShowModal(true);
   };
 
   const handleDelete = async (code1c) => {
-    if (!window.confirm("Bu nomenklatura'ni o'chirishni xohlaysizmi?")) {
-      return;
-    }
-
+    if (!window.confirm("Bu nomenklatura'ni o'chirishni xohlaysizmi?")) return;
     try {
       await nomenklaturaAPI.deleteNomenklatura(code1c);
       loadNomenklatura();
-      success("Nomenklatura muvaffaqiyatli o'chirildi");
+      success("Nomenklatura o'chirildi");
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
-      setError(errorMsg);
-      showError(errorMsg);
-      console.error("Error deleting nomenklatura:", err);
+      showError("O'chirishda xatolik");
     }
   };
 
   const handleToggleActive = async (item) => {
     try {
-      await nomenklaturaAPI.updateNomenklatura(item.code_1c, {
-        is_active: !item.is_active,
-      });
+      await nomenklaturaAPI.updateNomenklatura(item.code_1c, { is_active: !item.is_active });
       loadNomenklatura();
-      success(`Nomenklatura ${!item.is_active ? 'faollashtirildi' : 'deaktivlashtirildi'}`);
+      success(`Status o'zgartirildi`);
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
-      setError(errorMsg);
-      showError(errorMsg);
-      console.error("Error toggling active status:", err);
-    }
-  };
-
-  const handleToggleDeleted = async (item) => {
-    try {
-      await nomenklaturaAPI.updateNomenklatura(item.code_1c, {
-        is_deleted: !item.is_deleted,
-      });
-      loadNomenklatura();
-      success(`Nomenklatura ${!item.is_deleted ? 'o\'chirildi' : 'qayta tiklandi'}`);
-    } catch (err) {
-      const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
-      setError(errorMsg);
-      showError(errorMsg);
-      console.error("Error toggling deleted status:", err);
-    }
-  };
-
-  const handleUploadImages = (item) => {
-    setSelectedNomenklatura(item);
-    setSelectedImages([]);
-    setImageMeta({ category: "", note: "" });
-    setError(null);
-    setShowImageModal(true);
-  };
-
-  const handleImageSelect = (e) => {
-    const files = Array.from(e.target.files);
-    setSelectedImages(files);
-  };
-
-  const handleBulkUpload = async () => {
-    if (!selectedNomenklatura || selectedImages.length === 0) {
-      setError("Iltimos, kamida bitta rasm tanlang");
-      return;
-    }
-
-    try {
-      setUploading(true);
-      setError(null);
-      await nomenklaturaAPI.bulkUploadImages(selectedNomenklatura.code_1c, selectedImages, imageMeta);
-      setShowImageModal(false);
-      setSelectedImages([]);
-      setSelectedNomenklatura(null);
-      setImageMeta({ category: "", note: "" });
-      loadNomenklatura();
-      success(`${selectedImages.length} ta rasm muvaffaqiyatli yuklandi!`);
-    } catch (err) {
-      const errorMsg = err.response?.data?.error || err.response?.data?.detail || "Rasmlar yuklashda xatolik";
-      setError(errorMsg);
-      showError(errorMsg);
-      console.error("Error uploading images:", err);
-    } finally {
-      setUploading(false);
+      showError("Statusni o'zgartirib bo'lmadi");
     }
   };
 
@@ -208,298 +168,301 @@ const NomenklaturaAdmin = () => {
     try {
       if (editingNomenklatura) {
         await nomenklaturaAPI.updateNomenklatura(editingNomenklatura.code_1c, formData);
-        success("Nomenklatura muvaffaqiyatli yangilandi");
+        success("Muvaffaqiyatli yangilandi");
       } else {
         await nomenklaturaAPI.createNomenklatura(formData);
-        success("Nomenklatura muvaffaqiyatli yaratildi");
+        success("Muvaffaqiyatli yaratildi");
       }
       setShowModal(false);
       loadNomenklatura();
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
-      setError(errorMsg);
-      showError(errorMsg);
-      console.error("Error saving nomenklatura:", err);
+      showError(err.response?.data?.detail || "Saqlashda xatolik");
     }
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setPage(1);
-    loadNomenklatura();
+  const handleImageSelect = (e) => {
+    setSelectedImages(Array.from(e.target.files));
   };
 
-  const handleResetFilters = () => {
-    setSearch("");
-    setDescriptionStatus("");
-    setImageStatus("");
-    setCreatedFrom("");
-    setCreatedTo("");
-    setUpdatedFrom("");
-    setUpdatedTo("");
-    setFilterProject("");
-    setPage(1);
-  };
-
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setPage(newPage);
+  const handleBulkUpload = async () => {
+    if (!editingNomenklatura || selectedImages.length === 0) return;
+    try {
+      setUploading(true);
+      await nomenklaturaAPI.bulkUploadImages(editingNomenklatura.code_1c, selectedImages, imageMeta);
+      const updated = await nomenklaturaAPI.getNomenklaturaItem(editingNomenklatura.code_1c);
+      setEditingNomenklatura(updated.data);
+      setSelectedImages([]);
+      setImageMeta({ category: "", note: "" });
+      success("Rasmlar yuklandi!");
+    } catch (err) {
+      showError("Rasmlar yuklashda xatolik");
+    } finally {
+      setUploading(false);
     }
   };
 
-  const handlePageSizeChange = (e) => {
-    const newSize = parseInt(e.target.value);
-    setPageSize(newSize);
-    setPage(1);
+  const handleDeleteImage = async (imageId) => {
+    if (!window.confirm("Rasmni o'chirish?")) return;
+    try {
+      await nomenklaturaAPI.deleteNomenklaturaImage(imageId);
+      const updated = await nomenklaturaAPI.getNomenklaturaItem(editingNomenklatura.code_1c);
+      setEditingNomenklatura(updated.data);
+      success("Rasm o'chirildi");
+    } catch (err) {
+      showError("Rasmni o'chirib bo'lmadi");
+    }
   };
 
-  const quillModules = {
-    toolbar: [
-      [{ header: [1, 2, 3, false] }],
-      ["bold", "italic", "underline", "strike"],
-      [{ list: "ordered" }, { list: "bullet" }],
-      [{ align: [] }],
-      ["link", "image"],
-      ["clean"],
-    ],
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "asosiy":
+        return (
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Code 1C *</label>
+              <input
+                type="text"
+                value={formData.code_1c}
+                onChange={(e) => setFormData({ ...formData, code_1c: e.target.value })}
+                required
+                className="form-input"
+                disabled={!!editingNomenklatura}
+              />
+            </div>
+            <div className="form-group">
+              <label>Name *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Title</label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Loyihalar</label>
+              <select
+                multiple
+                value={formData.project_ids}
+                onChange={(e) => {
+                  const values = Array.from(e.target.selectedOptions, option => parseInt(option.value));
+                  setFormData({ ...formData, project_ids: values });
+                }}
+                className="form-input multi-select"
+                style={{ height: '80px' }}
+              >
+                {projectsList.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group full-width">
+              <label>Description</label>
+              <QuillEditor
+                value={formData.description}
+                onChange={(val) => setFormData({ ...formData, description: val })}
+                className="quill-editor"
+              />
+            </div>
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                />
+                Faol
+              </label>
+            </div>
+          </div>
+        );
+      case "specs":
+        return (
+          <div className="form-grid">
+            <div className="form-group">
+              <label>SKU</label>
+              <input type="text" value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group">
+              <label>Barcode</label>
+              <input type="text" value={formData.barcode} onChange={(e) => setFormData({ ...formData, barcode: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group">
+              <label>Brand</label>
+              <input type="text" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group">
+              <label>Ishlab chiqaruvchi</label>
+              <input type="text" value={formData.manufacturer} onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group">
+              <label>Model</label>
+              <input type="text" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group">
+              <label>Vendor Code</label>
+              <input type="text" value={formData.vendor_code} onChange={(e) => setFormData({ ...formData, vendor_code: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group">
+              <label>Color</label>
+              <input type="text" value={formData.color} onChange={(e) => setFormData({ ...formData, color: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group">
+              <label>Size</label>
+              <input type="text" value={formData.size} onChange={(e) => setFormData({ ...formData, size: e.target.value })} className="form-input" />
+            </div>
+          </div>
+        );
+      case "pricing":
+        return (
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Base Price</label>
+              <input type="number" value={formData.base_price} onChange={(e) => setFormData({ ...formData, base_price: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group">
+              <label>Sale Price</label>
+              <input type="number" value={formData.sale_price} onChange={(e) => setFormData({ ...formData, sale_price: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group">
+              <label>Stock Qty</label>
+              <input type="number" value={formData.stock_quantity} onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group">
+              <label>Unit</label>
+              <input type="text" value={formData.unit_of_measure} onChange={(e) => setFormData({ ...formData, unit_of_measure: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group">
+              <label>Currency</label>
+              <input type="text" value={formData.currency} onChange={(e) => setFormData({ ...formData, currency: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group">
+              <label>Tax Rate (%)</label>
+              <input type="number" value={formData.tax_rate} onChange={(e) => setFormData({ ...formData, tax_rate: e.target.value })} className="form-input" />
+            </div>
+          </div>
+        );
+      case "cat":
+        return (
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Category</label>
+              <input type="text" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group">
+              <label>Subcategory</label>
+              <input type="text" value={formData.subcategory} onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group full-width">
+              <label>SEO Keywords</label>
+              <textarea value={formData.seo_keywords} onChange={(e) => setFormData({ ...formData, seo_keywords: e.target.value })} className="form-textarea" rows={2} />
+            </div>
+          </div>
+        );
+      case "rasmlar":
+        return (
+          <div className="image-management-tab">
+            {!editingNomenklatura ? (
+              <p>Rasmlar uchun avval saqlang.</p>
+            ) : (
+              <>
+                <div className="image-upload-section">
+                  <div className="form-grid">
+                    <div className="form-group"><input type="file" multiple onChange={handleImageSelect} className="form-input" /></div>
+                    <div className="form-group"><input type="text" placeholder="Category" value={imageMeta.category} onChange={(e) => setImageMeta({...imageMeta, category: e.target.value})} className="form-input" /></div>
+                  </div>
+                  <button type="button" onClick={handleBulkUpload} className="btn-primary" disabled={uploading || selectedImages.length === 0}>
+                    {uploading ? "Yuklanmoqda..." : `Yuklash (${selectedImages.length})`}
+                  </button>
+                </div>
+                <div className="image-management-grid" style={{ marginTop: '20px' }}>
+                  {editingNomenklatura.images && editingNomenklatura.images.map(img => (
+                    <div key={img.id} className="image-item">
+                      <img src={img.image_thumbnail_url} alt="" />
+                      <div className="image-item-actions">
+                        <button type="button" onClick={() => handleDeleteImage(img.id)} className="btn-mini-delete">×</button>
+                      </div>
+                      {img.is_main && <span className="main-badge">Main</span>}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      default: return null;
+    }
   };
 
   return (
     <div className="admin-crud">
       <div className="crud-header">
         <h2>📦 Nomenklatura</h2>
-        <button onClick={handleCreate} className="btn-primary">
-          <span>+</span> Yangi Nomenklatura
-        </button>
+        <button onClick={handleCreate} className="btn-primary">+ Yangi</button>
       </div>
 
-      <form onSubmit={handleSearch} className="search-form">
+      <form onSubmit={(e) => {e.preventDefault(); setPage(1); loadNomenklatura();}} className="search-form">
         <div className="search-row">
-          <input
-            type="text"
-            placeholder="Qidirish..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="search-input"
-          />
-          <button type="submit" className="btn-primary">
-            🔍 Qidirish
-          </button>
-          <button type="button" className="btn-tertiary" onClick={handleResetFilters}>
-            🔄 Tozalash
-          </button>
-        </div>
-        <div className="filter-row">
-          <div className="filter-field">
-            <label>Description holati</label>
-            <select
-              value={descriptionStatus}
-              onChange={(e) => setDescriptionStatus(e.target.value)}
-            >
-              <option value="">Hammasi</option>
-              <option value="with">Description bor</option>
-              <option value="without">Description yo'q</option>
-            </select>
-          </div>
-          <div className="filter-field">
-            <label>Rasm holati</label>
-            <select
-              value={imageStatus}
-              onChange={(e) => setImageStatus(e.target.value)}
-            >
-              <option value="">Hammasi</option>
-              <option value="with">Rasm bor</option>
-              <option value="without">Rasm yo'q</option>
-            </select>
-          </div>
-          <div className="filter-field">
-            <label>Yaratilgan (dan)</label>
-            <input
-              type="date"
-              value={createdFrom}
-              onChange={(e) => setCreatedFrom(e.target.value)}
-            />
-          </div>
-          <div className="filter-field">
-            <label>Yaratilgan (gacha)</label>
-            <input
-              type="date"
-              value={createdTo}
-              onChange={(e) => setCreatedTo(e.target.value)}
-            />
-          </div>
-          <div className="filter-field">
-            <label>Yangilangan (dan)</label>
-            <input
-              type="date"
-              value={updatedFrom}
-              onChange={(e) => setUpdatedFrom(e.target.value)}
-            />
-          </div>
-          <div className="filter-field">
-            <label>Yangilangan (gacha)</label>
-            <input
-              type="date"
-              value={updatedTo}
-              onChange={(e) => setUpdatedTo(e.target.value)}
-            />
-          </div>
-          <div className="filter-field">
-            <label>Loyiha bo'yicha</label>
-            <select
-              value={filterProject}
-              onChange={(e) => setFilterProject(e.target.value)}
-            >
-              <option value="">Hammasi</option>
-              {projectsList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <input type="text" placeholder="Qidirish..." value={search} onChange={(e) => setSearch(e.target.value)} className="search-input" />
+          <button type="submit" className="btn-primary">Qidirish</button>
+          <button type="button" className="btn-tertiary" onClick={() => {setSearch(""); setPage(1); loadNomenklatura();}}>Tozalash</button>
         </div>
       </form>
 
-      {error && (
-        <div className="error-message">
-          <p>{error}</p>
-        </div>
-      )}
-
       {loading ? (
-        <div className="loading">
-          <div className="spinner"></div>
-          <p>Yuklanmoqda...</p>
-        </div>
+        <div className="loading"><div className="spinner"></div></div>
       ) : (
         <>
           <div className="table-container">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th style={{ width: '120px' }}>Code 1C</th>
+                  <th>Code</th>
                   <th>Nomi</th>
-                  <th>Title</th>
-                  <th style={{ width: '150px' }}>Status</th>
-                  <th style={{ width: '150px' }}>Amallar</th>
+                  <th>Status</th>
+                  <th>Amallar</th>
                 </tr>
               </thead>
               <tbody>
-                {nomenklatura.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="no-data">
-                      Ma'lumot topilmadi
+                {nomenklatura.map((item) => (
+                  <tr key={item.id}>
+                    <td><span className="code-tag">{item.code_1c}</span></td>
+                    <td>{item.name}</td>
+                    <td>
+                      <span className={`status-badge ${item.is_active ? 'active' : 'inactive'}`} onClick={() => handleToggleActive(item)} style={{cursor:'pointer'}}>
+                        {item.is_active ? "● Faol" : "○ Faol emas"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button onClick={() => handleEdit(item)} className="btn-edit">✏️</button>
+                        <button onClick={() => handleDelete(item.code_1c)} className="btn-delete">🗑️</button>
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  nomenklatura.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.code_1c}</td>
-                      <td>{item.name}</td>
-                      <td>{item.title || "-"}</td>
-                      <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <span 
-                            className={`status-badge ${item.is_active ? 'active' : 'inactive'}`}
-                            onClick={() => handleToggleActive(item)}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            {item.is_active ? "● Faol" : "○ Faol emas"}
-                          </span>
-                          {item.is_deleted && (
-                            <span className="status-badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
-                              🗑️ O'chirilgan
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button
-                            onClick={() => handleEdit(item)}
-                            className="btn-edit"
-                            title="Tahrirlash"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={() => handleUploadImages(item)}
-                            className="btn-upload"
-                            title="Rasmlar yuklash"
-                          >
-                            📸
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.code_1c)}
-                            className="btn-delete"
-                            title="O'chirish"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
-
           {totalPages > 1 && (
             <div className="pagination">
               <div className="pagination-controls">
-                <button
-                  onClick={() => handlePageChange(page - 1)}
-                  disabled={page === 1}
-                  className="page-button"
-                >
-                  Oldingi
-                </button>
-                <div className="page-numbers">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (page <= 3) {
-                      pageNum = i + 1;
-                    } else if (page >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = page - 2 + i;
-                    }
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => handlePageChange(pageNum)}
-                        className={`page-number ${page === pageNum ? "active" : ""}`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                </div>
-                <button
-                  onClick={() => handlePageChange(page + 1)}
-                  disabled={page === totalPages}
-                  className="page-button"
-                >
-                  Keyingi
-                </button>
+                <button onClick={() => setPage(page-1)} disabled={page===1} className="page-button">Oldingi</button>
+                <button onClick={() => setPage(page+1)} disabled={page===totalPages} className="page-button">Keyingi</button>
               </div>
               <div className="pagination-controls">
-                <span className="page-info">
-                  Sahifa {page} / {totalPages} (Jami: {totalCount})
-                </span>
-                <select
-                  value={pageSize}
-                  onChange={handlePageSizeChange}
-                  className="page-size-select"
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
+                <span className="page-info">Jami: {totalCount}</span>
+                <select value={pageSize} onChange={(e) => {setPageSize(parseInt(e.target.value)); setPage(1);}} className="page-size-select">
+                  {[10, 20, 50, 100].map(sz => <option key={sz} value={sz}>{sz}</option>)}
                 </select>
               </div>
             </div>
@@ -509,195 +472,25 @@ const NomenklaturaAdmin = () => {
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>{editingNomenklatura ? "Nomenklatura Tahrirlash" : "Yangi Nomenklatura"}</h3>
-              <button
-                className="modal-close"
-                onClick={() => setShowModal(false)}
-              >
-                ×
-              </button>
+              <h3>{editingNomenklatura ? `Tahrirlash: ${editingNomenklatura.name}` : "Yangi"}</h3>
+              <button className="modal-close" onClick={() => setShowModal(false)}>×</button>
+            </div>
+            <div className="tabs-navigation">
+              <button onClick={() => setActiveTab("asosiy")} className={`tab-btn ${activeTab === "asosiy" ? "active" : ""}`}>Asosiy</button>
+              <button onClick={() => setActiveTab("specs")} className={`tab-btn ${activeTab === "specs" ? "active" : ""}`}>Xususiyatlar</button>
+              <button onClick={() => setActiveTab("pricing")} className={`tab-btn ${activeTab === "pricing" ? "active" : ""}`}>Narx/Ombor</button>
+              <button onClick={() => setActiveTab("cat")} className={`tab-btn ${activeTab === "cat" ? "active" : ""}`}>Kategoriya</button>
+              <button onClick={() => setActiveTab("rasmlar")} className={`tab-btn ${activeTab === "rasmlar" ? "active" : ""}`}>Rasmlar</button>
             </div>
             <form onSubmit={handleSubmit} className="modal-form">
-              <div className="form-group">
-                <label>Code 1C *</label>
-                <input
-                  type="text"
-                  value={formData.code_1c}
-                  onChange={(e) =>
-                    setFormData({ ...formData, code_1c: e.target.value })
-                  }
-                  required
-                  className="form-input"
-                  disabled={!!editingNomenklatura}
-                />
-              </div>
-              <div className="form-group">
-                <label>Name *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>Title</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>Description</label>
-                <QuillEditor
-                  value={formData.description}
-                  onChange={(value) =>
-                    setFormData({ ...formData, description: value })
-                  }
-                  modules={quillModules}
-                  className="quill-editor"
-                  style={{ height: '200px' }}
-                />
-              </div>
-              <div className="form-group">
-                <label>Loyihalar</label>
-                <select
-                  multiple
-                  value={formData.project_ids}
-                  onChange={(e) => {
-                    const values = Array.from(e.target.selectedOptions, option => parseInt(option.value));
-                    setFormData({ ...formData, project_ids: values });
-                  }}
-                  className="form-input multi-select"
-                  style={{ height: '100px' }}
-                >
-                  {projectsList.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.code_1c})
-                    </option>
-                  ))}
-                </select>
-                <small className="form-help">Ctrl (yoki Cmd) bosib turing va bir nechta loyihani tanlang</small>
-              </div>
-              <div className="form-group">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_active}
-                    onChange={(e) =>
-                      setFormData({ ...formData, is_active: e.target.checked })
-                    }
-                  />
-                  Active
-                </label>
-              </div>
+              {renderTabContent()}
               <div className="modal-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="btn-secondary"
-                >
-                  Bekor qilish
-                </button>
-                <button type="submit" className="btn-primary">
-                  Saqlash
-                </button>
+                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">Bekor</button>
+                <button type="submit" className="btn-primary">Saqlash</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {showImageModal && (
-        <div className="modal-overlay" onClick={() => setShowImageModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Rasmlar Yuklash - {selectedNomenklatura?.name}</h3>
-              <button
-                className="modal-close"
-                onClick={() => setShowImageModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-form">
-              <div className="form-group">
-                <label>Rasmlarni tanlang (bir nechta tanlash mumkin)</label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  className="form-input"
-                  disabled={uploading}
-                />
-                {selectedImages.length > 0 && (
-                  <p className="image-count">
-                    {selectedImages.length} ta rasm tanlandi
-                  </p>
-                )}
-              </div>
-              <div className="meta-grid">
-                <div className="form-group">
-                  <label>Toifa (ixtiyoriy)</label>
-                  <input
-                    type="text"
-                    value={imageMeta.category}
-                    onChange={(e) =>
-                      setImageMeta((prev) => ({ ...prev, category: e.target.value }))
-                    }
-                    className="form-input"
-                    placeholder="Masalan: asosiy, variant"
-                    disabled={uploading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Izoh (ixtiyoriy)</label>
-                  <textarea
-                    value={imageMeta.note}
-                    onChange={(e) =>
-                      setImageMeta((prev) => ({ ...prev, note: e.target.value }))
-                    }
-                    className="form-textarea"
-                    rows={3}
-                    placeholder="Qo'shimcha ma'lumot..."
-                    disabled={uploading}
-                  />
-                </div>
-              </div>
-              {error && (
-                <div className="error-message">
-                  <p>{error}</p>
-                </div>
-              )}
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowImageModal(false)}
-                  className="btn-secondary"
-                  disabled={uploading}
-                >
-                  Bekor qilish
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBulkUpload}
-                  className="btn-primary"
-                  disabled={uploading || selectedImages.length === 0}
-                >
-                  {uploading ? "Yuklanmoqda..." : `Yuklash (${selectedImages.length})`}
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
