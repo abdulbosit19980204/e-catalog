@@ -431,10 +431,12 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
             log_obj.save()
         raise ValueError(error_msg)
     
+    total_raw = len(items)
+    
     try:
         # Barcha itemlarni parse qilish
         parsed_items = []
-        for item in items:
+        for idx, item in enumerate(items, 1):
             try:
                 code_1c = clean_value(getattr(item, 'Code', None))
                 name = clean_value(getattr(item, 'Name', None))
@@ -474,10 +476,24 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
             except Exception as e:
                 logger.error(f"Error parsing nomenklatura item: {e}")
                 error_count += 1
+                item_errors.append({
+                    "code": clean_value(getattr(item, 'Code', 'Noma\'lum')),
+                    "error": f"Parsing xatosi: {str(e)}",
+                    "timestamp": timezone.now().isoformat()
+                })
                 continue
+            
+            # Progress update every 100 items during parsing
+            if idx % 100 == 0 and log_obj:
+                log_obj.processed_items = idx
+                log_obj.error_items = error_count
+                log_obj.save(update_fields=['processed_items', 'error_items'])
+
+        num_parsed = len(parsed_items)
+        num_skipped = total_raw - num_parsed
         
         # Chunk'larga bo'lib ishlash - kichik chunk'lar
-        for i in range(0, len(parsed_items), chunk_size):
+        for i in range(0, num_parsed, chunk_size):
             chunk = parsed_items[i:i + chunk_size]
             
             # Har bir chunk'dan oldin kichik delay - user API'larga imkon berish
@@ -490,7 +506,7 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
                 for db_retry in range(max_db_retries):
                     try:
                         # Har bir item uchun update_or_create
-                        for item_data in chunk:
+                        for j, item_data in enumerate(chunk, 1):
                             try:
                                 # update_or_create - atomic operation
                                 # MUHIM: project ham defaults ichida bo'lishi kerak!
@@ -513,10 +529,10 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
                                     updated_count += 1
                                     
                                 # Micro-delay and log update every 10 itemdan keyin - concurrency va smoothness uchun
-                                processed_so_far = i + (chunk.index(item_data) + 1)
-                                if processed_so_far % 10 == 0:
+                                total_handled = num_skipped + i + j
+                                if total_handled % 10 == 0 and log_obj:
                                     if log_obj:
-                                        log_obj.processed_items = processed_so_far
+                                        log_obj.processed_items = total_handled
                                         log_obj.created_items = created_count
                                         log_obj.updated_items = updated_count
                                         log_obj.error_items = error_count
@@ -546,10 +562,9 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
                         else:
                             raise e
                 
-                # Progress yangilash
+                # Batch log save
                 if log_obj:
-                    processed = min(i + chunk_size, len(parsed_items))
-                    log_obj.processed_items = processed
+                    log_obj.processed_items = min(total_raw, num_skipped + i + len(chunk))
                     log_obj.created_items = created_count
                     log_obj.updated_items = updated_count
                     log_obj.error_items = error_count
@@ -561,7 +576,7 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
                     max_retries = 3
                     for retry in range(max_retries):
                         try:
-                            log_obj.save(update_fields=['processed_items', 'created_items', 'updated_items', 'error_items', 'status'])
+                            log_obj.save(update_fields=['processed_items', 'created_items', 'updated_items', 'error_items', 'status', 'item_errors'])
                             break
                         except Exception as save_error:
                             if retry == max_retries - 1:
@@ -611,10 +626,13 @@ def process_clients_chunk(items, integration, chunk_size=50, log_obj=None):
             log_obj.save()
         raise ValueError(error_msg)
     
+    total_raw = len(items)
+    item_errors = []
+    
     try:
         # Barcha itemlarni parse qilish
         parsed_items = []
-        for item in items:
+        for idx, item in enumerate(items, 1):
             try:
                 parsed_data = parse_client_item(item)
                 
@@ -646,10 +664,23 @@ def process_clients_chunk(items, integration, chunk_size=50, log_obj=None):
             except Exception as e:
                 logger.error(f"Error parsing client item: {e}")
                 error_count += 1
+                item_errors.append({
+                    "code": clean_value(getattr(item, 'Code', 'Noma\'lum')),
+                    "error": f"Parsing xatosi: {str(e)}",
+                    "timestamp": timezone.now().isoformat()
+                })
                 continue
+                
+            if idx % 100 == 0 and log_obj:
+                log_obj.processed_items = idx
+                log_obj.error_items = error_count
+                log_obj.save(update_fields=['processed_items', 'error_items'])
+
+        num_parsed = len(parsed_items)
+        num_skipped = total_raw - num_parsed
         
         # Chunk'larga bo'lib ishlash - kichik chunk'lar
-        for i in range(0, len(parsed_items), chunk_size):
+        for i in range(0, num_parsed, chunk_size):
             chunk = parsed_items[i:i + chunk_size]
             
             # Har bir chunk'dan oldin kichik delay - user API'larga imkon berish
@@ -662,7 +693,7 @@ def process_clients_chunk(items, integration, chunk_size=50, log_obj=None):
                 for db_retry in range(max_db_retries):
                     try:
                         # Har bir item uchun update_or_create
-                        for item_data in chunk:
+                        for j, item_data in enumerate(chunk, 1):
                             try:
                                 client_code_1c = item_data.pop('client_code_1c')
                                 
@@ -681,10 +712,10 @@ def process_clients_chunk(items, integration, chunk_size=50, log_obj=None):
                                     updated_count += 1
                                     
                                 # Micro-delay and log update every 10 itemdan keyin - concurrency va smoothness uchun
-                                processed_so_far = i + (chunk.index(item_data) + 1)
-                                if processed_so_far % 10 == 0:
+                                total_handled = num_skipped + i + j
+                                if total_handled % 10 == 0 and log_obj:
                                     if log_obj:
-                                        log_obj.processed_items = processed_so_far
+                                        log_obj.processed_items = total_handled
                                         log_obj.created_items = created_count
                                         log_obj.updated_items = updated_count
                                         log_obj.error_items = error_count
@@ -716,8 +747,7 @@ def process_clients_chunk(items, integration, chunk_size=50, log_obj=None):
                 
                 # Progress yangilash
                 if log_obj:
-                    processed = min(i + chunk_size, len(parsed_items))
-                    log_obj.processed_items = processed
+                    log_obj.processed_items = min(total_raw, num_skipped + i + len(chunk))
                     log_obj.created_items = created_count
                     log_obj.updated_items = updated_count
                     log_obj.error_items = error_count
@@ -729,7 +759,7 @@ def process_clients_chunk(items, integration, chunk_size=50, log_obj=None):
                     max_retries = 3
                     for retry in range(max_retries):
                         try:
-                            log_obj.save(update_fields=['processed_items', 'created_items', 'updated_items', 'error_items', 'status'])
+                            log_obj.save(update_fields=['processed_items', 'created_items', 'updated_items', 'error_items', 'status', 'item_errors'])
                             break
                         except Exception as save_error:
                             if retry == max_retries - 1:
@@ -1011,11 +1041,12 @@ def get_sync_status(request, task_id):
                 },
                 'sync_type': log_obj.sync_type,
                 'status': log_obj.status,
-                'total': log_obj.total,
-                'processed': log_obj.processed,
-                'created': log_obj.created,
-                'updated': log_obj.updated,
-                'errors': log_obj.errors,
+                'total_items': log_obj.total_items,
+                'processed_items': log_obj.processed_items,
+                'created_items': log_obj.created_items,
+                'updated_items': log_obj.updated_items,
+                'error_items': log_obj.error_items,
+                'item_errors': log_obj.item_errors,
                 'progress_percent': log_obj.progress_percent,
                 'error_message': log_obj.error_details,
                 'started_at': log_obj.start_time,
@@ -1103,11 +1134,10 @@ def list_history(request):
             'created_items': log.created_items,
             'updated_items': log.updated_items,
             'error_items': log.error_items,
+            'item_errors': log.item_errors,
             'error_details': log.error_details,
             'created_at': log.created_at.isoformat() if log.created_at else None,
             'end_time': log.end_time.isoformat() if log.end_time else None,
         })
-    
     return Response({'results': data, 'count': len(data)})
-
 
