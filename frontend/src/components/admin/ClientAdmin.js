@@ -8,7 +8,6 @@ const ClientAdmin = () => {
   const { success, error: showError } = useNotification();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -19,13 +18,11 @@ const ClientAdmin = () => {
   const [uploading, setUploading] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   
-  // Filters
+  const [statusFilter, setStatusFilter] = useState("");
   const [descriptionStatus, setDescriptionStatus] = useState("");
   const [imageStatus, setImageStatus] = useState("");
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
-  const [updatedFrom, setUpdatedFrom] = useState("");
-  const [updatedTo, setUpdatedTo] = useState("");
 
   const initialFormData = {
     client_code_1c: "",
@@ -70,17 +67,15 @@ const ClientAdmin = () => {
   const loadClients = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
       const params = {
         page,
         page_size: pageSize,
         search: search || undefined,
+        is_active: statusFilter || undefined,
         description_status: descriptionStatus || undefined,
         image_status: imageStatus || undefined,
         created_from: createdFrom || undefined,
         created_to: createdTo || undefined,
-        updated_from: updatedFrom || undefined,
-        updated_to: updatedTo || undefined,
       };
       const response = await clientAPI.getClients(params);
       setClients(response.data.results || response.data);
@@ -90,12 +85,11 @@ const ClientAdmin = () => {
       }
     } catch (err) {
       const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
-      setError(errorMsg);
       showError(errorMsg);
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, descriptionStatus, imageStatus, createdFrom, createdTo, updatedFrom, updatedTo, showError]);
+  }, [page, pageSize, search, statusFilter, descriptionStatus, imageStatus, createdFrom, createdTo, showError]);
 
   useEffect(() => {
     loadClients();
@@ -578,11 +572,57 @@ const ClientAdmin = () => {
             className="search-input"
           />
           <button type="submit" className="btn-primary">🔍 Qidirish</button>
-          <button type="button" className="btn-tertiary" onClick={() => {setSearch(""); setPage(1); loadClients();}}>🔄 Tozalash</button>
+          <button type="button" className="btn-tertiary" onClick={() => {
+            setSearch(""); 
+            setStatusFilter("");
+            setDescriptionStatus("");
+            setImageStatus("");
+            setCreatedFrom("");
+            setCreatedTo("");
+            setPage(1); 
+            // We need to trigger loadClients, but since it depends on state, 
+            // resetting state will trigger it via useEffect if we were using that pattern.
+            // But here we might need to manually call it or let the effect handle it.
+            // Since loadClients is in dependency of useEffect, resetting state works.
+          }}>🔄 Tozalash</button>
+        </div>
+        <div className="filter-row">
+          <div className="filter-field">
+            <label>Status</label>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="">Hammasi</option>
+              <option value="true">Faol</option>
+              <option value="false">Faol emas</option>
+            </select>
+          </div>
+          <div className="filter-field">
+            <label>Description holati</label>
+            <select value={descriptionStatus} onChange={(e) => setDescriptionStatus(e.target.value)}>
+              <option value="">Hammasi</option>
+              <option value="with">Description bor</option>
+              <option value="without">Description yo'q</option>
+            </select>
+          </div>
+          <div className="filter-field">
+            <label>Rasm holati</label>
+            <select value={imageStatus} onChange={(e) => setImageStatus(e.target.value)}>
+              <option value="">Hammasi</option>
+              <option value="with">Rasm bor</option>
+              <option value="without">Rasm yo'q</option>
+            </select>
+          </div>
+          <div className="filter-field">
+            <label>Yaratilgan (dan)</label>
+            <input type="date" value={createdFrom} onChange={(e) => setCreatedFrom(e.target.value)} />
+          </div>
+          <div className="filter-field">
+            <label>Yaratilgan (gacha)</label>
+            <input type="date" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} />
+          </div>
         </div>
       </form>
 
-      {error && <div className="error-message"><p>{error}</p></div>}
+
 
       {loading ? (
         <div className="loading"><div className="spinner"></div><p>Yuklanmoqda...</p></div>

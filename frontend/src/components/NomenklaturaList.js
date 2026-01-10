@@ -1,35 +1,18 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState,  useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { nomenklaturaAPI } from "../api";
 import "./NomenklaturaList.css";
 
 const NomenklaturaList = () => {
+  const navigate = useNavigate();
   const [nomenklatura, setNomenklatura] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
-
-  useEffect(() => {
-    loadNomenklatura();
-  }, [page, search, createdFrom, createdTo, loadNomenklatura]);
-
-  useEffect(() => {
-    if (showDetailModal) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [showDetailModal]);
 
   const loadNomenklatura = useCallback(async () => {
     try {
@@ -54,45 +37,19 @@ const NomenklaturaList = () => {
     }
   }, [page, search, createdFrom, createdTo]);
 
+  useEffect(() => {
+    loadNomenklatura();
+  }, [loadNomenklatura]);
+
   const handleSearch = (e) => {
     e.preventDefault();
     setPage(1);
     loadNomenklatura();
   };
 
-  const openDetailModal = (item) => {
-    setSelectedItem(item);
-    setCurrentImageIndex(0);
-    setShowDetailModal(true);
+  const handleCardClick = (code1c) => {
+    navigate(`/nomenklatura/${code1c}`);
   };
-
-  const closeDetailModal = () => {
-    setShowDetailModal(false);
-    setSelectedItem(null);
-    setCurrentImageIndex(0);
-  };
-
-  const handlePrevImage = () => {
-    if (!selectedItem?.images?.length) return;
-    setCurrentImageIndex((prev) =>
-      prev === 0 ? selectedItem.images.length - 1 : prev - 1
-    );
-  };
-
-  const handleNextImage = () => {
-    if (!selectedItem?.images?.length) return;
-    setCurrentImageIndex((prev) =>
-      prev === selectedItem.images.length - 1 ? 0 : prev + 1
-    );
-  };
-
-  const detailImages = useMemo(() => {
-    if (!selectedItem?.images?.length) return [];
-
-    return selectedItem.images.map((image) =>
-      image.image_lg_url || image.image_md_url || image.image_url || image.image
-    );
-  }, [selectedItem]);
 
   const toPlainText = (value) => {
     if (!value) return "";
@@ -112,7 +69,6 @@ const NomenklaturaList = () => {
       primary.image
     );
   };
-
   return (
     <div className="nomenklatura-list-container">
       <div className="nomenklatura-list-header">
@@ -191,7 +147,7 @@ const NomenklaturaList = () => {
                   <article
                     key={item.id}
                     className="nomenklatura-card"
-                    onClick={() => openDetailModal(item)}
+                    onClick={() => handleCardClick(item.code_1c)}
                   >
                     <div className="nomenklatura-media">
                       {previewImage ? (
@@ -252,119 +208,6 @@ const NomenklaturaList = () => {
             </div>
           )}
         </>
-      )}
-
-      {showDetailModal && selectedItem && (
-        <div className="modal-overlay" onClick={closeDetailModal}>
-          <div
-            className="nomenklatura-detail-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <div className="modal-title">
-                <h2>{selectedItem.name}</h2>
-                <p>Code: {selectedItem.code_1c}</p>
-              </div>
-              <button className="modal-close" onClick={closeDetailModal}>
-                ×
-              </button>
-            </div>
-
-            <div className="detail-content">
-              <div className="detail-gallery">
-                <div className="gallery-main">
-                  {detailImages.length ? (
-                    <img
-                      src={detailImages[currentImageIndex]}
-                      alt={`${selectedItem.name} ${currentImageIndex + 1}`}
-                      className="main-image"
-                    />
-                  ) : (
-                    <div className="no-detail-image">Rasm mavjud emas</div>
-                  )}
-                  {detailImages.length > 1 && (
-                    <>
-                      <button
-                        className="gallery-nav prev"
-                        onClick={handlePrevImage}
-                        aria-label="Oldingi rasm"
-                      >
-                        ‹
-                      </button>
-                      <button
-                        className="gallery-nav next"
-                        onClick={handleNextImage}
-                        aria-label="Keyingi rasm"
-                      >
-                        ›
-                      </button>
-                    </>
-                  )}
-                </div>
-                {detailImages.length > 1 && (
-                  <div className="gallery-thumbnails">
-                    {detailImages.map((image, index) => (
-                      <button
-                        key={`${image}-${index}`}
-                        className={`thumbnail-button ${
-                          currentImageIndex === index ? "active" : ""
-                        }`}
-                        onClick={() => setCurrentImageIndex(index)}
-                      >
-                        <img src={image} alt={`${selectedItem.name} thumbnail`} />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="detail-info">
-                {selectedItem.title && (
-                  <div className="info-block">
-                    <h3>Qisqa nomi</h3>
-                    <p>{selectedItem.title}</p>
-                  </div>
-                )}
-
-                <div className="info-block">
-                  <h3>Holati</h3>
-                  <span
-                    className={`status-chip ${
-                      selectedItem.is_active ? "active" : "inactive"
-                    }`}
-                  >
-                    {selectedItem.is_active ? "Active" : "Inactive"}
-                  </span>
-                </div>
-
-                {selectedItem.projects && selectedItem.projects.length > 0 && (
-                  <div className="info-block">
-                    <h3>Bog'langan loyihalar</h3>
-                    <div className="project-tags">
-                      {selectedItem.projects.map((proj) => (
-                        <span key={proj.id} className="project-tag">
-                          {proj.name} ({proj.code_1c})
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {selectedItem.description && (
-                  <div className="info-block">
-                    <h3>Tavsif</h3>
-                    <div
-                      className="description-content"
-                      dangerouslySetInnerHTML={{
-                        __html: selectedItem.description,
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

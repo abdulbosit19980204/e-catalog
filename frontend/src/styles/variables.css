@@ -1,44 +1,48 @@
 :root {
     /* Colors - Modern HSL Palette */
-    --primary-h: 220;
+    --primary-h: 224;
     --primary-s: 100%;
     --primary-l: 60%;
     --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
     --primary-hover: hsl(var(--primary-h), var(--primary-s), 50%);
-    --primary-light: hsl(var(--primary-h), var(--primary-s), 95%);
-    --primary-glass: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.1);
+    --primary-light: hsl(var(--primary-h), var(--primary-s), 96%);
+    --primary-glass: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.08);
 
-    --secondary-h: 250;
-    --secondary-s: 80%;
-    --secondary-l: 65%;
+    --secondary-h: 260;
+    --secondary-s: 70%;
+    --secondary-l: 55%;
     --secondary: hsl(var(--secondary-h), var(--secondary-s), var(--secondary-l));
 
-    --accent-h: 340;
-    --accent: hsl(var(--accent-h), 90%, 65%);
+    --accent-h: 190;
+    --accent: hsl(var(--accent-h), 90%, 50%);
 
-    --success: hsl(150, 80%, 40%);
-    --warning: hsl(40, 95%, 55%);
-    --danger: hsl(0, 85%, 60%);
+    --success: hsl(142, 70%, 45%);
+    --warning: hsl(38, 90%, 55%);
+    --danger: hsl(0, 72%, 51%);
 
-    --bg-main: #f8fafc;
+    --bg-main: #fcfdfe;
     --bg-card: #ffffff;
     --bg-sidebar: #0f172a;
 
-    --text-main: #1e293b;
+    --text-main: #0f172a;
     --text-muted: #64748b;
     --text-white: #ffffff;
 
-    --border-color: #e2e8f0;
+    --border-color: #e5eaf2;
     --border-radius-sm: 8px;
-    --border-radius-md: 12px;
-    --border-radius-lg: 20px;
+    --border-radius-md: 14px;
+    --border-radius-lg: 24px;
 
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02);
+    --shadow-md: 0 12px 24px -6px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+    --shadow-lg: 0 32px 64px -12px rgba(0, 0, 0, 0.14);
 
-    --transition-fast: 0.15s ease;
-    --transition-normal: 0.3s ease;
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.4);
+
+    --transition-fast: 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-theme='dark'] {

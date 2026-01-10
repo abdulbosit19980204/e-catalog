@@ -8,7 +8,6 @@ const NomenklaturaAdmin = () => {
   const { success, error: showError } = useNotification();
   const [nomenklatura, setNomenklatura] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -20,13 +19,11 @@ const NomenklaturaAdmin = () => {
   const [editingNomenklatura, setEditingNomenklatura] = useState(null);
 
   // Filters
-  const [descriptionStatus, setDescriptionStatus] = useState("");
-  const [imageStatus, setImageStatus] = useState("");
+  const [filterProject, setFilterProject] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
-  const [updatedFrom, setUpdatedFrom] = useState("");
-  const [updatedTo, setUpdatedTo] = useState("");
-  const [filterProject, setFilterProject] = useState("");
 
   const [projectsList, setProjectsList] = useState([]);
 
@@ -89,18 +86,15 @@ const NomenklaturaAdmin = () => {
   const loadNomenklatura = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
       const params = {
         page,
         page_size: pageSize,
         search: search || undefined,
-        description_status: descriptionStatus || undefined,
-        image_status: imageStatus || undefined,
+        project_id: filterProject || undefined,
+        is_active: statusFilter || undefined,
+        category: filterCategory || undefined,
         created_from: createdFrom || undefined,
         created_to: createdTo || undefined,
-        updated_from: updatedFrom || undefined,
-        updated_to: updatedTo || undefined,
-        project_id: filterProject || undefined,
       };
       const response = await nomenklaturaAPI.getNomenklatura(params);
       setNomenklatura(response.data.results || response.data);
@@ -110,12 +104,10 @@ const NomenklaturaAdmin = () => {
       }
     } catch (err) {
       const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
-      setError(errorMsg);
       showError(errorMsg);
-    } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, descriptionStatus, imageStatus, createdFrom, createdTo, updatedFrom, updatedTo, filterProject, showError]);
+  }, [page, pageSize, search, filterProject, statusFilter, filterCategory, createdFrom, createdTo, showError]);
 
   useEffect(() => {
     loadProjects();
@@ -412,9 +404,49 @@ const NomenklaturaAdmin = () => {
 
       <form onSubmit={(e) => {e.preventDefault(); setPage(1); loadNomenklatura();}} className="search-form">
         <div className="search-row">
-          <input type="text" placeholder="Qidirish..." value={search} onChange={(e) => setSearch(e.target.value)} className="search-input" />
+          <input type="text" placeholder="Qidirish (nomi, code, sku)..." value={search} onChange={(e) => setSearch(e.target.value)} className="search-input" />
           <button type="submit" className="btn-primary">Qidirish</button>
-          <button type="button" className="btn-tertiary" onClick={() => {setSearch(""); setPage(1); loadNomenklatura();}}>Tozalash</button>
+          <button type="button" className="btn-tertiary" onClick={() => {
+            setSearch(""); 
+            setFilterProject("");
+            setStatusFilter("");
+            setFilterCategory("");
+            setCreatedFrom("");
+            setCreatedTo("");
+            setPage(1); 
+            loadNomenklatura();
+          }}>Tozalash</button>
+        </div>
+        <div className="filter-row">
+          <div className="filter-field">
+            <label>Loyiha</label>
+            <select value={filterProject} onChange={(e) => setFilterProject(e.target.value)}>
+              <option value="">Hammasi</option>
+              {projectsList.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-field">
+            <label>Status</label>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="">Hammasi</option>
+              <option value="true">Faol</option>
+              <option value="false">Faol emas</option>
+            </select>
+          </div>
+          <div className="filter-field">
+            <label>Kategoriya</label>
+            <input type="text" placeholder="Category..." value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} />
+          </div>
+          <div className="filter-field">
+            <label>Yaratilgan (dan)</label>
+            <input type="date" value={createdFrom} onChange={(e) => setCreatedFrom(e.target.value)} />
+          </div>
+          <div className="filter-field">
+            <label>Yaratilgan (gacha)</label>
+            <input type="date" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} />
+          </div>
         </div>
       </form>
 

@@ -1,66 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .App {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #ffffff;
-}
-
-.App-header {
-  background: #007bff;
-  color: white;
-  padding: 25px 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.header-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  text-align: center;
-}
-
-.header-content h1 {
-  margin: 0 0 8px 0;
-  font-size: 2rem;
-  font-weight: 600;
-}
-
-.header-content p {
-  margin: 0;
-  font-size: 1rem;
-  opacity: 0.9;
 }
 
 .App-main {
   flex: 1;
-  padding: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.App-footer {
-  background-color: #007bff;
-  color: white;
-  text-align: center;
-  padding: 20px;
-  margin-top: auto;
+/* Global Transitions */
+a,
+button,
+input,
+select,
+textarea {
+  transition: all var(--transition-fast);
 }
 
-.App-footer p {
-  margin: 0;
-  font-size: 0.875rem;
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 5px;
+  border: 2px solid var(--bg-main);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 @media (max-width: 768px) {
-  .header-content h1 {
-    font-size: 1.75rem;
-  }
-
-  .header-content p {
-    font-size: 0.9rem;
-  }
-
   .App-main {
     padding: 0;
   }

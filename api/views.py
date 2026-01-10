@@ -61,7 +61,7 @@ class ProjectFilterSet(django_filters.FilterSet):
 
     class Meta:
         model = Project
-        fields = ['code_1c', 'name', 'description_status', 'image_status', 'created_from', 'created_to', 'updated_from', 'updated_to']
+        fields = ['code_1c', 'name', 'description_status', 'image_status', 'created_from', 'created_to', 'updated_from', 'updated_to', 'is_active']
 
     def filter_description(self, queryset, name, value):
         if value == "with":

@@ -26,6 +26,7 @@ const ProjectAdmin = () => {
   const [createdTo, setCreatedTo] = useState("");
   const [updatedFrom, setUpdatedFrom] = useState("");
   const [updatedTo, setUpdatedTo] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [formData, setFormData] = useState({
     code_1c: "",
     name: "",
@@ -48,6 +49,7 @@ const ProjectAdmin = () => {
         search: search || undefined,
         description_status: descriptionStatus || undefined,
         image_status: imageStatus || undefined,
+        is_active: statusFilter || undefined,
         created_from: createdFrom || undefined,
         created_to: createdTo || undefined,
         updated_from: updatedFrom || undefined,
@@ -67,7 +69,7 @@ const ProjectAdmin = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, descriptionStatus, imageStatus, createdFrom, createdTo, updatedFrom, updatedTo]);
+  }, [page, pageSize, search, descriptionStatus, imageStatus, statusFilter, createdFrom, createdTo, updatedFrom, updatedTo, showError]);
 
   useEffect(() => {
     loadProjects();
@@ -129,20 +131,6 @@ const ProjectAdmin = () => {
     }
   };
 
-  const handleToggleDeleted = async (project) => {
-    try {
-      await projectAPI.updateProject(project.code_1c, {
-        is_deleted: !project.is_deleted,
-      });
-      loadProjects();
-      success(`Project ${!project.is_deleted ? 'o\'chirildi' : 'qayta tiklandi'}`);
-    } catch (err) {
-      const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
-      setError(errorMsg);
-      showError(errorMsg);
-      console.error("Error toggling deleted status:", err);
-    }
-  };
 
   const handleUploadImages = (project) => {
     setSelectedProject(project);
@@ -213,6 +201,7 @@ const ProjectAdmin = () => {
     setSearch("");
     setDescriptionStatus("");
     setImageStatus("");
+    setStatusFilter("");
     setCreatedFrom("");
     setCreatedTo("");
     setUpdatedFrom("");
@@ -289,6 +278,17 @@ const ProjectAdmin = () => {
               <option value="">Hammasi</option>
               <option value="with">Rasm bor</option>
               <option value="without">Rasm yo'q</option>
+            </select>
+          </div>
+          <div className="filter-field">
+            <label>Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">Hammasi</option>
+              <option value="true">Faol</option>
+              <option value="false">Faol emas</option>
             </select>
           </div>
           <div className="filter-field">

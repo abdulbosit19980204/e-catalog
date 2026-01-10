@@ -8,6 +8,8 @@ import Home from "./components/Home";
 import ClientList from "./components/ClientList";
 import NomenklaturaList from "./components/NomenklaturaList";
 import Login from "./components/Login";
+import ClientDetail from "./components/ClientDetail";
+import NomenklaturaDetail from "./components/NomenklaturaDetail";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./components/AdminLayout";
 import AdminDashboard from "./components/AdminDashboard";
@@ -48,6 +50,10 @@ function App() {
               </main>
             </>
           } />
+          
+          {/* Detail Pages */}
+          <Route path="/clients/:id" element={<ClientDetail />} />
+          <Route path="/nomenklatura/:id" element={<NomenklaturaDetail />} />
           
           {/* Login */}
           <Route path="/login" element={<Login />} />

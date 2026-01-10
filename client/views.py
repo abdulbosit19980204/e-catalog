@@ -48,6 +48,7 @@ class ClientFilterSet(django_filters.FilterSet):
             'created_to',
             'updated_from',
             'updated_to',
+            'is_active',
         ]
 
     def filter_description(self, queryset, name, value):

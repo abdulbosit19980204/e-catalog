@@ -46,7 +46,7 @@ class NomenklaturaFilterSet(django_filters.FilterSet):
 
     class Meta:
         model = Nomenklatura
-        fields = ['code_1c', 'name', 'description_status', 'image_status', 'project', 'project_id', 'created_from', 'created_to', 'updated_from', 'updated_to']
+        fields = ['code_1c', 'name', 'description_status', 'image_status', 'project', 'project_id', 'created_from', 'created_to', 'updated_from', 'updated_to', 'is_active', 'category']
 
     def filter_description(self, queryset, name, value):
         if value == "with":

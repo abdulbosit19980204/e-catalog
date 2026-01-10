@@ -98,18 +98,6 @@ const Home = () => {
     [stats]
   );
 
-  const heroCategories = useMemo(
-    () => [
-      "Onalar va bolalar",
-      "Arzon narx kafolati",
-      "Sevimli brendlar",
-      "Foyda mavsumi",
-      "Elektronika",
-      "Maishiy texnika",
-    ],
-    []
-  );
-
   const formatNumber = (value) => {
     if (!value) return "0";
     if (value < 1000) return value.toString();
@@ -138,12 +126,6 @@ const Home = () => {
 
   const heroImage = heroProduct ? getPreviewImage(heroProduct) : null;
 
-  const heroHighlights = useMemo(() => {
-    return featured.products
-      .filter((item) => getPreviewImage(item))
-      .slice(0, 3);
-  }, [featured.products]);
-
   return (
     <div className="home">
       <section className="hero">
@@ -151,7 +133,7 @@ const Home = () => {
           <div className="hero-copy">
             <div className="hero-badge">E-Catalog Market</div>
             <h1>
-              <span>Zamonaviy katalog</span> — biznesingiz uchun yagona marketplace
+              <span>Zamonaviy katalog</span> — premium marketplace
             </h1>
             <p>
               Mahsulotlar, mijozlar va loyihalarni bir joyda boshqaring. Real vaqt rejimidagi
@@ -161,8 +143,8 @@ const Home = () => {
               <Link to="/nomenklatura" className="btn primary">
                 Katalogni ko‘rish
               </Link>
-              <Link to="/projects" className="btn ghost">
-                Loyiha vitrinasi
+              <Link to="/clients" className="btn ghost">
+                Mijozlar bazasi
               </Link>
             </div>
             <div className="hero-stats">
@@ -174,229 +156,110 @@ const Home = () => {
                 </Link>
               ))}
             </div>
-            {heroHighlights.length > 0 && (
-              <div className="hero-highlights">
-                {heroHighlights.map((item) => (
-                  <article key={item.id} className="highlight-card">
-                    <div className="highlight-thumb">
-                      {getPreviewImage(item) ? (
-                        <img src={getPreviewImage(item)} alt={item.name} />
-                      ) : (
-                        <span className="placeholder">Rasm yo‘q</span>
-                      )}
-                    </div>
-                    <div className="highlight-info">
-                      <h4>{item.name}</h4>
-                      {item.title && <p>{item.title}</p>}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
           </div>
 
           <div className="hero-media">
             {heroImage ? (
               <img src={heroImage} alt={heroProduct?.name || "Main product"} />
             ) : (
-              <div className="hero-placeholder">Katalog tasviri</div>
+              <div className="hero-placeholder-alt">Katalog tasviri</div>
             )}
-            <div className="hero-media-caption">
-              <span>Tanlangan mahsulot</span>
-              <strong>{heroProduct?.name || "Mahsulotlar"}</strong>
-            </div>
           </div>
-        </div>
-        <div className="hero-categories">
-          {heroCategories.map((category) => (
-            <button key={category} type="button" className="category-chip">
-              {category}
-            </button>
-          ))}
         </div>
       </section>
 
       <section className="section projects">
         <div className="section-header">
           <div>
-            <h2>Eng so‘nggi loyihalar</h2>
-            <p>Hamkorligimiz davomida qo‘shilgan loyihalar</p>
+            <h2>Loyihalar vitrinasi</h2>
+            <p>Eng so‘nggi va dolzarb loyihalarimiz</p>
           </div>
-          <Link to="/projects" className="link-button">
-            Barchasini ko‘rish
+          <Link to="/admin/projects" className="link-button">
+            Hammasi
           </Link>
         </div>
 
         <div className="project-feed">
-          {loading && (
-            <>
-              <div className="skeleton-card compact" />
-              <div className="skeleton-card compact" />
-              <div className="skeleton-card compact" />
-            </>
-          )}
-          {error && !loading && <div className="error-inline">{error}</div>}
-          {!loading && !error && featured.projects.length === 0 && (
-            <div className="empty-state">Loyihalar mavjud emas</div>
-          )}
-          {!loading && !error &&
-            featured.projects.map((project) => {
-              const previewText = toPlainText(project.description);
-              const truncatedText =
-                previewText.length > 140
-                  ? `${previewText.slice(0, 140).trim()}...`
-                  : previewText;
+          {featured.projects.map((project) => {
+            const previewText = toPlainText(project.description);
+            const truncatedText =
+              previewText.length > 120
+                ? `${previewText.slice(0, 120).trim()}...`
+                : previewText;
 
-              return (
-                <article key={project.id} className="project-feed-item">
-                  <div className="project-thumb">
-                    {getPreviewImage(project) ? (
-                      <img src={getPreviewImage(project)} alt={project.name} />
-                    ) : (
-                      <div className="placeholder">Rasm yo‘q</div>
-                    )}
-                  </div>
-                  <div className="project-content">
-                    <div className="project-chip-row">
-                      {project.title && <span className="chip accent">{project.title}</span>}
-                      <span className="chip subtle">#{project.code_1c || "project"}</span>
-                    </div>
-                    <h3>{project.name}</h3>
-                    {truncatedText && <p>{truncatedText}</p>}
-                    <div className="project-actions">
-                      <span className="project-updated">
-                        {project.updated_at
-                          ? new Date(project.updated_at).toLocaleDateString("uz-UZ")
-                          : "Yangilanish sanasi mavjud emas"}
-                      </span>
-                      <Link to="/projects" className="pill-link">
-                        Batafsil loyiha
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+            return (
+              <article key={project.id} className="project-feed-item">
+                <div className="project-thumb">
+                  {getPreviewImage(project) ? (
+                    <img src={getPreviewImage(project)} alt={project.name} />
+                  ) : (
+                    <div className="placeholder">Rasm yo‘q</div>
+                  )}
+                </div>
+                <div className="project-content">
+                  <h3>{project.name}</h3>
+                  <p>{truncatedText || "Loyiha tavsifi mavjud emas"}</p>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
       <section className="section clients">
         <div className="section-header">
           <div>
-            <h2>Mijozlarimiz</h2>
-            <p>Raqamli katalogdan foydalanuvchi asosiy hamkorlar</p>
+            <h2>Mijozlar bazasi</h2>
+            <p>Bizning ishonchli hamkorlarimiz</p>
           </div>
-          <Link to="/clients" className="link-button">
-            Barcha mijozlar
-          </Link>
         </div>
         <div className="client-grid">
-          {loading && (
-            <>
-              <div className="client-card skeleton" />
-              <div className="client-card skeleton" />
-              <div className="client-card skeleton" />
-            </>
-          )}
-          {!loading && !error && featured.clients.length === 0 && (
-            <div className="empty-state">Mijozlar ma'lumoti mavjud emas</div>
-          )}
-          {!loading &&
-            !error &&
-            featured.clients.map((client) => (
-              <div key={client.id} className="client-card">
-                <div className="client-avatar">
-                  {getPreviewImage(client) ? (
-                    <img src={getPreviewImage(client)} alt={client.name} />
-                  ) : (
-                    <span>{client.name?.charAt(0)}</span>
-                  )}
-                </div>
-                <div className="client-info">
-                  <h3>{client.name}</h3>
-                  {client.city && <p>{client.city}</p>}
-                </div>
-                <Link to="/clients" className="client-link">
-                  Batafsil
-                </Link>
+          {featured.clients.map((client) => (
+            <div key={client.id} className="client-card">
+              <div className="client-avatar">
+                {getPreviewImage(client) ? (
+                  <img src={getPreviewImage(client)} alt={client.name} />
+                ) : (
+                  <span>{client.name?.charAt(0)}</span>
+                )}
               </div>
-            ))}
+              <div className="client-info">
+                <h3>{client.name}</h3>
+                {client.city && <p>{client.city}</p>}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
       <section className="section products">
         <div className="section-header">
           <div>
-            <h2>Mahsulot katalogidan tanlanganlar</h2>
-            <p>Keng nomenklaturadan ba'zi namunalar</p>
+            <h2>Nomenklatura</h2>
+            <p>Mahsulotlar katalogidan tanlanganlar</p>
           </div>
-          <Link to="/nomenklatura" className="link-button">
-            Katalogga o‘tish
-          </Link>
         </div>
         <div className="product-gallery">
-          {loading && (
-            <>
-              <div className="product-card skeleton" />
-              <div className="product-card skeleton" />
-              <div className="product-card skeleton" />
-              <div className="product-card skeleton" />
-            </>
-          )}
-          {!loading && !error && featured.products.length === 0 && (
-            <div className="empty-state">Mahsulotlar topilmadi</div>
-          )}
-          {!loading &&
-            !error &&
-            featured.products.map((product) => (
-              <div key={product.id} className="product-card">
-                <div className="product-media">
-                  {getPreviewImage(product) ? (
-                    <img src={getPreviewImage(product)} alt={product.name} />
-                  ) : (
-                    <div className="placeholder">Rasm yo‘q</div>
-                  )}
-                  <div className="product-favorite">♡</div>
-                </div>
-                <div className="product-body">
-                  <div className="product-badges">
-                    <span className="badge original">ORIGINAL</span>
-                    <span className="badge price">MAXSUS TAKLIF</span>
-                  </div>
-                  <h3>{product.name}</h3>
-                  {product.title && <p className="product-subtitle">{product.title}</p>}
-                  <div className="product-price-group">
-                    <span className="product-price">—</span>
-                    <span className="product-credit">1 000 so'm/oyiga</span>
-                  </div>
-                  <div className="product-actions">
-                    <Link to="/nomenklatura" className="btn small">
-                      Katalogdan topish
-                    </Link>
-                  </div>
-                </div>
+          {featured.products.map((product) => (
+            <div key={product.id} className="product-card">
+              <div className="product-media">
+                {getPreviewImage(product) ? (
+                  <img src={getPreviewImage(product)} alt={product.name} />
+                ) : (
+                  <div className="placeholder">Rasm yo‘q</div>
+                )}
               </div>
-            ))}
+              <div className="product-body">
+                <h3>{product.name}</h3>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
       <footer className="home-footer">
         <div className="footer-content">
-          <div className="footer-brand">
-            <span className="logo-mark">E</span>
-            <div>
-              <strong>E-Catalog</strong>
-              <p>Mahsulot va loyiha katalogi uchun yagona platforma</p>
-            </div>
-          </div>
-          <div className="footer-meta">
-            <p>© {new Date().getFullYear()} E-Catalog. Barcha huquqlar himoyalangan.</p>
-            <div className="footer-links">
-              <Link to="/projects">Projects</Link>
-              <Link to="/clients">Clients</Link>
-              <Link to="/nomenklatura">Nomenklatura</Link>
-            </div>
-          </div>
+          <p>© {new Date().getFullYear()} E-Catalog. Barcha huquqlar himoyalangan.</p>
         </div>
       </footer>
     </div>

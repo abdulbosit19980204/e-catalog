@@ -1,27 +1,24 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { clientAPI } from "../api";
 import { useNotification } from "../contexts/NotificationContext";
 import "./ClientList.css";
 
 const ClientList = () => {
+  const navigate = useNavigate();
+  /* eslint-disable no-unused-vars */
   const { error: showError } = useNotification();
+  /* eslint-enable no-unused-vars */
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [selectedClient, setSelectedClient] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
 
-  useEffect(() => {
-    loadClients();
-  }, [page, search, createdFrom, createdTo]);
-
-  const loadClients = async () => {
+  const loadClients = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -42,12 +39,20 @@ const ClientList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, search, createdFrom, createdTo]);
+
+  useEffect(() => {
+    loadClients();
+  }, [loadClients]);
 
   const handleSearch = (e) => {
     e.preventDefault();
     setPage(1);
     loadClients();
+  };
+
+  const handleCardClick = (clientCode1c) => {
+    navigate(`/clients/${clientCode1c}`);
   };
 
   return (
@@ -117,11 +122,7 @@ const ClientList = () => {
                 <div 
                   key={client.id} 
                   className="client-card"
-                  onClick={() => {
-                    setSelectedClient(client);
-                    setCurrentImageIndex(0);
-                    setShowDetailModal(true);
-                  }}
+                  onClick={() => handleCardClick(client.client_code_1c)}
                 >
                   <div className="client-image">
                     {client.images && client.images.length > 0 ? (
@@ -192,124 +193,6 @@ const ClientList = () => {
             </div>
           )}
         </>
-      )}
-
-      {showDetailModal && selectedClient && (
-        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
-          <div className="client-detail-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{selectedClient.name}</h2>
-              <button 
-                className="modal-close"
-                onClick={() => setShowDetailModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            
-            <div className="client-detail-content">
-              <div className="client-detail-info">
-                <div className="info-row">
-                  <strong>Code 1C:</strong>
-                  <span>{selectedClient.client_code_1c}</span>
-                </div>
-                {selectedClient.email && (
-                  <div className="info-row">
-                    <strong>Email:</strong>
-                    <span>{selectedClient.email}</span>
-                  </div>
-                )}
-                {selectedClient.phone && (
-                  <div className="info-row">
-                    <strong>Phone:</strong>
-                    <span>{selectedClient.phone}</span>
-                  </div>
-                )}
-                <div className="info-row">
-                  <strong>Status:</strong>
-                  <span className={`status ${selectedClient.is_active ? "active" : "inactive"}`}>
-                    {selectedClient.is_active ? "Active" : "Inactive"}
-                  </span>
-                </div>
-              </div>
-
-              {selectedClient.description && (
-                <div className="client-description-full">
-                  <h3>Description</h3>
-                  <div
-                    className="description-content"
-                    dangerouslySetInnerHTML={{ __html: selectedClient.description }}
-                  />
-                </div>
-              )}
-
-              {selectedClient.images && selectedClient.images.length > 0 && (
-                <div className="client-images-gallery">
-                  <h3>Rasmlar ({selectedClient.images.length})</h3>
-                  <div className="gallery-main">
-                    <div className="main-image-container">
-                      <img
-                        src={
-                          selectedClient.images[currentImageIndex]?.image_lg_url ||
-                          selectedClient.images[currentImageIndex]?.image_md_url ||
-                          selectedClient.images[currentImageIndex]?.image_url ||
-                          selectedClient.images[currentImageIndex]?.image
-                        }
-                        alt={`${selectedClient.name} - Image ${currentImageIndex + 1}`}
-                        className="main-image"
-                      />
-                      {selectedClient.images.length > 1 && (
-                        <>
-                          <button
-                            className="gallery-nav gallery-prev"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCurrentImageIndex((prev) => 
-                                prev === 0 ? selectedClient.images.length - 1 : prev - 1
-                              );
-                            }}
-                          >
-                            ‹
-                          </button>
-                          <button
-                            className="gallery-nav gallery-next"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCurrentImageIndex((prev) => 
-                                prev === selectedClient.images.length - 1 ? 0 : prev + 1
-                              );
-                            }}
-                          >
-                            ›
-                          </button>
-                        </>
-                      )}
-                    </div>
-                    {selectedClient.images.length > 1 && (
-                      <div className="gallery-thumbnails">
-                        {selectedClient.images.map((image, index) => (
-                          <div
-                            key={image.id}
-                            className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCurrentImageIndex(index);
-                            }}
-                          >
-                            <img
-                              src={image.image_thumbnail_url || image.image_sm_url || image.image_url || image.image}
-                              alt={`Thumbnail ${index + 1}`}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

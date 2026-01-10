@@ -1,62 +1,41 @@
 .admin-dashboard {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 24px;
   margin-bottom: 48px;
 }
 
 .stat-card {
-  background: var(--bg-card);
-  border-radius: var(--border-radius-lg);
+  background: white;
+  border-radius: 24px;
   padding: 32px;
   display: flex;
   align-items: center;
   gap: 24px;
   transition: all var(--transition-normal);
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  overflow: hidden;
 }
 
 .stat-card:hover {
   box-shadow: var(--shadow-lg);
-  transform: translateY(-4px);
+  transform: translateY(-6px);
   border-color: var(--primary);
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 100px;
-  height: 100px;
-  background: linear-gradient(135deg, var(--primary-glass) 0%, transparent 100%);
-  border-radius: 0 0 0 100%;
-  pointer-events: none;
 }
 
 .stat-icon {
   width: 64px;
   height: 64px;
-  border-radius: 16px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
+  font-size: 1.75rem;
   background: var(--primary-light);
-  color: var(--primary);
-  transition: transform var(--transition-fast);
-}
-
-.stat-card:hover .stat-icon {
-  transform: scale(1.1) rotate(-5deg);
 }
 
 .stat-info {
@@ -64,60 +43,54 @@
 }
 
 .stat-info h3 {
-  margin: 0 0 4px 0;
+  margin-bottom: 4px;
   color: var(--text-muted);
   font-size: 0.9rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.05em;
 }
 
 .stat-number {
-  margin: 0;
   color: var(--text-main);
-  font-size: 2.5rem;
+  font-size: 2.25rem;
   font-weight: 800;
-  letter-spacing: -1px;
+  line-height: 1;
 }
 
 .dashboard-actions {
-  background: var(--bg-card);
-  border-radius: var(--border-radius-lg);
+  background: white;
+  border-radius: 24px;
   padding: 40px;
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
 }
 
 .dashboard-actions h2 {
-  margin: 0 0 32px 0;
-  color: var(--text-main);
+  margin-bottom: 32px;
   font-size: 1.5rem;
   font-weight: 800;
-  letter-spacing: -0.5px;
 }
 
 .actions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 20px;
 }
 
 .action-card {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   padding: 24px;
-  background: var(--bg-main);
-  color: var(--text-main);
-  border-radius: var(--border-radius-md);
+  background: #f8fafc;
+  border-radius: 20px;
   text-decoration: none;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-normal);
   border: 1px solid var(--border-color);
   gap: 12px;
 }
 
 .action-card:hover {
-  background: var(--bg-card);
+  background: white;
   border-color: var(--primary);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
@@ -125,12 +98,14 @@
 
 .action-card .action-label {
   font-weight: 700;
-  font-size: 1.05rem;
+  color: var(--text-main);
+  font-size: 1.1rem;
 }
 
 .action-card .action-desc {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: var(--text-muted);
+  line-height: 1.5;
 }
 
 .dashboard-loading {
@@ -138,7 +113,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 100px 20px;
+  padding: 80px;
 }
 
 .spinner {

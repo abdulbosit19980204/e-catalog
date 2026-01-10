@@ -78,6 +78,7 @@ const QuillEditor = ({
       editorRef.current = null;
       hostElement.innerHTML = "";
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [placeholder]);
 
   useEffect(() => {
@@ -97,7 +98,7 @@ const QuillEditor = ({
       }
       isInternalChange.current = false;
     }
-  }, [value]);
+  }, [value, sanitizeEmpty]);
 
   return (
     <div
