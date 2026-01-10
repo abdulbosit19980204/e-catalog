@@ -1,4 +1,16 @@
-from rest_framework import status
+from rest_framework import viewsets, permissions
+from django.contrib.auth import get_user_model
+from .serializers import UserSerializer
+
+User = get_user_model()
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all().order_by('-id')
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAdminUser]
+    search_fields = ['username', 'first_name', 'last_name', 'email']
+    filterset_fields = ['is_staff', 'is_active']
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny

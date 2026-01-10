@@ -71,6 +71,30 @@ const AdminLayout = ({ children }) => {
             <span className="nav-icon">🔗</span>
             {sidebarOpen && <span>Integration</span>}
           </Link>
+
+          <Link
+            to="/admin/chat"
+            className={`nav-item ${isActive("/admin/chat")}`}
+          >
+            <span className="nav-icon">💬</span>
+            {sidebarOpen && <span>Chat</span>}
+          </Link>
+
+          <Link
+            to="/admin/chat-settings"
+            className={`nav-item ${isActive("/admin/chat-settings")}`}
+          >
+            <span className="nav-icon">⚙️</span>
+            {sidebarOpen && <span>Chat Settings</span>}
+          </Link>
+
+          <Link
+            to="/admin/users"
+            className={`nav-item ${isActive("/admin/users")}`}
+          >
+            <span className="nav-icon">👤</span>
+            {sidebarOpen && <span>Users</span>}
+          </Link>
         </nav>
         
         <div className="sidebar-footer">

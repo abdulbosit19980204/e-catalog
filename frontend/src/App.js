@@ -17,6 +17,10 @@ import ProjectAdmin from "./components/admin/ProjectAdmin";
 import ClientAdmin from "./components/admin/ClientAdmin";
 import NomenklaturaAdmin from "./components/admin/NomenklaturaAdmin";
 import IntegrationAdmin from "./components/admin/IntegrationAdmin";
+import ChatPage from "./components/ChatPage";
+import ChatAdmin from "./components/admin/ChatAdmin";
+import ChatSettings from "./components/admin/ChatSettings";
+import UserAdmin from "./components/admin/UserAdmin";
 
 function App() {
   return (
@@ -47,6 +51,14 @@ function App() {
               <Navigation />
               <main className="App-main">
                 <NomenklaturaList />
+              </main>
+            </>
+          } />
+          <Route path="/chat" element={
+            <>
+              <Navigation />
+              <main className="App-main">
+                <ChatPage />
               </main>
             </>
           } />
@@ -105,6 +117,36 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout>
                   <IntegrationAdmin />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/chat"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <ChatAdmin />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/chat-settings"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <ChatSettings />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <UserAdmin />
                 </AdminLayout>
               </ProtectedRoute>
             }

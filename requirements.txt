@@ -15,10 +15,12 @@ zeep>=4.3.0
 openpyxl==3.1.5
 # Caching
 django-redis==5.4.0
-# django-cacheops==7.2  # Optional - ORM query caching (commented out if Redis not available)
-# Background tasks - using threading instead (django-q2 not compatible with Django 5.2)
-# django-q2==1.4.0  # Commented - incompatible with Django 5.2.7
+# django-cacheops==7.2  # Optional - ORM query caching
+
+# Chat and Real-time functionality
+daphne==4.2.1
+channels==4.3.2
+channels-redis==4.3.0
 
 # AI Description Generation
 openai>=1.0.0
-

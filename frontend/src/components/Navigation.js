@@ -103,6 +103,15 @@ const Navigation = () => {
             </li>
             <li>
               <Link
+                to="/chat"
+                className={`nav-link ${isActive("/chat")}`}
+                onClick={handleLinkClick}
+              >
+                Chat
+              </Link>
+            </li>
+            <li>
+              <Link
                 to={isAuthenticated ? "/admin" : "/login"}
                 className={`nav-link ${isActive(["/admin", "/login"])}`}
                 onClick={handleLinkClick}

@@ -1,0 +1,79 @@
+.chat-settings {
+    padding: 20px;
+    max-width: 800px;
+}
+
+.settings-card {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    margin-top: 25px;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.setting-item.vertical {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.setting-info label {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #1a202c;
+    display: block;
+}
+
+.setting-desc {
+    font-size: 0.9rem;
+    color: #718096;
+    margin-top: 4px;
+}
+
+.setting-item.vertical label {
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.setting-item textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    min-height: 100px;
+    resize: vertical;
+}
+
+.form-actions {
+    margin-top: 30px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-save {
+    padding: 10px 30px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-save:hover {
+    background: #2563eb;
+}
+
+.loading {
+    padding: 50px;
+    text-align: center;
+    color: #718096;
+}

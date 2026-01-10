@@ -274,6 +274,22 @@ export const nomenklaturaAPI = {
   },
 };
 
+// User Management API
+export const userAPI = {
+  getUsers: (params = {}) => {
+    return apiClient.get("/users/", { params });
+  },
+  createUser: (data) => {
+    return apiClient.post("/users/", data);
+  },
+  updateUser: (id, data) => {
+    return apiClient.patch(`/users/${id}/`, data);
+  },
+  deleteUser: (id) => {
+    return apiClient.delete(`/users/${id}/`);
+  },
+};
+
 // Integration API
 export const integrationAPI = {
   getIntegrations: () => {
@@ -287,6 +303,31 @@ export const integrationAPI = {
   },
   getSyncStatus: (taskId) => {
     return apiClient.get(`/integration/sync/status/${taskId}/`);
+  },
+};
+
+// Chat API
+export const chatAPI = {
+  getSettings: () => {
+    return apiClient.get("/chat/settings/current/");
+  },
+  updateSettings: (id, data) => {
+    return apiClient.patch(`/chat/settings/${id}/`, data);
+  },
+  getConversations: (params = {}) => {
+    return apiClient.get("/chat/conversations/", { params });
+  },
+  createConversation: (data) => {
+    return apiClient.post("/chat/conversations/", data);
+  },
+  closeConversation: (id) => {
+    return apiClient.patch(`/chat/conversations/${id}/`, { status: 'closed' });
+  },
+  getMessages: (conversationId) => {
+    return apiClient.get(`/chat/conversations/${conversationId}/messages/`);
+  },
+  sendMessage: (data) => {
+    return apiClient.post("/chat/messages/", data);
   },
 };
 

@@ -44,6 +44,9 @@ urlpatterns = [
     
     # Users & Auth API
     path('api/v1/', include('users.urls')),
+
+    # Chat API
+    path('api/v1/chat/', include('chat.urls')),
 ]
 
 # Serve media files in development
