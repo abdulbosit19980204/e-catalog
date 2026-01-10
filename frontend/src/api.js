@@ -151,6 +151,9 @@ export const projectAPI = {
   deleteImage: (imageId) => {
     return apiClient.delete(`/project-image/${imageId}/`);
   },
+  setMainImage: (imageId) => {
+    return apiClient.patch(`/project-image/${imageId}/`, { is_main: true });
+  },
 };
 
 // Client API
@@ -207,6 +210,9 @@ export const clientAPI = {
   deleteImage: (imageId) => {
     return apiClient.delete(`/client-image/${imageId}/`);
   },
+  setMainImage: (imageId) => {
+    return apiClient.patch(`/client-image/${imageId}/`, { is_main: true });
+  },
 };
 
 // Nomenklatura API
@@ -262,6 +268,9 @@ export const nomenklaturaAPI = {
   },
   deleteImage: (imageId) => {
     return apiClient.delete(`/nomenklatura-image/${imageId}/`);
+  },
+  setMainImage: (imageId) => {
+    return apiClient.patch(`/nomenklatura-image/${imageId}/`, { is_main: true });
   },
 };
 

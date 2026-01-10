@@ -172,7 +172,8 @@ const NomenklaturaAdmin = () => {
     // Numeric fields
     const numericFields = [
       'base_price', 'sale_price', 'cost_price', 'discount_percent', 'tax_rate',
-      'stock_quantity', 'min_stock', 'max_stock', 'weight', 'volume'
+      'stock_quantity', 'min_stock', 'max_stock', 'weight', 'volume',
+      'warranty_period', 'rating', 'popularity_score'
     ];
     
     numericFields.forEach(field => {
@@ -201,7 +202,19 @@ const NomenklaturaAdmin = () => {
       setShowModal(false);
       loadNomenklatura();
     } catch (err) {
-      showError(err.response?.data?.detail || "Saqlashda xatolik");
+      let errorMsg = "Saqlashda xatolik";
+      const data = err.response?.data;
+      if (data) {
+        if (data.detail) {
+          errorMsg = data.detail;
+        } else if (typeof data === 'object') {
+          errorMsg = Object.entries(data)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
+            .join("\n");
+        }
+      }
+      showError(errorMsg);
+      console.error("Save error:", err);
     }
   };
 
@@ -235,6 +248,17 @@ const NomenklaturaAdmin = () => {
       success("Rasm o'chirildi");
     } catch (err) {
       showError("Rasmni o'chirib bo'lmadi");
+    }
+  };
+
+  const handleSetMainImage = async (imageId) => {
+    try {
+      await nomenklaturaAPI.setMainImage(imageId);
+      const updated = await nomenklaturaAPI.getNomenklaturaItem(editingNomenklatura.code_1c);
+      setEditingNomenklatura(updated.data);
+      success("Rasm asosiy qilib belgilandi");
+    } catch (err) {
+      showError("Rasmni asosiy qilib bo'lmadi");
     }
   };
 
@@ -414,9 +438,20 @@ const NomenklaturaAdmin = () => {
                     <div key={img.id} className="image-item">
                       <img src={img.image_thumbnail_url} alt="" />
                       <div className="image-item-actions">
+                        {!img.is_main && (
+                          <button
+                            type="button"
+                            onClick={() => handleSetMainImage(img.id)}
+                            className="btn-mini-delete"
+                            style={{ background: '#fff', color: '#f59e0b', borderColor: '#f59e0b', marginRight: '5px' }}
+                            title="Asosiy qilish"
+                          >
+                            ⭐
+                          </button>
+                        )}
                         <button type="button" onClick={() => handleDeleteImage(img.id)} className="btn-mini-delete">×</button>
                       </div>
-                      {img.is_main && <span className="main-badge">Main</span>}
+                      {img.is_main && <span className="main-badge">Asosiy</span>}
                     </div>
                   ))}
                 </div>

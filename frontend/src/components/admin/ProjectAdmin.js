@@ -18,6 +18,7 @@ const ProjectAdmin = () => {
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedImages, setSelectedImages] = useState([]);
+  const [currentImages, setCurrentImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [descriptionStatus, setDescriptionStatus] = useState("");
@@ -132,11 +133,43 @@ const ProjectAdmin = () => {
   };
 
 
+  const loadProjectImages = async (code1c) => {
+    try {
+      const response = await projectAPI.getProjectImages(code1c);
+      setCurrentImages(response.data);
+    } catch (err) {
+      console.error("Error loading images:", err);
+    }
+  };
+
+  const handleDeleteImage = async (imageId) => {
+    if (!window.confirm("Bu rasmni o'chirishni xohlaysizmi?")) return;
+    try {
+      await projectAPI.deleteImage(imageId);
+      if (selectedProject) loadProjectImages(selectedProject.code_1c);
+      success("Rasm o'chirildi");
+    } catch (err) {
+      showError("Rasmni o'chirib bo'lmadi");
+    }
+  };
+
+  const handleSetMainImage = async (imageId) => {
+    try {
+      await projectAPI.setMainImage(imageId);
+      if (selectedProject) loadProjectImages(selectedProject.code_1c);
+      success("Rasm asosiy qilib belgilandi");
+    } catch (err) {
+      showError("Rasmni asosiy qilib bo'lmadi");
+    }
+  };
+
   const handleUploadImages = (project) => {
     setSelectedProject(project);
     setSelectedImages([]);
     setImageMeta({ category: "", note: "" });
     setError(null);
+    setCurrentImages([]);
+    loadProjectImages(project.code_1c);
     setShowImageModal(true);
   };
 
@@ -160,6 +193,7 @@ const ProjectAdmin = () => {
       setSelectedProject(null);
       setImageMeta({ category: "", note: "" });
       loadProjects();
+      loadProjectImages(selectedProject.code_1c);
       success(`${selectedImages.length} ta rasm muvaffaqiyatli yuklandi!`);
     } catch (err) {
       const errorMsg = err.response?.data?.error || err.response?.data?.detail || "Rasmlar yuklashda xatolik";
@@ -196,8 +230,17 @@ const ProjectAdmin = () => {
       setShowModal(false);
       loadProjects();
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
-      setError(errorMsg);
+      let errorMsg = "Xatolik yuz berdi";
+      const data = err.response?.data;
+      if (data) {
+        if (data.detail) {
+          errorMsg = data.detail;
+        } else if (typeof data === 'object') {
+          errorMsg = Object.entries(data)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
+            .join("\n");
+        }
+      }
       showError(errorMsg);
       console.error("Error saving project:", err);
     }
@@ -227,11 +270,7 @@ const ProjectAdmin = () => {
     }
   };
 
-  const handlePageSizeChange = (e) => {
-    const newSize = parseInt(e.target.value);
-    setPageSize(newSize);
-    setPage(1);
-  };
+
 
   const quillModules = {
     toolbar: [
@@ -644,6 +683,43 @@ const ProjectAdmin = () => {
                   <p>{error}</p>
                 </div>
               )}
+
+              <div className="current-images-section" style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '20px', marginBottom: '20px' }}>
+                  <h4>Hozirgi rasmlar</h4>
+                  {currentImages.length === 0 ? <p className="no-data">Rasmlar yo'q</p> : (
+                    <div className="image-management-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
+                        {currentImages.map(img => (
+                            <div key={img.id} className="image-item" style={{ position: 'relative', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#fff' }}>
+                                <div style={{ height: '120px', overflow: 'hidden' }}>
+                                    <img src={img.image_thumbnail_url || img.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </div>
+                                {img.is_main && <span className="main-badge" style={{ position: 'absolute', top: 5, right: 5, background: '#10b981', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>ASOSIY</span>}
+                                <div className="image-item-actions" style={{ padding: '8px', display: 'flex', gap: '8px', justifyContent: 'center', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                                    {!img.is_main && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => handleSetMainImage(img.id)} 
+                                            style={{ border: '1px solid #fbbf24', background: '#fff', color: '#fbbf24', borderRadius: '6px', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} 
+                                            title="Asosiy qilish"
+                                        >
+                                            ⭐
+                                        </button>
+                                    )}
+                                    <button 
+                                        type="button" 
+                                        onClick={() => handleDeleteImage(img.id)} 
+                                        style={{ border: '1px solid #ef4444', background: '#fff', color: '#ef4444', borderRadius: '6px', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} 
+                                        title="O'chirish"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                  )}
+              </div>
+
               <div className="modal-actions">
                 <button
                   type="button"

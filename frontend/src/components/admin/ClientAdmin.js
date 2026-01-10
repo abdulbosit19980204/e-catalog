@@ -171,7 +171,19 @@ const ClientAdmin = () => {
       setShowModal(false);
       loadClients();
     } catch (err) {
-      showError(err.response?.data?.detail || "Saqlashda xatolik yuz berdi");
+      let errorMsg = "Saqlashda xatolik yuz berdi";
+      const data = err.response?.data;
+      if (data) {
+        if (data.detail) {
+          errorMsg = data.detail;
+        } else if (typeof data === 'object') {
+          errorMsg = Object.entries(data)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
+            .join("\n");
+        }
+      }
+      showError(errorMsg);
+      console.error("Save error:", err);
     }
   };
 
@@ -206,6 +218,17 @@ const ClientAdmin = () => {
       success("Rasm o'chirildi");
     } catch (err) {
       showError("Rasmni o'chirib bo'lmadi");
+    }
+  };
+
+  const handleSetMainImage = async (imageId) => {
+    try {
+      await clientAPI.setMainImage(imageId);
+      const updated = await clientAPI.getClient(editingClient.client_code_1c);
+      setEditingClient(updated.data);
+      success("Rasm asosiy qilib belgilandi");
+    } catch (err) {
+      showError("Rasmni asosiy qilib bo'lmadi");
     }
   };
 
@@ -552,6 +575,17 @@ const ClientAdmin = () => {
                           <img src={img.image_thumbnail_url} alt={img.category} />
                           {img.is_main && <span className="main-badge">Asosiy</span>}
                           <div className="image-item-actions">
+                            {!img.is_main && (
+                              <button
+                                type="button"
+                                onClick={() => handleSetMainImage(img.id)}
+                                className="btn-mini-delete"
+                                style={{ background: '#fff', color: '#f59e0b', borderColor: '#f59e0b', marginRight: '5px' }}
+                                title="Asosiy qilish"
+                              >
+                                ⭐
+                              </button>
+                            )}
                             <button 
                               type="button" 
                               onClick={() => handleDeleteImage(img.id)} 
