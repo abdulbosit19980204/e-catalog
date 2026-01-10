@@ -306,13 +306,7 @@ def parse_client_item(item):
     except Exception as e:
         logger.debug(f"Error getting additional fields from SOAP item: {e}")
     
-    # Maxsus: Project nomini alohida olish (Nomenklatura kabi)
-    try:
-        project_name = clean_value(getattr(item, 'Project', None))
-        if project_name:
-            parsed_data['project_name'] = project_name
-    except Exception:
-        pass
+
     
     # Majburiy fieldlarni tekshirish
     if not parsed_data.get('client_code_1c') or not parsed_data.get('name'):
@@ -390,7 +384,6 @@ def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None)
     updated_count = 0
     error_count = 0
     
-    from api.models import Project
     
     try:
         # Barcha itemlarni birinchi marta parse qilish
@@ -401,7 +394,7 @@ def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None)
                 name = clean_value(getattr(item, 'Name', None))
                 title = clean_value(getattr(item, 'Title', None))
                 description = clean_value(getattr(item, 'Description', None))
-                project_name = clean_value(getattr(item, 'Project', None))
+
                 
                 if not code_1c or not name:
                     error_count += 1
@@ -412,7 +405,7 @@ def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None)
                     'name': name,
                     'title': title,
                     'description': description,
-                    'project_name': project_name,
+
                 })
             except Exception as e:
                 logger.error(f"Error parsing nomenklatura item: {e}")
@@ -437,8 +430,7 @@ def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None)
                         )
                     }
                     
-                    # Project cache
-                    project_cache = {}
+                    # Project cache olib tashlandi, faqat default_project ishlatiladi
                     default_project = integration.project
                     
                     to_create = []
@@ -446,19 +438,9 @@ def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None)
                     
                     for item_data in chunk:
                         code_1c = item_data['code_1c']
-                        project_name = item_data['project_name']
                         
-                        # Project'ni topish yoki cache'dan olish
-                        project_to_add = None
-                        if project_name:
-                            if project_name not in project_cache:
-                                project_cache[project_name], _ = Project.objects.get_or_create(
-                                    name=project_name,
-                                    defaults={'code_1c': project_name, 'is_active': True, 'is_deleted': False}
-                                )
-                            project_to_add = project_cache[project_name]
-                        else:
-                            project_to_add = default_project
+                        # Faqat integratsiya proyektini o'ziga bog'laymiz
+                        projects_to_add = [default_project] if default_project else []
                         
                         if code_1c in existing_dict:
                             # Update
@@ -469,9 +451,9 @@ def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None)
                             existing.updated_at = timezone.now()
                             to_update.append(existing)
                             
-                            # M2M project'ni qo'shish
-                            if project_to_add:
-                                existing.projects.add(project_to_add)
+                            # M2M projectlarni yangilash - faqat bitta bo'lishi kerak
+                            if projects_to_add:
+                                existing.projects.set(projects_to_add)
                         else:
                             # Create
                             new_obj = Nomenklatura(
@@ -482,9 +464,9 @@ def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None)
                                 is_active=True,
                                 is_deleted=False
                             )
-                            new_obj.save() # Bulk create da M2M qo'shib bo'lmaydi, shuning uchun oddiy save ishlatamiz yoki bulk_create dan keyin add qilamiz
-                            if project_to_add:
-                                new_obj.projects.add(project_to_add)
+                            new_obj.save()
+                            if projects_to_add:
+                                new_obj.projects.set(projects_to_add)
                             created_count += 1
                     
                     # Bulk update for fields
@@ -586,29 +568,14 @@ def process_clients_chunk(items, integration, chunk_size=100, log_obj=None):
                     to_create = []
                     to_update = []
                     
-                    # Project cache
-                    from api.models import Project
-                    project_cache = {}
+                    # Project cache olib tashlandi, faqat default_project ishlatiladi
                     default_project = integration.project
                     
                     for item_data in chunk:
                         client_code_1c = item_data['client_code_1c']
-                        project_name = item_data.pop('project_name', None)
                         
-                        # Project'ni topish yoki cache'dan olish
-                        project_to_add = None
-                        if project_name:
-                            if project_name not in project_cache:
-                                try:
-                                    project_cache[project_name], _ = Project.objects.get_or_create(
-                                        name=project_name,
-                                        defaults={'code_1c': project_name, 'is_active': True, 'is_deleted': False}
-                                    )
-                                except Exception:
-                                    project_cache[project_name] = default_project
-                            project_to_add = project_cache[project_name]
-                        else:
-                            project_to_add = default_project
+                        # Faqat integratsiya proyektini o'ziga bog'laymiz
+                        projects_to_add = [default_project] if default_project else []
                         
                         if client_code_1c in existing_dict:
                             # Update - barcha fieldlarni yangilash
@@ -625,17 +592,17 @@ def process_clients_chunk(items, integration, chunk_size=100, log_obj=None):
                             existing.updated_at = timezone.now()
                             to_update.append(existing)
                             
-                            # M2M project'ni qo'shish
-                            if project_to_add:
-                                existing.projects.add(project_to_add)
+                            # M2M projectlarni yangilash - faqat bitta bo'lishi kerak
+                            if projects_to_add:
+                                existing.projects.set(projects_to_add)
                         else:
                             # Create - barcha fieldlar bilan yaratish
                             try:
                                 # project_name allaqachon pop qilingan
                                 new_client = Client(**item_data)
                                 new_client.save()
-                                if project_to_add:
-                                    new_client.projects.add(project_to_add)
+                                if projects_to_add:
+                                    new_client.projects.set(projects_to_add)
                                 created_count += 1
                             except Exception as e:
                                 logger.error(f"Error creating client {client_code_1c}: {e}")
