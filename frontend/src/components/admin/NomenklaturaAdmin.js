@@ -165,14 +165,37 @@ const NomenklaturaAdmin = () => {
     }
   };
 
+  // Helper to clean data before sending to API
+  const prepareDataForSubmit = (data) => {
+    const cleaned = { ...data };
+    
+    // Numeric fields
+    const numericFields = [
+      'base_price', 'sale_price', 'cost_price', 'discount_percent', 'tax_rate',
+      'stock_quantity', 'min_stock', 'max_stock', 'weight', 'volume'
+    ];
+    
+    numericFields.forEach(field => {
+        if (cleaned[field] === "") cleaned[field] = null;
+    });
+
+    // Date fields
+    ['expiry_date', 'production_date'].forEach(field => {
+        if (cleaned[field] === "") cleaned[field] = null;
+    });
+    
+    return cleaned;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const dataToSend = prepareDataForSubmit(formData);
       if (editingNomenklatura) {
-        await nomenklaturaAPI.updateNomenklatura(editingNomenklatura.code_1c, formData);
+        await nomenklaturaAPI.updateNomenklatura(editingNomenklatura.code_1c, dataToSend);
         success("Muvaffaqiyatli yangilandi");
       } else {
-        await nomenklaturaAPI.createNomenklatura(formData);
+        await nomenklaturaAPI.createNomenklatura(dataToSend);
         success("Muvaffaqiyatli yaratildi");
       }
       setShowModal(false);
@@ -405,6 +428,25 @@ const NomenklaturaAdmin = () => {
     }
   };
 
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    return (
+      <div className="pagination" style={{ marginTop: 0, marginBottom: 20 }}>
+        <div className="pagination-controls">
+          <button onClick={() => setPage(page-1)} disabled={page===1} className="page-button">Oldingi</button>
+          <span style={{margin: '0 10px', fontWeight: 600}}>Sahifa {page} / {totalPages}</span>
+          <button onClick={() => setPage(page+1)} disabled={page===totalPages} className="page-button">Keyingi</button>
+        </div>
+        <div className="pagination-controls">
+          <span className="page-info">Jami: {totalCount}</span>
+          <select value={pageSize} onChange={(e) => {setPageSize(parseInt(e.target.value)); setPage(1);}} className="page-size-select">
+            {[10, 20, 50, 100].map(sz => <option key={sz} value={sz}>{sz}</option>)}
+          </select>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="admin-crud">
       <div className="crud-header">
@@ -464,6 +506,7 @@ const NomenklaturaAdmin = () => {
         <div className="loading"><div className="spinner"></div></div>
       ) : (
         <>
+          {renderPagination()}
           <div className="table-container">
             <table className="data-table">
               <thead>
@@ -495,20 +538,7 @@ const NomenklaturaAdmin = () => {
               </tbody>
             </table>
           </div>
-          {totalPages > 1 && (
-            <div className="pagination">
-              <div className="pagination-controls">
-                <button onClick={() => setPage(page-1)} disabled={page===1} className="page-button">Oldingi</button>
-                <button onClick={() => setPage(page+1)} disabled={page===totalPages} className="page-button">Keyingi</button>
-              </div>
-              <div className="pagination-controls">
-                <span className="page-info">Jami: {totalCount}</span>
-                <select value={pageSize} onChange={(e) => {setPageSize(parseInt(e.target.value)); setPage(1);}} className="page-size-select">
-                  {[10, 20, 50, 100].map(sz => <option key={sz} value={sz}>{sz}</option>)}
-                </select>
-              </div>
-            </div>
-          )}
+          {renderPagination()}
         </>
       )}
 

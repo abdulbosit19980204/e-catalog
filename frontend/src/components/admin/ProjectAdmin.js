@@ -171,14 +171,26 @@ const ProjectAdmin = () => {
     }
   };
 
+  // Helper to clean data before sending to API
+  const prepareDataForSubmit = (data) => {
+    const cleaned = { ...data };
+    
+    // Convert empty strings to null if needed (for Projects mostly text, but good practice)
+    // If title or description are optional and can be null? 
+    // Usually DRF handles blank string for text fields fine.
+    
+    return cleaned;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const dataToSend = prepareDataForSubmit(formData);
       if (editingProject) {
-        await projectAPI.updateProject(editingProject.code_1c, formData);
+        await projectAPI.updateProject(editingProject.code_1c, dataToSend);
         success("Project muvaffaqiyatli yangilandi");
       } else {
-        await projectAPI.createProject(formData);
+        await projectAPI.createProject(dataToSend);
         success("Project muvaffaqiyatli yaratildi");
       }
       setShowModal(false);
@@ -230,6 +242,70 @@ const ProjectAdmin = () => {
       ["link", "image"],
       ["clean"],
     ],
+  };
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    return (
+      <div className="pagination" style={{ marginTop: 0, marginBottom: 20 }}>
+        <div className="pagination-controls">
+          <button
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page === 1}
+            className="page-button"
+          >
+            Oldingi
+          </button>
+          <div className="page-numbers">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (page <= 3) {
+                pageNum = i + 1;
+              } else if (page >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = page - 2 + i;
+              }
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => handlePageChange(pageNum)}
+                  className={`page-number ${page === pageNum ? "active" : ""}`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page === totalPages}
+            className="page-button"
+          >
+            Keyingi
+          </button>
+        </div>
+        <div className="pagination-controls">
+          <span className="page-info">Jami: {totalCount}</span>
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(parseInt(e.target.value));
+              setPage(1);
+            }}
+            className="page-size-select"
+          >
+            {[10, 20, 50, 100].map((sz) => (
+              <option key={sz} value={sz}>
+                {sz}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -339,6 +415,7 @@ const ProjectAdmin = () => {
         </div>
       ) : (
         <>
+          {renderPagination()}
           <div className="table-container">
             <table className="data-table">
               <thead>
@@ -411,64 +488,7 @@ const ProjectAdmin = () => {
             </table>
           </div>
 
-          {totalPages > 1 && (
-            <div className="pagination">
-              <div className="pagination-controls">
-                <button
-                  onClick={() => handlePageChange(page - 1)}
-                  disabled={page === 1}
-                  className="page-button"
-                >
-                  Oldingi
-                </button>
-                <div className="page-numbers">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (page <= 3) {
-                      pageNum = i + 1;
-                    } else if (page >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = page - 2 + i;
-                    }
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => handlePageChange(pageNum)}
-                        className={`page-number ${page === pageNum ? "active" : ""}`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                </div>
-                <button
-                  onClick={() => handlePageChange(page + 1)}
-                  disabled={page === totalPages}
-                  className="page-button"
-                >
-                  Keyingi
-                </button>
-              </div>
-              <div className="pagination-controls">
-                <span className="page-info">
-                  Sahifa {page} / {totalPages} (Jami: {totalCount})
-                </span>
-                <select
-                  value={pageSize}
-                  onChange={handlePageSizeChange}
-                  className="page-size-select"
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </div>
-            </div>
-          )}
+          {renderPagination()}
         </>
       )}
 

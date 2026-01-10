@@ -130,6 +130,23 @@ const ClientAdmin = () => {
     }
   };
 
+  // Helper to clean data before sending to API
+  const prepareDataForSubmit = (data) => {
+    const cleaned = { ...data };
+    // Convert empty strings to null for date fields
+    if (cleaned.established_date === "") cleaned.established_date = null;
+    
+    // Remove read-only or dangerous fields if updating
+    // delete cleaned.client_code_1c; // Do not delete this if it's needed, but usually ID is in URL
+    
+    // Numeric fields should be null if empty string (if any)
+    ['annual_revenue', 'employee_count', 'credit_limit'].forEach(field => {
+        if (cleaned[field] === "") cleaned[field] = null;
+    });
+
+    return cleaned;
+  };
+
   const handleToggleActive = async (client) => {
     try {
       await clientAPI.updateClient(client.client_code_1c, { is_active: !client.is_active });
@@ -143,11 +160,12 @@ const ClientAdmin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const dataToSend = prepareDataForSubmit(formData);
       if (editingClient) {
-        await clientAPI.updateClient(editingClient.client_code_1c, formData);
+        await clientAPI.updateClient(editingClient.client_code_1c, dataToSend);
         success("Client muvaffaqiyatli yangilandi");
       } else {
-        await clientAPI.createClient(formData);
+        await clientAPI.createClient(dataToSend);
         success("Client muvaffaqiyatli yaratildi");
       }
       setShowModal(false);
@@ -182,7 +200,7 @@ const ClientAdmin = () => {
   const handleDeleteImage = async (imageId) => {
     if (!window.confirm("Bu rasmni o'chirishni xohlaysizmi?")) return;
     try {
-      await clientAPI.deleteClientImage(imageId);
+      await clientAPI.deleteImage(imageId);
       const updated = await clientAPI.getClient(editingClient.client_code_1c);
       setEditingClient(updated.data);
       success("Rasm o'chirildi");
@@ -559,6 +577,34 @@ const ClientAdmin = () => {
     }
   };
 
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    return (
+      <div className="pagination" style={{ marginTop: 0, marginBottom: 20 }}>
+        <div className="pagination-controls">
+          <button onClick={() => setPage(page - 1)} disabled={page === 1} className="page-button">Oldingi</button>
+          <div className="page-numbers">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum = totalPages <= 5 || page <= 3 ? i + 1 : (page >= totalPages - 2 ? totalPages - 4 + i : page - 2 + i);
+              return (
+                <button key={pageNum} onClick={() => setPage(pageNum)} className={`page-number ${page === pageNum ? "active" : ""}`}>
+                  {pageNum}
+                </button>
+              );
+            })}
+          </div>
+          <button onClick={() => setPage(page + 1)} disabled={page === totalPages} className="page-button">Keyingi</button>
+        </div>
+        <div className="pagination-controls">
+          <span className="page-info">Jami: {totalCount}</span>
+          <select value={pageSize} onChange={(e) => {setPageSize(parseInt(e.target.value)); setPage(1);}} className="page-size-select">
+            {[10, 20, 50, 100].map(sz => <option key={sz} value={sz}>{sz}</option>)}
+          </select>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="admin-crud">
       <div className="crud-header">
@@ -634,6 +680,7 @@ const ClientAdmin = () => {
         <div className="loading"><div className="spinner"></div><p>Yuklanmoqda...</p></div>
       ) : (
         <>
+          {renderPagination()}
           <div className="table-container">
             <table className="data-table">
               <thead>
@@ -681,30 +728,9 @@ const ClientAdmin = () => {
             </table>
           </div>
 
-          {totalPages > 1 && (
-            <div className="pagination">
-              <div className="pagination-controls">
-                <button onClick={() => setPage(page - 1)} disabled={page === 1} className="page-button">Oldingi</button>
-                <div className="page-numbers">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum = totalPages <= 5 || page <= 3 ? i + 1 : (page >= totalPages - 2 ? totalPages - 4 + i : page - 2 + i);
-                    return (
-                      <button key={pageNum} onClick={() => setPage(pageNum)} className={`page-number ${page === pageNum ? "active" : ""}`}>
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                </div>
-                <button onClick={() => setPage(page + 1)} disabled={page === totalPages} className="page-button">Keyingi</button>
-              </div>
-              <div className="pagination-controls">
-                <span className="page-info">Jami: {totalCount}</span>
-                <select value={pageSize} onChange={(e) => {setPageSize(parseInt(e.target.value)); setPage(1);}} className="page-size-select">
-                  {[10, 20, 50, 100].map(sz => <option key={sz} value={sz}>{sz}</option>)}
-                </select>
-              </div>
-            </div>
-          )}
+
+
+          {renderPagination()}
         </>
       )}
 
