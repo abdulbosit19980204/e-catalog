@@ -104,11 +104,17 @@ const ClientAdmin = () => {
 
   const handleEdit = (client) => {
     setEditingClient(client);
-    setFormData({
-      ...initialFormData,
-      ...client,
-      established_date: client.established_date || "",
+    
+    // Sanitize data to ensure no null values which cause React controlled input warnings
+    const sanitizedData = { ...initialFormData };
+    
+    Object.keys(initialFormData).forEach(key => {
+      if (client[key] !== null && client[key] !== undefined) {
+        sanitizedData[key] = client[key];
+      }
     });
+
+    setFormData(sanitizedData);
     setActiveTab("asosiy");
     setShowModal(true);
   };

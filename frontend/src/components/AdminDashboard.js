@@ -10,10 +10,6 @@ const AdminDashboard = () => {
     loading: true,
   });
 
-  useEffect(() => {
-    loadStats();
-  }, []);
-
   const loadStats = async () => {
     try {
       const [projectsRes, clientsRes, nomenklaturaRes] = await Promise.all([
@@ -30,9 +26,14 @@ const AdminDashboard = () => {
       });
     } catch (err) {
       console.error("Error loading stats:", err);
-      setStats({ ...stats, loading: false });
+      setStats(prev => ({ ...prev, loading: false }));
     }
   };
+
+  useEffect(() => {
+    loadStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (stats.loading) {
     return (

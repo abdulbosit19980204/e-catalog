@@ -7,23 +7,21 @@ const IntegrationAdmin = () => {
   const { success, error: showError } = useNotification();
   const [integrations, setIntegrations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [syncStatus, setSyncStatus] = useState({});
   const [syncing, setSyncing] = useState({});
 
   useEffect(() => {
     loadIntegrations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadIntegrations = async () => {
     try {
       setLoading(true);
-      setError(null);
       const response = await integrationAPI.getIntegrations();
       setIntegrations(response.data);
     } catch (err) {
       const errorMsg = err.response?.data?.detail || "Integration'lar yuklashda xatolik";
-      setError(errorMsg);
       showError(errorMsg);
       console.error("Error loading integrations:", err);
     } finally {
@@ -33,7 +31,6 @@ const IntegrationAdmin = () => {
 
   const handleSyncNomenklatura = async (integrationId) => {
     try {
-      setError(null);
       setSyncing({ ...syncing, [`nomenklatura_${integrationId}`]: true });
       
       const response = await integrationAPI.syncNomenklatura(integrationId);
@@ -76,7 +73,6 @@ const IntegrationAdmin = () => {
       checkProgress();
     } catch (err) {
       const errorMsg = err.response?.data?.detail || "Nomenklatura sync xatolik";
-      setError(errorMsg);
       showError(errorMsg);
       setSyncing((prev) => {
         const newState = { ...prev };
@@ -89,7 +85,6 @@ const IntegrationAdmin = () => {
 
   const handleSyncClients = async (integrationId) => {
     try {
-      setError(null);
       setSyncing({ ...syncing, [`clients_${integrationId}`]: true });
       
       const response = await integrationAPI.syncClients(integrationId);
@@ -132,7 +127,6 @@ const IntegrationAdmin = () => {
       checkProgress();
     } catch (err) {
       const errorMsg = err.response?.data?.detail || "Clients sync xatolik";
-      setError(errorMsg);
       showError(errorMsg);
       setSyncing((prev) => {
         const newState = { ...prev };
@@ -152,11 +146,6 @@ const IntegrationAdmin = () => {
         </button>
       </div>
 
-      {error && (
-        <div className="error-message">
-          <p>{error}</p>
-        </div>
-      )}
 
       {loading ? (
         <div className="loading-container">

@@ -105,6 +105,8 @@ const NomenklaturaAdmin = () => {
     } catch (err) {
       const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
       showError(errorMsg);
+      console.error("Error loading nomenklatura:", err);
+    } finally {
       setLoading(false);
     }
   }, [page, pageSize, search, filterProject, statusFilter, filterCategory, createdFrom, createdTo, showError]);
@@ -123,13 +125,21 @@ const NomenklaturaAdmin = () => {
 
   const handleEdit = (item) => {
     setEditingNomenklatura(item);
-    setFormData({
-      ...initialFormData,
-      ...item,
-      project_ids: item.projects ? item.projects.map(p => p.id) : [],
-      expiry_date: item.expiry_date || "",
-      production_date: item.production_date || "",
+    
+    // Sanitize data to ensure no null values which cause React controlled input warnings
+    const sanitizedData = { ...initialFormData };
+    
+    Object.keys(initialFormData).forEach(key => {
+      if (key === 'project_ids') return; // Handle separately
+      if (item[key] !== null && item[key] !== undefined) {
+        sanitizedData[key] = item[key];
+      }
     });
+    
+    // Handle special fields
+    sanitizedData.project_ids = item.projects ? item.projects.map(p => p.id) : [];
+    
+    setFormData(sanitizedData);
     setActiveTab("asosiy");
     setShowModal(true);
   };
@@ -196,7 +206,7 @@ const NomenklaturaAdmin = () => {
   const handleDeleteImage = async (imageId) => {
     if (!window.confirm("Rasmni o'chirish?")) return;
     try {
-      await nomenklaturaAPI.deleteNomenklaturaImage(imageId);
+      await nomenklaturaAPI.deleteImage(imageId);
       const updated = await nomenklaturaAPI.getNomenklaturaItem(editingNomenklatura.code_1c);
       setEditingNomenklatura(updated.data);
       success("Rasm o'chirildi");

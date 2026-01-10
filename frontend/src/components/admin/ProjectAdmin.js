@@ -90,8 +90,8 @@ const ProjectAdmin = () => {
   const handleEdit = (project) => {
     setEditingProject(project);
     setFormData({
-      code_1c: project.code_1c,
-      name: project.name,
+      code_1c: project.code_1c || "",
+      name: project.name || "",
       title: project.title || "",
       description: project.description || "",
       is_active: project.is_active !== undefined ? project.is_active : true,
