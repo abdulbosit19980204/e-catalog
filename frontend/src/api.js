@@ -3,18 +3,18 @@ import axios from "axios";
 let derivedApiBase = process.env.REACT_APP_API_URL;
 if (!derivedApiBase && typeof window !== "undefined") {
   const { protocol, hostname, port } = window.location;
-  const normalizedHost = hostname || "localhost";
-
-  const isDevPort = port === "3000" || port === "5173";
-  if (isDevPort) {
-    derivedApiBase = `${protocol}//${normalizedHost}:8000/api/v1`;
-  } else if (port) {
-    derivedApiBase = `${protocol}//${normalizedHost}:${port}/api/v1`;
-  } else {
-    derivedApiBase = `${protocol}//${normalizedHost}/api/v1`;
+  const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+  
+  if (isLocal) {
+    const isDevPort = port === "3000" || port === "5173";
+    if (isDevPort) {
+      derivedApiBase = `${protocol}//${hostname}:8000/api/v1`;
+    } else {
+      derivedApiBase = `${protocol}//${hostname}:${port}/api/v1`;
+    }
   }
 }
-const API_BASE_URL = derivedApiBase || "http://localhost:8000/api/v1";
+const API_BASE_URL = derivedApiBase || "http://178.218.200.120:1596/api/v1";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
