@@ -4,11 +4,20 @@ Ushbu loyihani Production serverda (Linux/Ubuntu) ishga tushirish bo'yicha qo'll
 
 ## 🏗️ Tizim arxitekturasi
 
-- **Frontend:** React (3000 -> 1563 portda Nginx orqali)
-- **Backend:** Django (1596 portda Gunicorn/Daphne orqali)
-- **Server:** Nginx (Proxy sifatida)
-- **Ma'lumotlar bazasi:** SQLite (WAL mode yoqilgan)
-- **Kesh/Tasklar:** Redis
+- **Frontend Admin Panel:** `http://IP:1563/admin` (React orqali)
+- **Backend (Django) Admin:** `http://IP:1563/backend-admin/` (Ma'lumotlar bazasi uchun)
+- **API URL:** `http://IP:1563/api/v1/`
+- **Server:** Nginx (Proxy sifatida 1563 portda)
+- **Backend Process:** Gunicorn (unix socketda)
+
+---
+
+## 🔑 Admin Panellar farqi
+
+Loyihada ikkita admin paneli mavjud:
+
+1.  **Frontend Admin (`/admin`):** Bu loyihaning asosiy ishchi paneli bo'lib, unda Nomenklatura, Mijozlar va loyihalarni boshqarish qulay interfeysda amalga oshiriladi.
+2.  **Django Admin (`/backend-admin/`):** Bu ma'lumotlar bazasini to'g'ridan-to'g'ri boshqarish (foydalanuvchilar qo'shish, texnik sozlamalar) uchun ishlatiladi. Konflikt bo'lmasligi uchun u `/backend-admin/`ga ko'chirildi.
 
 ---
 
@@ -16,14 +25,14 @@ Ushbu loyihani Production serverda (Linux/Ubuntu) ishga tushirish bo'yicha qo'll
 
 ### 1. Nginx Sozlamalari
 
-Nginx konfiguratsiya fayllari `deploy/nginx/` papkasida joylashgan. Ularni serverga nusxalash:
+Nginx konfiguratsiya fayllari `deploy/nginx/` papkasida joylashgan. Frontend Nginx fayli nafaqat statik fayllarni beradi, balki API so'rovlarni ham backend-ga (unix socket orqali) proxy qiladi.
 
 ```bash
-# Backend uchun
+# Backend uchun (ixtiyoriy, agar frontdan foydalanmasangiz)
 sudo cp deploy/nginx/backend.conf /etc/nginx/sites-available/e-catalog-backend
 sudo ln -s /etc/nginx/sites-available/e-catalog-backend /etc/nginx/sites-enabled/
 
-# Frontend uchun
+# Frontend (va API Proxy) uchun - ASOSIY FAYL
 sudo cp deploy/nginx/frontend.conf /etc/nginx/sites-available/e-catalog-frontend
 sudo ln -s /etc/nginx/sites-available/e-catalog-frontend /etc/nginx/sites-enabled/
 
@@ -32,16 +41,16 @@ sudo nginx -t
 sudo systemctl restart nginx
 ```
 
-### 2. Frontend Build
+### 2. Frontend Build (MUHIM)
 
-Frontend-ni Production uchun tayyorlash:
+Production-da `npm start` ishlatilmaydi. Buning o'rniga statik fayllar (build) yaratiladi:
 
 ```bash
 cd frontend
 npm install
 npm run build
 ```
-*Eslatma: Nginx `frontend/build` papkasidagi fayllarni 1563-portda xizmat ko'rsatadi.*
+*Eslatma: Nginx `frontend/build` papkasidagi tayyor fayllarni 1563-portda xizmat ko'rsatadi. `n.map is not a function` xatosi kelib chiqmasligi uchun `npm run build` qilinganiga ishonch hosil qiling.*
 
 ### 3. Backend Sozlash
 

@@ -23,8 +23,8 @@ from config.auth_views import APITokenObtainPairView, APITokenRefreshView, APITo
 from config import admin_views
 
 urlpatterns = [
-    path('admin/import-export/', admin.site.admin_view(admin_views.import_export_dashboard), name='admin-import-export'),
-    path('admin/', admin.site.urls),
+    path('backend-admin/import-export/', admin.site.admin_view(admin_views.import_export_dashboard), name='admin-import-export'),
+    path('backend-admin/', admin.site.urls),
     path('api/v1/', include('api.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),
     
