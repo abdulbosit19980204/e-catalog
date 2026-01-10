@@ -99,6 +99,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'config.middleware.DatabaseRetryMiddleware',  # CRITICAL: Database lock retry
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',

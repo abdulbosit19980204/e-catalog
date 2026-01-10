@@ -138,7 +138,8 @@ const NomenklaturaAdmin = () => {
       }
     });
     
-    sanitizedData.project_ids = item.projects ? item.projects.map(p => p.id) : [];
+    // FIXED: Backend now uses `project` (FK) instead of `projects` (M2M)
+    sanitizedData.project_ids = item.project ? [item.project.id] : [];
 
     setFormData(sanitizedData);
     setActiveTab("asosiy");
@@ -483,8 +484,13 @@ const NomenklaturaAdmin = () => {
                     <td>{item.name}</td>
                     <td>
                       <div className="project-tags">
-                        {item.projects && item.projects.map(p => <span key={p.id} className="project-tag" style={{ fontSize: '0.7rem', padding: '2px 6px', backgroundColor: '#f1f1f1', borderRadius: '4px', marginRight: '4px', border: '1px solid #ddd' }}>{p.name}</span>)}
-                        {(!item.projects || item.projects.length === 0) && <span style={{fontSize: '0.7rem', color: '#999'}}>Bog'lanmagan</span>}
+                        {item.project ? (
+                          <span className="project-tag" style={{ fontSize: '0.8rem', padding: '3px 8px', backgroundColor: item.project.is_integration ? '#e3f2fd' : '#f1f1f1', borderRadius: '4px', border: '1px solid #ddd' }}>
+                            {item.project.name}
+                          </span>
+                        ) : (
+                          <span style={{fontSize: '0.75rem', color: '#999'}}>Bog'lanmagan</span>
+                        )}
                       </div>
                     </td>
                     <td><span className={`status-badge ${item.is_active ? 'active' : 'inactive'}`} onClick={() => handleToggleActive(item)} style={{cursor:'pointer'}}>{item.is_active ? "● Faol" : "○ Faol emas"}</span></td>

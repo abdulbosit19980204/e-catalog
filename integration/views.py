@@ -419,6 +419,16 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
     updated_count = 0
     error_count = 0
     
+    # CRITICAL: Integration loyiha bo'lishi kerak!
+    if not integration.project:
+        error_msg = f"Integration '{integration.name}' da loyiha tanlanmagan! Admin panelda loyiha tanlang."
+        logger.error(error_msg)
+        if log_obj:
+            log_obj.status = 'error'
+            log_obj.error_details = error_msg
+            log_obj.save()
+        raise ValueError(error_msg)
+    
     try:
         # Barcha itemlarni parse qilish
         parsed_items = []
@@ -461,10 +471,12 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
                         for item_data in chunk:
                             try:
                                 # update_or_create - atomic operation
+                                # MUHIM: project ham defaults ichida bo'lishi kerak!
                                 obj, created = Nomenklatura.objects.update_or_create(
-                                    project=integration.project,
-                                    code_1c=item_data['code_1c'],
+                                    project=integration.project,  # Lookup field 1
+                                    code_1c=item_data['code_1c'],  # Lookup field 2
                                     defaults={
+                                        'project': integration.project,  # MUHIM: Update uchun kerak!
                                         'name': item_data['name'],
                                         'title': item_data['title'],
                                         'description': item_data['description'],
@@ -551,6 +563,16 @@ def process_clients_chunk(items, integration, chunk_size=50, log_obj=None):
     updated_count = 0
     error_count = 0
     
+    # CRITICAL: Integration loyiha bo'lishi kerak!
+    if not integration.project:
+        error_msg = f"Integration '{integration.name}' da loyiha tanlanmagan! Admin panelda loyiha tanlang."
+        logger.error(error_msg)
+        if log_obj:
+            log_obj.status = 'error'
+            log_obj.error_details = error_msg
+            log_obj.save()
+        raise ValueError(error_msg)
+    
     try:
         # Barcha itemlarni parse qilish
         parsed_items = []
@@ -592,10 +614,13 @@ def process_clients_chunk(items, integration, chunk_size=50, log_obj=None):
                                 client_code_1c = item_data.pop('client_code_1c')
                                 
                                 # update_or_create - atomic operation
+                                # MUHIM: project ni defaults ichiga qo'shish!
+                                item_data['project'] = integration.project
+                                
                                 obj, created = Client.objects.update_or_create(
-                                    project=integration.project,
-                                    client_code_1c=client_code_1c,
-                                    defaults=item_data
+                                    project=integration.project,  # Lookup field 1
+                                    client_code_1c=client_code_1c,  # Lookup field 2
+                                    defaults=item_data  # project item_data ichida
                                 )
                                 if created:
                                     created_count += 1
