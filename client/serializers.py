@@ -188,6 +188,12 @@ class ClientImageBulkUploadSerializer(serializers.Serializer):
     client = serializers.CharField(
         help_text="Rasm bog'lanadigan client'ning `client_code_1c` qiymati", max_length=255
     )
+    project_id = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text="Loyiha ID si (client_code_1c dublikat bo'lgan holatlar uchun)"
+    )
+
     images = serializers.ListField(
         child=serializers.ImageField(),
         allow_empty=False,

@@ -230,10 +230,16 @@ const ClientAdmin = () => {
     if (!editingClient || selectedImages.length === 0) return;
     try {
       setUploading(true);
-      await clientAPI.bulkUploadImages(editingClient.client_code_1c, selectedImages, imageMeta);
+      const options = {
+        ...imageMeta,
+        project_id: editingClient.project?.id
+      };
+      await clientAPI.bulkUploadImages(editingClient.client_code_1c, selectedImages, options);
+
       // Reload the client data to refresh images tab
-      const updated = await clientAPI.getClient(editingClient.client_code_1c);
+      const updated = await clientAPI.getClient(editingClient.client_code_1c, editingClient.project?.id);
       setEditingClient(updated.data);
+
       setSelectedImages([]);
       setImageMeta({ category: "", note: "" });
       success("Rasmlar muvaffaqiyatli yuklandi!");
@@ -248,8 +254,9 @@ const ClientAdmin = () => {
     if (!window.confirm("Bu rasmni o'chirishni xohlaysizmi?")) return;
     try {
       await clientAPI.deleteImage(imageId);
-      const updated = await clientAPI.getClient(editingClient.client_code_1c);
+      const updated = await clientAPI.getClient(editingClient.client_code_1c, editingClient.project?.id);
       setEditingClient(updated.data);
+
       success("Rasm o'chirildi");
     } catch (err) {
       showError("Rasmni o'chirib bo'lmadi");
@@ -259,8 +266,9 @@ const ClientAdmin = () => {
   const handleSetMainImage = async (imageId) => {
     try {
       await clientAPI.setMainImage(imageId);
-      const updated = await clientAPI.getClient(editingClient.client_code_1c);
+      const updated = await clientAPI.getClient(editingClient.client_code_1c, editingClient.project?.id);
       setEditingClient(updated.data);
+
       success("Rasm asosiy qilib belgilandi");
     } catch (err) {
       showError("Rasmni asosiy qilib bo'lmadi");

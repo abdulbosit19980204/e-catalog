@@ -182,6 +182,12 @@ class NomenklaturaImageBulkUploadSerializer(serializers.Serializer):
     nomenklatura = serializers.CharField(
         help_text="Rasm bog'lanadigan nomenklatura'ning `code_1c` qiymati", max_length=255
     )
+    project_id = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text="Loyiha ID si (code_1c dublikat bo'lgan holatlar uchun)"
+    )
+
     images = serializers.ListField(
         child=serializers.ImageField(),
         allow_empty=False,

@@ -161,9 +161,10 @@ export const clientAPI = {
   getClients: (params = {}) => {
     return apiClient.get("/client/", { params });
   },
-  getClient: (clientCode1c) => {
-    return apiClient.get(`/client/${clientCode1c}/`);
+  getClient: (clientCode1c, project_id) => {
+    return apiClient.get(`/client/${clientCode1c}/`, { params: { project_id } });
   },
+
   createClient: (data) => {
     return apiClient.post("/client/", data);
   },
@@ -197,9 +198,13 @@ export const clientAPI = {
     if (options.note !== undefined) {
       formData.append('note', options.note);
     }
+    if (options.project_id) {
+      formData.append('project_id', options.project_id);
+    }
     imageFiles.forEach((file) => {
       formData.append('images', file);
     });
+
     return apiClient.post("/client-image/bulk-upload/", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
@@ -220,8 +225,8 @@ export const nomenklaturaAPI = {
   getNomenklatura: (params = {}) => {
     return apiClient.get("/nomenklatura/", { params });
   },
-  getNomenklaturaItem: (code1c) => {
-    return apiClient.get(`/nomenklatura/${code1c}/`);
+  getNomenklaturaItem: (code1c, project_id) => {
+    return apiClient.get(`/nomenklatura/${code1c}/`, { params: { project_id } });
   },
   createNomenklatura: (data) => {
     return apiClient.post("/nomenklatura/", data);
@@ -256,9 +261,13 @@ export const nomenklaturaAPI = {
     if (options.note !== undefined) {
       formData.append('note', options.note);
     }
+    if (options.project_id) {
+      formData.append('project_id', options.project_id);
+    }
     imageFiles.forEach((file) => {
       formData.append('images', file);
     });
+
     return apiClient.post("/nomenklatura-image/bulk-upload/", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });

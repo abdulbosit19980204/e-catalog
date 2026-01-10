@@ -228,9 +228,15 @@ const NomenklaturaAdmin = () => {
     if (!editingNomenklatura || selectedImages.length === 0) return;
     try {
       setUploading(true);
-      await nomenklaturaAPI.bulkUploadImages(editingNomenklatura.code_1c, selectedImages, imageMeta);
-      const updated = await nomenklaturaAPI.getNomenklaturaItem(editingNomenklatura.code_1c);
+      const options = {
+        ...imageMeta,
+        project_id: editingNomenklatura.project?.id
+      };
+      await nomenklaturaAPI.bulkUploadImages(editingNomenklatura.code_1c, selectedImages, options);
+
+      const updated = await nomenklaturaAPI.getNomenklaturaItem(editingNomenklatura.code_1c, editingNomenklatura.project?.id);
       setEditingNomenklatura(updated.data);
+
       setSelectedImages([]);
       setImageMeta({ category: "", note: "" });
       success("Rasmlar yuklandi!");
@@ -245,8 +251,9 @@ const NomenklaturaAdmin = () => {
     if (!window.confirm("Rasmni o'chirish?")) return;
     try {
       await nomenklaturaAPI.deleteImage(imageId);
-      const updated = await nomenklaturaAPI.getNomenklaturaItem(editingNomenklatura.code_1c);
+      const updated = await nomenklaturaAPI.getNomenklaturaItem(editingNomenklatura.code_1c, editingNomenklatura.project?.id);
       setEditingNomenklatura(updated.data);
+
       success("Rasm o'chirildi");
     } catch (err) {
       showError("Rasmni o'chirib bo'lmadi");
@@ -256,8 +263,9 @@ const NomenklaturaAdmin = () => {
   const handleSetMainImage = async (imageId) => {
     try {
       await nomenklaturaAPI.setMainImage(imageId);
-      const updated = await nomenklaturaAPI.getNomenklaturaItem(editingNomenklatura.code_1c);
+      const updated = await nomenklaturaAPI.getNomenklaturaItem(editingNomenklatura.code_1c, editingNomenklatura.project?.id);
       setEditingNomenklatura(updated.data);
+
       success("Rasm asosiy qilib belgilandi");
     } catch (err) {
       showError("Rasmni asosiy qilib bo'lmadi");

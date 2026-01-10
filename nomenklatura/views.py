@@ -213,6 +213,34 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
     filterset_class = NomenklaturaFilterSet
     search_fields = ['code_1c', 'name']
     
+    def get_object(self):
+        """code_1c bo'yicha bitta obyektni olish, MultipleObjectsReturned xatosi oldini olish uchun"""
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs[lookup_url_kwarg]
+        
+        # Filter by lookup field
+        filter_kwargs = {self.lookup_field: lookup_value}
+        
+        # Agar URL params da project_id bo'lsa, undan foydalanamiz
+        project_id = self.request.query_params.get('project_id')
+        if project_id:
+            filter_kwargs['project_id'] = project_id
+            
+        try:
+            obj = queryset.get(**filter_kwargs)
+        except Nomenklatura.MultipleObjectsReturned:
+            # Agar bir nechta chiqsa va project_id berilmagan bo'lsa, birinchisini olamiz yoki xatolik
+            # Bu yerda xavfsizlik uchun birinchisini olish yoki xato berishni tanlash kerak
+            # Admin panelda biz project_id ni yuboramiz
+            if not project_id:
+                return queryset.filter(**filter_kwargs).first()
+            raise
+            
+        self.check_object_permissions(self.request, obj)
+        return obj
+
+    
     def perform_create(self, serializer):
         super().perform_create(serializer)
         cache.clear()
@@ -536,12 +564,24 @@ class NomenklaturaImageViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            nomenklatura = Nomenklatura.objects.get(code_1c=nomenklatura_code, is_deleted=False)
+            project_id = request.data.get('project_id')
+            query = Q(code_1c=nomenklatura_code, is_deleted=False)
+            if project_id:
+                query &= Q(project_id=project_id)
+            
+            # Agar project_id berilmagan bo'lsa va MultipleObjectsReturned bo'lsa, xatolik qaytaramiz
+            nomenklatura = Nomenklatura.objects.get(query)
         except Nomenklatura.DoesNotExist:
             return Response(
                 {'error': 'Nomenklatura topilmadi'},
                 status=status.HTTP_404_NOT_FOUND
             )
+        except Nomenklatura.MultipleObjectsReturned:
+            return Response(
+                {'error': 'Ushbu kod bir nechta loyihada mavjud. Iltimos, project_id ni yuboring.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         
         images = request.FILES.getlist('images')
         if not images:

@@ -193,6 +193,32 @@ class ClientViewSet(viewsets.ModelViewSet):
     search_fields = ['client_code_1c', 'name', 'email']
     permission_classes = [IsAuthenticated]  # Faqat authenticated user'lar uchun
     
+    def get_object(self):
+        """client_code_1c bo'yicha bitta obyektni olish, MultipleObjectsReturned xatosi oldini olish uchun"""
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs[lookup_url_kwarg]
+        
+        # Filter by lookup field
+        filter_kwargs = {self.lookup_field: lookup_value}
+        
+        # Agar URL params da project_id bo'lsa, undan foydalanamiz
+        project_id = self.request.query_params.get('project_id')
+        if project_id:
+            filter_kwargs['project_id'] = project_id
+            
+        try:
+            obj = queryset.get(**filter_kwargs)
+        except Client.MultipleObjectsReturned:
+            # Agar bir nechta chiqsa va project_id berilmagan bo'lsa, birinchisini olamiz
+            if not project_id:
+                return queryset.filter(**filter_kwargs).first()
+            raise
+            
+        self.check_object_permissions(self.request, obj)
+        return obj
+
+    
     def get_queryset(self):
         """Optimizatsiya: prefetch_related bilan images yuklash - N+1 query muammosini hal qiladi"""
         return Client.objects.filter(
@@ -497,8 +523,14 @@ class ClientImageViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Fix: get() o'rniga filter().first() ishlatamiz (duplicate code bo'lsa 500 xato bermasligi uchun)
-        client = Client.objects.filter(client_code_1c=client_code, is_deleted=False).first()
+        # project_id ni ham hisobga olamiz
+        project_id = request.data.get('project_id')
+        query = Q(client_code_1c=client_code, is_deleted=False)
+        if project_id:
+            query &= Q(project_id=project_id)
+            
+        client = Client.objects.filter(query).first()
+
         
         if not client:
             return Response(
