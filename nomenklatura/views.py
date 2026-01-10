@@ -164,6 +164,18 @@ class NomenklaturaImageFilterSet(django_filters.FilterSet):
                 type=OpenApiTypes.DATE,
                 description="Yangilangan sana chegarasi (YYYY-MM-DD)",
             ),
+            OpenApiParameter(
+                name='is_active',
+                required=False,
+                type=OpenApiTypes.BOOL,
+                description="Faol/Noaktivlik holati bo'yicha filter",
+            ),
+            OpenApiParameter(
+                name='category',
+                required=False,
+                type=OpenApiTypes.STR,
+                description="Kategoriya bo'yicha filter",
+            ),
         ],
     ),
     retrieve=extend_schema(

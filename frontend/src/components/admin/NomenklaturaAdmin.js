@@ -24,6 +24,8 @@ const NomenklaturaAdmin = () => {
   const [filterCategory, setFilterCategory] = useState("");
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
+  const [imageStatusFilter, setImageStatusFilter] = useState("");
+  const [descriptionStatusFilter, setDescriptionStatusFilter] = useState("");
 
   const [projectsList, setProjectsList] = useState([]);
 
@@ -95,6 +97,8 @@ const NomenklaturaAdmin = () => {
         category: filterCategory || undefined,
         created_from: createdFrom || undefined,
         created_to: createdTo || undefined,
+        image_status: imageStatusFilter || undefined,
+        description_status: descriptionStatusFilter || undefined,
       };
       const response = await nomenklaturaAPI.getNomenklatura(params);
       setNomenklatura(response.data.results || response.data);
@@ -109,7 +113,7 @@ const NomenklaturaAdmin = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, filterProject, statusFilter, filterCategory, createdFrom, createdTo, showError]);
+  }, [page, pageSize, search, filterProject, statusFilter, filterCategory, createdFrom, createdTo, imageStatusFilter, descriptionStatusFilter, showError]);
 
   useEffect(() => {
     loadProjects();
@@ -362,14 +366,55 @@ const NomenklaturaAdmin = () => {
 
   const renderPagination = () => {
     if (totalPages <= 1) return null;
+
+    const renderPageButtons = () => {
+      const buttons = [];
+      const showEllipsis = totalPages > 7;
+      
+      if (!showEllipsis) {
+        for (let i = 1; i <= totalPages; i++) {
+          buttons.push(
+            <button key={i} onClick={() => setPage(i)} className={`page-number ${page === i ? 'active' : ''}`}>{i}</button>
+          );
+        }
+      } else {
+        // Always show first page
+        buttons.push(<button key={1} onClick={() => setPage(1)} className={`page-number ${page === 1 ? 'active' : ''}`}>1</button>);
+        
+        if (page > 4) buttons.push(<span key="dots-1">...</span>);
+        
+        const start = Math.max(2, page - 2);
+        const end = Math.min(totalPages - 1, page + 2);
+        
+        for (let i = start; i <= end; i++) {
+          buttons.push(
+            <button key={i} onClick={() => setPage(i)} className={`page-number ${page === i ? 'active' : ''}`}>{i}</button>
+          );
+        }
+        
+        if (page < totalPages - 3) buttons.push(<span key="dots-2">...</span>);
+        
+        // Always show last page
+        buttons.push(<button key={totalPages} onClick={() => setPage(totalPages)} className={`page-number ${page === totalPages ? 'active' : ''}`}>{totalPages}</button>);
+      }
+      return buttons;
+    };
+
     return (
       <div className="pagination" style={{ marginTop: 0, marginBottom: 20 }}>
         <div className="pagination-controls">
           <button onClick={() => setPage(page-1)} disabled={page===1} className="page-button">Oldingi</button>
-          <span style={{margin: '0 10px', fontWeight: 600}}>Sahifa {page} / {totalPages}</span>
+          <div className="page-numbers">
+            {renderPageButtons()}
+          </div>
           <button onClick={() => setPage(page+1)} disabled={page===totalPages} className="page-button">Keyingi</button>
         </div>
-        <div className="pagination-controls"><span className="page-info">Jami: {totalCount}</span><select value={pageSize} onChange={(e) => {setPageSize(parseInt(e.target.value)); setPage(1);}} className="page-size-select">{[10, 20, 50, 100].map(sz => <option key={sz} value={sz}>{sz}</option>)}</select></div>
+        <div className="pagination-controls">
+          <span className="page-info">Jami: {totalCount}</span>
+          <select value={pageSize} onChange={(e) => {setPageSize(parseInt(e.target.value)); setPage(1);}} className="page-size-select">
+            {[10, 20, 50, 100].map(sz => <option key={sz} value={sz}>{sz}</option>)}
+          </select>
+        </div>
       </div>
     );
   };
@@ -377,20 +422,51 @@ const NomenklaturaAdmin = () => {
   return (
     <div className="admin-crud">
       <div className="crud-header"><h2>📦 Nomenklatura</h2><button onClick={handleCreate} className="btn-primary">+ Yangi</button></div>
-      <form onSubmit={(e) => {e.preventDefault(); setPage(1); loadNomenklatura();}} className="search-form">
+      <form onSubmit={(e) => {e.preventDefault(); setPage(1);}} className="search-form">
         <div className="search-row">
           <input type="text" placeholder="Qidirish..." value={search} onChange={(e) => setSearch(e.target.value)} className="search-input" />
           <button type="submit" className="btn-primary">Qidirish</button>
-          <button type="button" className="btn-tertiary" onClick={() => { setSearch(""); setFilterProject(""); setStatusFilter(""); setFilterCategory(""); setCreatedFrom(""); setCreatedTo(""); setPage(1); loadNomenklatura(); }}>Tozalash</button>
+          <button type="button" className="btn-tertiary" onClick={() => { 
+            setSearch(""); setFilterProject(""); setStatusFilter(""); 
+            setFilterCategory(""); setCreatedFrom(""); setCreatedTo(""); 
+            setImageStatusFilter(""); setDescriptionStatusFilter("");
+            setPage(1);
+          }}>Tozalash</button>
         </div>
         <div className="filter-row">
           <div className="filter-field">
             <label>Loyiha</label>
-            <select value={filterProject} onChange={(e) => setFilterProject(e.target.value)}><option value="">Hammasi</option>{projectsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+            <select value={filterProject} onChange={(e) => { setFilterProject(e.target.value); setPage(1); }}>
+              <option value="">Hammasi</option>
+              {projectsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
           </div>
-          <div className="filter-field"><label>Status</label><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option value="">Hammasi</option><option value="true">Faol</option><option value="false">Faol emas</option></select></div>
-          <div className="filter-field"><label>Yaratilgan (dan)</label><input type="date" value={createdFrom} onChange={(e) => setCreatedFrom(e.target.value)} /></div>
-          <div className="filter-field"><label>Yaratilgan (gacha)</label><input type="date" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} /></div>
+          <div className="filter-field">
+            <label>Status</label>
+            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+              <option value="">Hammasi</option>
+              <option value="true">Faol</option>
+              <option value="false">Faol emas</option>
+            </select>
+          </div>
+          <div className="filter-field"><label>Yaratilgan (dan)</label><input type="date" value={createdFrom} onChange={(e) => { setCreatedFrom(e.target.value); setPage(1); }} /></div>
+          <div className="filter-field"><label>Yaratilgan (gacha)</label><input type="date" value={createdTo} onChange={(e) => { setCreatedTo(e.target.value); setPage(1); }} /></div>
+          <div className="filter-field">
+            <label>Rasm</label>
+            <select value={imageStatusFilter} onChange={(e) => { setImageStatusFilter(e.target.value); setPage(1); }}>
+              <option value="">Hammasi</option>
+              <option value="with">Rasm bor</option>
+              <option value="without">Rasm yo'q</option>
+            </select>
+          </div>
+          <div className="filter-field">
+            <label>Tavsif</label>
+            <select value={descriptionStatusFilter} onChange={(e) => { setDescriptionStatusFilter(e.target.value); setPage(1); }}>
+              <option value="">Hammasi</option>
+              <option value="with">Tavsif bor</option>
+              <option value="without">Tavsif yo'q</option>
+            </select>
+          </div>
         </div>
       </form>
 
