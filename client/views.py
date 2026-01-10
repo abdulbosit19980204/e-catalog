@@ -530,3 +530,44 @@ class ClientImageViewSet(viewsets.ModelViewSet):
             'message': f'{len(created_images)} ta rasm muvaffaqiyatli yuklandi',
             'images': created_images
         }, status=status.HTTP_201_CREATED)
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Agent Visits'],
+        summary="Agent tashrifi rasmlari ro'yxatini olish",
+        description="Agentlar tomonidan magazinlarga tashrif buyurilganda olingan rasmlarni qaytaradi (millonlab recordlar uchun optimallashtirilgan).",
+    ),
+    create=extend_schema(
+        tags=['Agent Visits'],
+        summary="Tashrif rasmini yuklash",
+        description="Agent tashrifi davomida olingan rasmni yuklash.",
+    ),
+)
+class VisitImageViewSet(viewsets.ModelViewSet):
+    """
+    Agent tashriflari (visit) davomida olingan rasmlar uchun maxsus API.
+    Millionlab recordlar uchun optimallashtirilgan.
+    """
+    queryset = ClientImage.objects.filter(is_deleted=False)
+    serializer_class = ClientImageSerializer
+    permission_classes = [IsAuthenticated]
+    search_fields = ['client__name', 'client__client_code_1c', 'note']
+    filterset_fields = ['client', 'status', 'is_main', 'category']
+
+    def get_queryset(self):
+        # Faqat kerakli maydonlarni yuklash orqali memory va I/O ni tejaymiz
+        return ClientImage.objects.filter(
+            is_deleted=False,
+            # Faqat tashrifga aloqador statusdagi rasmlarni qaytaramiz (agar buni xoxlashsa)
+            # status__code__in=['store_before', 'store_after'] 
+        ).select_related(
+            'client', 'status', 'source'
+        ).only(
+            'id', 'client__id', 'client__name', 'client__client_code_1c',
+            'image', 'is_main', 'category', 'note', 'status', 'source',
+            'created_at'
+        ).order_by('-created_at')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context

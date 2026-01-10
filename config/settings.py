@@ -229,11 +229,15 @@ CACHES = {
             'SOCKET_TIMEOUT': 5,
             'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
             'IGNORE_EXCEPTIONS': True,  # Don't break if Redis is down
-            # 'PARSER_CLASS': 'redis.connection.HiredisParser',  # Faster parser (optional, requires hiredis)
         },
         'KEY_PREFIX': 'ecatalog',
-        'TIMEOUT': 300,  # 5 minutes default
+        'TIMEOUT': 300,
         'VERSION': 1,
+    },
+    'fallback': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,
     }
 }
 

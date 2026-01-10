@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 from nomenklatura.views import NomenklaturaViewSet, NomenklaturaImageViewSet
-from client.views import ClientViewSet, ClientImageViewSet
+from client.views import ClientViewSet, ClientImageViewSet, VisitImageViewSet
 from .views import (
     ProjectViewSet,
     ProjectImageViewSet,
@@ -24,6 +24,7 @@ router.register('project-image', ProjectImageViewSet)
 router.register('image-status', ImageStatusViewSet)
 router.register('image-source', ImageSourceViewSet)
 router.register('agent-location', AgentLocationViewSet)
+router.register('visit-image', VisitImageViewSet, basename='visit-image')
 
 urlpatterns = [
     path('thumbnails/', ThumbnailFeedView.as_view(), name='thumbnail-feed'),

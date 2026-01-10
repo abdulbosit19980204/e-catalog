@@ -151,6 +151,7 @@ class NomenklaturaImage(BaseModel):
         indexes = [
             models.Index(fields=['nomenklatura', 'is_deleted']),
             models.Index(fields=['is_main', 'is_deleted']),
+            models.Index(fields=['created_at', 'is_deleted']),
         ]
 
     def save(self, *args, **kwargs):

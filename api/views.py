@@ -5,6 +5,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers, vary_on_cookie
 from django.core.cache import cache
+from utils.cache import smart_cache_get, smart_cache_set, smart_cache_delete
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
@@ -208,7 +209,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         """Optimizatsiya: prefetch_related bilan images yuklash - N+1 query muammosini hal qiladi"""
         # Cache key based on filters
         cache_key = f"project_queryset_{hash(str(self.request.query_params))}"
-        cached_qs = cache.get(cache_key)
+        cached_qs = smart_cache_get(cache_key)
         if cached_qs is None:
             qs = Project.objects.filter(
                 is_deleted=False
@@ -217,7 +218,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 'images__status',
                 'images__source'
             ).order_by('-created_at')
-            cache.set(cache_key, qs, 300)  # Cache for 5 minutes
+            smart_cache_set(cache_key, qs, 300)  # Cache for 5 minutes
             return qs
         return cached_qs
     
@@ -235,18 +236,26 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Invalidate cache on create"""
         super().perform_create(serializer)
-        cache.clear()  # Clear all cache on create
+        # Barcha keshni tozalash o'rniga smart_cache_delete ishlatish mumkin, 
+        # lekin hozircha cache.clear() osonroq (fallback ni ham tozalash kerak)
+        cache.clear()
+        from django.core.cache import caches
+        caches['fallback'].clear()
     
     def perform_update(self, serializer):
         """Invalidate cache on update"""
         super().perform_update(serializer)
-        cache.clear()  # Clear all cache on update
+        cache.clear()
+        from django.core.cache import caches
+        caches['fallback'].clear()
     
     def perform_destroy(self, instance):
         """Soft delete - projectni o'chirmasdan is_deleted=True qiladi"""
         instance.is_deleted = True
         instance.save(update_fields=['is_deleted', 'updated_at'])
-        cache.clear()  # Clear cache on delete
+        cache.clear()
+        from django.core.cache import caches
+        caches['fallback'].clear()
     
     def get_serializer_context(self):
         context = super().get_serializer_context()

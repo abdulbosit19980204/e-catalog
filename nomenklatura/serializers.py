@@ -3,7 +3,7 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 from PIL import Image
-from api.serializers import ImageStatusSerializer, ImageSourceSerializer, ProjectSerializer
+from api.serializers import ImageStatusSerializer, ImageSourceSerializer, ProjectSerializer, ProjectSimpleSerializer
 from api.models import ImageStatus, ImageSource, Project
 from .models import Nomenklatura, NomenklaturaImage
 
@@ -162,6 +162,8 @@ class NomenklaturaSerializer(serializers.ModelSerializer):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Optimizatsiya: Nomenklatura ichida faqat yengil project ma'lumotlarini qaytarish
+        self.fields['projects'] = ProjectSimpleSerializer(many=True, read_only=True)
         # Pass request context to nested serializer
         if 'request' in self.context:
             self.fields['images'].context['request'] = self.context['request']

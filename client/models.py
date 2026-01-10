@@ -148,6 +148,7 @@ class ClientImage(BaseModel):
         indexes = [
             models.Index(fields=['client', 'is_deleted']),
             models.Index(fields=['is_main', 'is_deleted']),
+            models.Index(fields=['created_at', 'is_deleted']),
         ]
 
     def save(self, *args, **kwargs):

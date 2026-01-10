@@ -96,9 +96,11 @@ class APINomenklaturaSerializer(serializers.ModelSerializer):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Pass request context to nested serializer
+        # Optimizatsiya: Nomenklatura ichida faqat yengil project ma'lumotlarini qaytarish
+        self.fields['projects'] = ProjectSimpleSerializer(many=True, read_only=True)
         if 'request' in self.context:
             self.fields['images'].context['request'] = self.context['request']
+            self.fields['projects'].context['request'] = self.context['request']
 
 class ProjectImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
@@ -228,6 +230,13 @@ class AgentLocationSerializer(serializers.ModelSerializer):
         model = AgentLocation
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+class ProjectSimpleSerializer(serializers.ModelSerializer):
+    """Faqatgina ID, code_1c va name ni qaytaruvchi yengil serializer"""
+    class Meta:
+        model = Project
+        fields = ['id', 'code_1c', 'name']
+
 
 class ProjectSerializer(serializers.ModelSerializer):
     images = ProjectImageSerializer(many=True, read_only=True)

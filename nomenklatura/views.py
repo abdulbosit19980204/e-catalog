@@ -6,6 +6,8 @@ from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.core.cache import cache
+from utils.cache import smart_cache_get, smart_cache_set, smart_cache_delete
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -195,16 +197,41 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
     filterset_class = NomenklaturaFilterSet
     search_fields = ['code_1c', 'name']
     
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        cache.clear()
+        from django.core.cache import caches
+        caches['fallback'].clear()
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        cache.clear()
+        from django.core.cache import caches
+        caches['fallback'].clear()
+
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.save(update_fields=['is_deleted', 'updated_at'])
+        cache.clear()
+        from django.core.cache import caches
+        caches['fallback'].clear()
+    
     def get_queryset(self):
         """Optimizatsiya: prefetch_related bilan images va projects yuklash - N+1 query muammosini hal qiladi"""
-        return Nomenklatura.objects.filter(
-            is_deleted=False
-        ).prefetch_related(
-            'images',
-            'images__status',
-            'images__source',
-            'projects'
-        ).order_by('-created_at')
+        cache_key = f"nomenklatura_queryset_{hash(str(self.request.query_params))}"
+        cached_qs = smart_cache_get(cache_key)
+        if cached_qs is None:
+            qs = Nomenklatura.objects.filter(
+                is_deleted=False
+            ).prefetch_related(
+                'images',
+                'images__status',
+                'images__source',
+                'projects'
+            ).order_by('-created_at')
+            smart_cache_set(cache_key, qs, 300)
+            return qs
+        return cached_qs
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
