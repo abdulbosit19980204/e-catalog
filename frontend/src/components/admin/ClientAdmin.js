@@ -128,9 +128,10 @@ const ClientAdmin = () => {
       }
     });
 
-    // Populate project_ids from projects array
-    if (client.projects) {
-      sanitizedData.project_ids = client.projects.map(p => p.id);
+    // Populate project_ids from project object
+    // FIXED: Backend now uses `project` (FK) instead of `projects` (M2M)
+    if (client.project) {
+      sanitizedData.project_ids = [client.project.id];
     } else {
       sanitizedData.project_ids = [];
     }
