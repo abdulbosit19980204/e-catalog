@@ -306,6 +306,14 @@ def parse_client_item(item):
     except Exception as e:
         logger.debug(f"Error getting additional fields from SOAP item: {e}")
     
+    # Maxsus: Project nomini alohida olish (Nomenklatura kabi)
+    try:
+        project_name = clean_value(getattr(item, 'Project', None))
+        if project_name:
+            parsed_data['project_name'] = project_name
+    except Exception:
+        pass
+    
     # Majburiy fieldlarni tekshirish
     if not parsed_data.get('client_code_1c') or not parsed_data.get('name'):
         return None
@@ -578,8 +586,29 @@ def process_clients_chunk(items, integration, chunk_size=100, log_obj=None):
                     to_create = []
                     to_update = []
                     
+                    # Project cache
+                    from api.models import Project
+                    project_cache = {}
+                    default_project = integration.project
+                    
                     for item_data in chunk:
                         client_code_1c = item_data['client_code_1c']
+                        project_name = item_data.pop('project_name', None)
+                        
+                        # Project'ni topish yoki cache'dan olish
+                        project_to_add = None
+                        if project_name:
+                            if project_name not in project_cache:
+                                try:
+                                    project_cache[project_name], _ = Project.objects.get_or_create(
+                                        name=project_name,
+                                        defaults={'code_1c': project_name, 'is_active': True, 'is_deleted': False}
+                                    )
+                                except Exception:
+                                    project_cache[project_name] = default_project
+                            project_to_add = project_cache[project_name]
+                        else:
+                            project_to_add = default_project
                         
                         if client_code_1c in existing_dict:
                             # Update - barcha fieldlarni yangilash
@@ -595,20 +624,29 @@ def process_clients_chunk(items, integration, chunk_size=100, log_obj=None):
                             
                             existing.updated_at = timezone.now()
                             to_update.append(existing)
+                            
+                            # M2M project'ni qo'shish
+                            if project_to_add:
+                                existing.projects.add(project_to_add)
                         else:
                             # Create - barcha fieldlar bilan yaratish
                             try:
+                                # project_name allaqachon pop qilingan
                                 new_client = Client(**item_data)
-                                to_create.append(new_client)
+                                new_client.save()
+                                if project_to_add:
+                                    new_client.projects.add(project_to_add)
+                                created_count += 1
                             except Exception as e:
                                 logger.error(f"Error creating client {client_code_1c}: {e}")
                                 error_count += 1
                                 continue
                     
                     # Bulk operations
-                    if to_create:
-                        Client.objects.bulk_create(to_create, ignore_conflicts=True)
-                        created_count += len(to_create)
+                    # Bulk create olib tashlandi, chunki M2M uchun save() ishlatildi (Nomenklatura kabi)
+                    # if to_create:
+                    #     Client.objects.bulk_create(to_create, ignore_conflicts=True)
+                    #     created_count += len(to_create)
                     
                     if to_update:
                         # Barcha yangilanishi kerak bo'lgan fieldlarni aniqlash

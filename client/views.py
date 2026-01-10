@@ -31,6 +31,8 @@ class ClientFilterSet(django_filters.FilterSet):
         method="filter_image_status",
         choices=(("with", "Rasm bor"), ("without", "Rasm yo'q")),
     )
+    project = django_filters.CharFilter(field_name='projects__code_1c', label="Project code_1c")
+    project_id = django_filters.NumberFilter(field_name='projects__id', label="Project ID")
     created_from = django_filters.DateFilter(field_name='created_at', lookup_expr='date__gte')
     created_to = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
     updated_from = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__gte')
@@ -42,8 +44,8 @@ class ClientFilterSet(django_filters.FilterSet):
             'client_code_1c',
             'name',
             'email',
-            'description_status',
-            'image_status',
+            'project',
+            'project_id',
             'created_from',
             'created_to',
             'updated_from',
@@ -197,7 +199,8 @@ class ClientViewSet(viewsets.ModelViewSet):
         ).prefetch_related(
             'images',
             'images__status',
-            'images__source'
+            'images__source',
+            'projects'
         ).order_by('-created_at')
     
     def get_serializer_context(self):

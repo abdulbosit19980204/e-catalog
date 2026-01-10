@@ -3,8 +3,8 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 from PIL import Image
-from api.serializers import ImageStatusSerializer, ImageSourceSerializer
-from api.models import ImageStatus, ImageSource
+from api.serializers import ImageStatusSerializer, ImageSourceSerializer, ProjectSerializer, ProjectSimpleSerializer
+from api.models import ImageStatus, ImageSource, Project
 from .models import Client, ClientImage
 
 class ClientImageSerializer(serializers.ModelSerializer):
@@ -140,11 +140,18 @@ class ClientImageSerializer(serializers.ModelSerializer):
 
 class ClientSerializer(serializers.ModelSerializer):
     images = ClientImageSerializer(many=True, read_only=True)
+    projects = ProjectSerializer(many=True, read_only=True)
+    project_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        help_text="Project ID lari ro'yxati"
+    )
     
     class Meta:
         model = Client
         fields = [
-            'id', 'client_code_1c', 'name', 'email', 'phone', 'description', 
+            'id', 'projects', 'project_ids', 'client_code_1c', 'name', 'email', 'phone', 'description', 
             'company_name', 'tax_id', 'registration_number', 'legal_address',
             'actual_address', 'fax', 'website', 'social_media', 'additional_phones',
             'industry', 'business_type', 'employee_count', 'annual_revenue',
@@ -161,14 +168,31 @@ class ClientSerializer(serializers.ModelSerializer):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Optimizatsiya: Client ichida faqat yengil project ma'lumotlarini qaytarish
+        self.fields['projects'] = ProjectSimpleSerializer(many=True, read_only=True)
         # Pass request context to nested serializer
         if 'request' in self.context:
             self.fields['images'].context['request'] = self.context['request']
+            self.fields['projects'].context['request'] = self.context['request']
     
+    def create(self, validated_data):
+        project_ids = validated_data.pop('project_ids', None)
+        instance = super().create(validated_data)
+        if project_ids is not None:
+            instance.projects.set(Project.objects.filter(id__in=project_ids))
+        return instance
+
     def update(self, instance, validated_data):
         """Update qilganda client_code_1c o'zgartirilmasligi kerak"""
         validated_data.pop('client_code_1c', None)  # client_code_1c o'zgartirilmaydi
-        return super().update(instance, validated_data)
+        project_ids = validated_data.pop('project_ids', None)
+        
+        instance = super().update(instance, validated_data)
+        
+        if project_ids is not None:
+            instance.projects.set(Project.objects.filter(id__in=project_ids))
+            
+        return instance
 
 
 class ClientImageBulkUploadSerializer(serializers.Serializer):

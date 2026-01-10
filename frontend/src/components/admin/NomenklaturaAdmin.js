@@ -125,20 +125,17 @@ const NomenklaturaAdmin = () => {
 
   const handleEdit = (item) => {
     setEditingNomenklatura(item);
-    
-    // Sanitize data to ensure no null values which cause React controlled input warnings
     const sanitizedData = { ...initialFormData };
     
     Object.keys(initialFormData).forEach(key => {
-      if (key === 'project_ids') return; // Handle separately
+      if (key === 'project_ids') return;
       if (item[key] !== null && item[key] !== undefined) {
         sanitizedData[key] = item[key];
       }
     });
     
-    // Handle special fields
     sanitizedData.project_ids = item.projects ? item.projects.map(p => p.id) : [];
-    
+
     setFormData(sanitizedData);
     setActiveTab("asosiy");
     setShowModal(true);
@@ -155,6 +152,17 @@ const NomenklaturaAdmin = () => {
     }
   };
 
+  const handleProjectToggle = (projectId) => {
+    const currentIds = [...formData.project_ids];
+    const index = currentIds.indexOf(projectId);
+    if (index === -1) {
+      currentIds.push(projectId);
+    } else {
+      currentIds.splice(index, 1);
+    }
+    setFormData({ ...formData, project_ids: currentIds });
+  };
+
   const handleToggleActive = async (item) => {
     try {
       await nomenklaturaAPI.updateNomenklatura(item.code_1c, { is_active: !item.is_active });
@@ -165,26 +173,19 @@ const NomenklaturaAdmin = () => {
     }
   };
 
-  // Helper to clean data before sending to API
   const prepareDataForSubmit = (data) => {
     const cleaned = { ...data };
-    
-    // Numeric fields
     const numericFields = [
       'base_price', 'sale_price', 'cost_price', 'discount_percent', 'tax_rate',
       'stock_quantity', 'min_stock', 'max_stock', 'weight', 'volume',
       'warranty_period', 'rating', 'popularity_score'
     ];
-    
     numericFields.forEach(field => {
         if (cleaned[field] === "") cleaned[field] = null;
     });
-
-    // Date fields
     ['expiry_date', 'production_date'].forEach(field => {
         if (cleaned[field] === "") cleaned[field] = null;
     });
-    
     return cleaned;
   };
 
@@ -205,22 +206,18 @@ const NomenklaturaAdmin = () => {
       let errorMsg = "Saqlashda xatolik";
       const data = err.response?.data;
       if (data) {
-        if (data.detail) {
-          errorMsg = data.detail;
-        } else if (typeof data === 'object') {
+        if (data.detail) errorMsg = data.detail;
+        else if (typeof data === 'object') {
           errorMsg = Object.entries(data)
             .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
             .join("\n");
         }
       }
       showError(errorMsg);
-      console.error("Save error:", err);
     }
   };
 
-  const handleImageSelect = (e) => {
-    setSelectedImages(Array.from(e.target.files));
-  };
+  const handleImageSelect = (e) => setSelectedImages(Array.from(e.target.files));
 
   const handleBulkUpload = async () => {
     if (!editingNomenklatura || selectedImages.length === 0) return;
@@ -269,66 +266,23 @@ const NomenklaturaAdmin = () => {
           <div className="form-grid">
             <div className="form-group">
               <label>Code 1C *</label>
-              <input
-                type="text"
-                value={formData.code_1c}
-                onChange={(e) => setFormData({ ...formData, code_1c: e.target.value })}
-                required
-                className="form-input"
-                disabled={!!editingNomenklatura}
-              />
+              <input type="text" value={formData.code_1c} onChange={(e) => setFormData({ ...formData, code_1c: e.target.value })} required className="form-input" disabled={!!editingNomenklatura} />
             </div>
             <div className="form-group">
               <label>Name *</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                className="form-input"
-              />
+              <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required className="form-input" />
             </div>
             <div className="form-group">
               <label>Title</label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="form-input"
-              />
-            </div>
-            <div className="form-group">
-              <label>Loyihalar</label>
-              <select
-                multiple
-                value={formData.project_ids}
-                onChange={(e) => {
-                  const values = Array.from(e.target.selectedOptions, option => parseInt(option.value));
-                  setFormData({ ...formData, project_ids: values });
-                }}
-                className="form-input multi-select"
-                style={{ height: '80px' }}
-              >
-                {projectsList.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+              <input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="form-input" />
             </div>
             <div className="form-group full-width">
               <label>Description</label>
-              <QuillEditor
-                value={formData.description}
-                onChange={(val) => setFormData({ ...formData, description: val })}
-                className="quill-editor"
-              />
+              <QuillEditor value={formData.description} onChange={(val) => setFormData({ ...formData, description: val })} className="quill-editor" />
             </div>
             <div className="form-group">
               <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={formData.is_active}
-                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                />
+                <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />
                 Faol
               </label>
             </div>
@@ -337,118 +291,61 @@ const NomenklaturaAdmin = () => {
       case "specs":
         return (
           <div className="form-grid">
-            <div className="form-group">
-              <label>SKU</label>
-              <input type="text" value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group">
-              <label>Barcode</label>
-              <input type="text" value={formData.barcode} onChange={(e) => setFormData({ ...formData, barcode: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group">
-              <label>Brand</label>
-              <input type="text" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group">
-              <label>Ishlab chiqaruvchi</label>
-              <input type="text" value={formData.manufacturer} onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group">
-              <label>Model</label>
-              <input type="text" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group">
-              <label>Vendor Code</label>
-              <input type="text" value={formData.vendor_code} onChange={(e) => setFormData({ ...formData, vendor_code: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group">
-              <label>Color</label>
-              <input type="text" value={formData.color} onChange={(e) => setFormData({ ...formData, color: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group">
-              <label>Size</label>
-              <input type="text" value={formData.size} onChange={(e) => setFormData({ ...formData, size: e.target.value })} className="form-input" />
-            </div>
+            <div className="form-group"><label>SKU</label><input type="text" value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} className="form-input" /></div>
+            <div className="form-group"><label>Barcode</label><input type="text" value={formData.barcode} onChange={(e) => setFormData({ ...formData, barcode: e.target.value })} className="form-input" /></div>
+            <div className="form-group"><label>Brand</label><input type="text" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} className="form-input" /></div>
+            <div className="form-group"><label>Ishlab chiqaruvchi</label><input type="text" value={formData.manufacturer} onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })} className="form-input" /></div>
           </div>
         );
       case "pricing":
         return (
           <div className="form-grid">
-            <div className="form-group">
-              <label>Base Price</label>
-              <input type="number" value={formData.base_price} onChange={(e) => setFormData({ ...formData, base_price: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group">
-              <label>Sale Price</label>
-              <input type="number" value={formData.sale_price} onChange={(e) => setFormData({ ...formData, sale_price: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group">
-              <label>Stock Qty</label>
-              <input type="number" value={formData.stock_quantity} onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group">
-              <label>Unit</label>
-              <input type="text" value={formData.unit_of_measure} onChange={(e) => setFormData({ ...formData, unit_of_measure: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group">
-              <label>Currency</label>
-              <input type="text" value={formData.currency} onChange={(e) => setFormData({ ...formData, currency: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group">
-              <label>Tax Rate (%)</label>
-              <input type="number" value={formData.tax_rate} onChange={(e) => setFormData({ ...formData, tax_rate: e.target.value })} className="form-input" />
-            </div>
+            <div className="form-group"><label>Base Price</label><input type="number" value={formData.base_price} onChange={(e) => setFormData({ ...formData, base_price: e.target.value })} className="form-input" /></div>
+            <div className="form-group"><label>Sale Price</label><input type="number" value={formData.sale_price} onChange={(e) => setFormData({ ...formData, sale_price: e.target.value })} className="form-input" /></div>
+            <div className="form-group"><label>Stock Qty</label><input type="number" value={formData.stock_quantity} onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })} className="form-input" /></div>
+            <div className="form-group"><label>Currency</label><input type="text" value={formData.currency} onChange={(e) => setFormData({ ...formData, currency: e.target.value })} className="form-input" /></div>
           </div>
         );
       case "cat":
         return (
           <div className="form-grid">
-            <div className="form-group">
-              <label>Category</label>
-              <input type="text" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group">
-              <label>Subcategory</label>
-              <input type="text" value={formData.subcategory} onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })} className="form-input" />
-            </div>
-            <div className="form-group full-width">
-              <label>SEO Keywords</label>
-              <textarea value={formData.seo_keywords} onChange={(e) => setFormData({ ...formData, seo_keywords: e.target.value })} className="form-textarea" rows={2} />
+            <div className="form-group"><label>Category</label><input type="text" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="form-input" /></div>
+            <div className="form-group"><label>Subcategory</label><input type="text" value={formData.subcategory} onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })} className="form-input" /></div>
+          </div>
+        );
+      case "loyihalar":
+        return (
+          <div className="projects-selection-tab">
+            <h4>Bog'langan loyihalar</h4>
+            <div className="projects-list-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', marginTop: '15px' }}>
+              {projectsList.map(project => (
+                <div key={project.id} className={`project-selection-item ${formData.project_ids.includes(project.id) ? 'selected' : ''}`} onClick={() => handleProjectToggle(project.id)} style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', backgroundColor: formData.project_ids.includes(project.id) ? '#e3f2fd' : 'white', borderColor: formData.project_ids.includes(project.id) ? '#2196f3' : '#ddd', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input type="checkbox" checked={formData.project_ids.includes(project.id)} readOnly />
+                  <span>{project.name}</span>
+                </div>
+              ))}
+              {projectsList.length === 0 && <p>Loyihalar mavjud emas</p>}
             </div>
           </div>
         );
       case "rasmlar":
         return (
           <div className="image-management-tab">
-            {!editingNomenklatura ? (
-              <p>Rasmlar uchun avval saqlang.</p>
-            ) : (
+            {!editingNomenklatura ? <p>Rasmlar uchun avval saqlang.</p> : (
               <>
                 <div className="image-upload-section">
                   <div className="form-grid">
                     <div className="form-group"><input type="file" multiple onChange={handleImageSelect} className="form-input" /></div>
                     <div className="form-group"><input type="text" placeholder="Category" value={imageMeta.category} onChange={(e) => setImageMeta({...imageMeta, category: e.target.value})} className="form-input" /></div>
                   </div>
-                  <button type="button" onClick={handleBulkUpload} className="btn-primary" disabled={uploading || selectedImages.length === 0}>
-                    {uploading ? "Yuklanmoqda..." : `Yuklash (${selectedImages.length})`}
-                  </button>
+                  <button type="button" onClick={handleBulkUpload} className="btn-primary" disabled={uploading || selectedImages.length === 0}>{uploading ? "Yuklanmoqda..." : `Yuklash (${selectedImages.length})`}</button>
                 </div>
                 <div className="image-management-grid" style={{ marginTop: '20px' }}>
                   {editingNomenklatura.images && editingNomenklatura.images.map(img => (
                     <div key={img.id} className="image-item">
                       <img src={img.image_thumbnail_url} alt="" />
                       <div className="image-item-actions">
-                        {!img.is_main && (
-                          <button
-                            type="button"
-                            onClick={() => handleSetMainImage(img.id)}
-                            className="btn-mini-delete"
-                            style={{ background: '#fff', color: '#f59e0b', borderColor: '#f59e0b', marginRight: '5px' }}
-                            title="Asosiy qilish"
-                          >
-                            ⭐
-                          </button>
-                        )}
+                        {!img.is_main && <button type="button" onClick={() => handleSetMainImage(img.id)} className="btn-mini-delete" style={{ background: '#fff', color: '#f59e0b', borderColor: '#f59e0b', marginRight: '5px' }}>⭐</button>}
                         <button type="button" onClick={() => handleDeleteImage(img.id)} className="btn-mini-delete">×</button>
                       </div>
                       {img.is_main && <span className="main-badge">Asosiy</span>}
@@ -472,102 +369,50 @@ const NomenklaturaAdmin = () => {
           <span style={{margin: '0 10px', fontWeight: 600}}>Sahifa {page} / {totalPages}</span>
           <button onClick={() => setPage(page+1)} disabled={page===totalPages} className="page-button">Keyingi</button>
         </div>
-        <div className="pagination-controls">
-          <span className="page-info">Jami: {totalCount}</span>
-          <select value={pageSize} onChange={(e) => {setPageSize(parseInt(e.target.value)); setPage(1);}} className="page-size-select">
-            {[10, 20, 50, 100].map(sz => <option key={sz} value={sz}>{sz}</option>)}
-          </select>
-        </div>
+        <div className="pagination-controls"><span className="page-info">Jami: {totalCount}</span><select value={pageSize} onChange={(e) => {setPageSize(parseInt(e.target.value)); setPage(1);}} className="page-size-select">{[10, 20, 50, 100].map(sz => <option key={sz} value={sz}>{sz}</option>)}</select></div>
       </div>
     );
   };
 
   return (
     <div className="admin-crud">
-      <div className="crud-header">
-        <h2>📦 Nomenklatura</h2>
-        <button onClick={handleCreate} className="btn-primary">+ Yangi</button>
-      </div>
-
+      <div className="crud-header"><h2>📦 Nomenklatura</h2><button onClick={handleCreate} className="btn-primary">+ Yangi</button></div>
       <form onSubmit={(e) => {e.preventDefault(); setPage(1); loadNomenklatura();}} className="search-form">
         <div className="search-row">
-          <input type="text" placeholder="Qidirish (nomi, code, sku)..." value={search} onChange={(e) => setSearch(e.target.value)} className="search-input" />
+          <input type="text" placeholder="Qidirish..." value={search} onChange={(e) => setSearch(e.target.value)} className="search-input" />
           <button type="submit" className="btn-primary">Qidirish</button>
-          <button type="button" className="btn-tertiary" onClick={() => {
-            setSearch(""); 
-            setFilterProject("");
-            setStatusFilter("");
-            setFilterCategory("");
-            setCreatedFrom("");
-            setCreatedTo("");
-            setPage(1); 
-            loadNomenklatura();
-          }}>Tozalash</button>
+          <button type="button" className="btn-tertiary" onClick={() => { setSearch(""); setFilterProject(""); setStatusFilter(""); setFilterCategory(""); setCreatedFrom(""); setCreatedTo(""); setPage(1); loadNomenklatura(); }}>Tozalash</button>
         </div>
         <div className="filter-row">
           <div className="filter-field">
             <label>Loyiha</label>
-            <select value={filterProject} onChange={(e) => setFilterProject(e.target.value)}>
-              <option value="">Hammasi</option>
-              {projectsList.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+            <select value={filterProject} onChange={(e) => setFilterProject(e.target.value)}><option value="">Hammasi</option>{projectsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
           </div>
-          <div className="filter-field">
-            <label>Status</label>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="">Hammasi</option>
-              <option value="true">Faol</option>
-              <option value="false">Faol emas</option>
-            </select>
-          </div>
-          <div className="filter-field">
-            <label>Kategoriya</label>
-            <input type="text" placeholder="Category..." value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} />
-          </div>
-          <div className="filter-field">
-            <label>Yaratilgan (dan)</label>
-            <input type="date" value={createdFrom} onChange={(e) => setCreatedFrom(e.target.value)} />
-          </div>
-          <div className="filter-field">
-            <label>Yaratilgan (gacha)</label>
-            <input type="date" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} />
-          </div>
+          <div className="filter-field"><label>Status</label><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option value="">Hammasi</option><option value="true">Faol</option><option value="false">Faol emas</option></select></div>
+          <div className="filter-field"><label>Yaratilgan (dan)</label><input type="date" value={createdFrom} onChange={(e) => setCreatedFrom(e.target.value)} /></div>
+          <div className="filter-field"><label>Yaratilgan (gacha)</label><input type="date" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} /></div>
         </div>
       </form>
 
-      {loading ? (
-        <div className="loading"><div className="spinner"></div></div>
-      ) : (
+      {loading ? <div className="loading"><div className="spinner"></div></div> : (
         <>
           {renderPagination()}
           <div className="table-container">
             <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Nomi</th>
-                  <th>Status</th>
-                  <th>Amallar</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Code</th><th>Nomi</th><th>Loyihalar</th><th>Status</th><th>Amallar</th></tr></thead>
               <tbody>
                 {nomenklatura.map((item) => (
                   <tr key={item.id}>
                     <td><span className="code-tag">{item.code_1c}</span></td>
                     <td>{item.name}</td>
                     <td>
-                      <span className={`status-badge ${item.is_active ? 'active' : 'inactive'}`} onClick={() => handleToggleActive(item)} style={{cursor:'pointer'}}>
-                        {item.is_active ? "● Faol" : "○ Faol emas"}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        <button onClick={() => handleEdit(item)} className="btn-edit">✏️</button>
-                        <button onClick={() => handleDelete(item.code_1c)} className="btn-delete">🗑️</button>
+                      <div className="project-tags">
+                        {item.projects && item.projects.map(p => <span key={p.id} className="project-tag" style={{ fontSize: '0.7rem', padding: '2px 6px', backgroundColor: '#f1f1f1', borderRadius: '4px', marginRight: '4px', border: '1px solid #ddd' }}>{p.name}</span>)}
+                        {(!item.projects || item.projects.length === 0) && <span style={{fontSize: '0.7rem', color: '#999'}}>Bog'lanmagan</span>}
                       </div>
                     </td>
+                    <td><span className={`status-badge ${item.is_active ? 'active' : 'inactive'}`} onClick={() => handleToggleActive(item)} style={{cursor:'pointer'}}>{item.is_active ? "● Faol" : "○ Faol emas"}</span></td>
+                    <td><div className="action-buttons"><button onClick={() => handleEdit(item)} className="btn-edit">✏️</button><button onClick={() => handleDelete(item.code_1c)} className="btn-delete">🗑️</button></div></td>
                   </tr>
                 ))}
               </tbody>
@@ -580,24 +425,16 @@ const NomenklaturaAdmin = () => {
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{editingNomenklatura ? `Tahrirlash: ${editingNomenklatura.name}` : "Yangi"}</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>×</button>
-            </div>
+            <div className="modal-header"><h3>{editingNomenklatura ? `Tahrirlash: ${editingNomenklatura.name}` : "Yangi"}</h3><button className="modal-close" onClick={() => setShowModal(false)}>×</button></div>
             <div className="tabs-navigation">
               <button onClick={() => setActiveTab("asosiy")} className={`tab-btn ${activeTab === "asosiy" ? "active" : ""}`}>Asosiy</button>
               <button onClick={() => setActiveTab("specs")} className={`tab-btn ${activeTab === "specs" ? "active" : ""}`}>Xususiyatlar</button>
               <button onClick={() => setActiveTab("pricing")} className={`tab-btn ${activeTab === "pricing" ? "active" : ""}`}>Narx/Ombor</button>
               <button onClick={() => setActiveTab("cat")} className={`tab-btn ${activeTab === "cat" ? "active" : ""}`}>Kategoriya</button>
+              <button onClick={() => setActiveTab("loyihalar")} className={`tab-btn ${activeTab === "loyihalar" ? "active" : ""}`}>Loyihalar</button>
               <button onClick={() => setActiveTab("rasmlar")} className={`tab-btn ${activeTab === "rasmlar" ? "active" : ""}`}>Rasmlar</button>
             </div>
-            <form onSubmit={handleSubmit} className="modal-form">
-              {renderTabContent()}
-              <div className="modal-actions">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">Bekor</button>
-                <button type="submit" className="btn-primary">Saqlash</button>
-              </div>
-            </form>
+            <form onSubmit={handleSubmit} className="modal-form">{renderTabContent()}<div className="modal-actions"><button type="button" onClick={() => setShowModal(false)} className="btn-secondary">Bekor</button><button type="submit" className="btn-primary">Saqlash</button></div></form>
           </div>
         </div>
       )}

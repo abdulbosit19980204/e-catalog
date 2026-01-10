@@ -13,6 +13,7 @@ class BaseModel(models.Model):
         abstract = True
 
 class Client(BaseModel):
+    projects = models.ManyToManyField('api.Project', related_name='clients', blank=True)
     client_code_1c = models.CharField(max_length=100, db_index=True)
     name = models.CharField(max_length=100, db_index=True)
     email = models.EmailField(max_length=100, blank=True, null=True, db_index=True)

@@ -15,8 +15,7 @@ const ProjectAdmin = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const [showModal, setShowModal] = useState(false);
-  const [showImageModal, setShowImageModal] = useState(false);
-  const [selectedProject, setSelectedProject] = useState(null);
+
   const [selectedImages, setSelectedImages] = useState([]);
   const [currentImages, setCurrentImages] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -35,6 +34,7 @@ const ProjectAdmin = () => {
     description: "",
     is_active: true,
   });
+  const [activeTab, setActiveTab] = useState("asosiy");
   const [imageMeta, setImageMeta] = useState({
     category: "",
     note: "",
@@ -85,6 +85,7 @@ const ProjectAdmin = () => {
       description: "",
       is_active: true,
     });
+    setActiveTab("asosiy");
     setShowModal(true);
   };
 
@@ -97,6 +98,7 @@ const ProjectAdmin = () => {
       description: project.description || "",
       is_active: project.is_active !== undefined ? project.is_active : true,
     });
+    setActiveTab("asosiy");
     setShowModal(true);
   };
 
@@ -136,9 +138,17 @@ const ProjectAdmin = () => {
   const loadProjectImages = async (code1c) => {
     try {
       const response = await projectAPI.getProjectImages(code1c);
-      setCurrentImages(response.data);
+      const data = response.data;
+      if (Array.isArray(data)) {
+        setCurrentImages(data);
+      } else if (data && Array.isArray(data.results)) {
+        setCurrentImages(data.results);
+      } else {
+        setCurrentImages([]);
+      }
     } catch (err) {
       console.error("Error loading images:", err);
+      setCurrentImages([]);
     }
   };
 
@@ -146,7 +156,7 @@ const ProjectAdmin = () => {
     if (!window.confirm("Bu rasmni o'chirishni xohlaysizmi?")) return;
     try {
       await projectAPI.deleteImage(imageId);
-      if (selectedProject) loadProjectImages(selectedProject.code_1c);
+      if (editingProject) loadProjectImages(editingProject.code_1c);
       success("Rasm o'chirildi");
     } catch (err) {
       showError("Rasmni o'chirib bo'lmadi");
@@ -156,7 +166,7 @@ const ProjectAdmin = () => {
   const handleSetMainImage = async (imageId) => {
     try {
       await projectAPI.setMainImage(imageId);
-      if (selectedProject) loadProjectImages(selectedProject.code_1c);
+      if (editingProject) loadProjectImages(editingProject.code_1c);
       success("Rasm asosiy qilib belgilandi");
     } catch (err) {
       showError("Rasmni asosiy qilib bo'lmadi");
@@ -164,13 +174,21 @@ const ProjectAdmin = () => {
   };
 
   const handleUploadImages = (project) => {
-    setSelectedProject(project);
+    setEditingProject(project);
+    setFormData({
+      code_1c: project.code_1c || "",
+      name: project.name || "",
+      title: project.title || "",
+      description: project.description || "",
+      is_active: project.is_active !== undefined ? project.is_active : true,
+    });
+    setActiveTab("rasmlar");
     setSelectedImages([]);
     setImageMeta({ category: "", note: "" });
     setError(null);
     setCurrentImages([]);
     loadProjectImages(project.code_1c);
-    setShowImageModal(true);
+    setShowModal(true);
   };
 
   const handleImageSelect = (e) => {
@@ -179,7 +197,7 @@ const ProjectAdmin = () => {
   };
 
   const handleBulkUpload = async () => {
-    if (!selectedProject || selectedImages.length === 0) {
+    if (!editingProject || selectedImages.length === 0) {
       setError("Iltimos, kamida bitta rasm tanlang");
       return;
     }
@@ -187,13 +205,11 @@ const ProjectAdmin = () => {
     try {
       setUploading(true);
       setError(null);
-      await projectAPI.bulkUploadImages(selectedProject.code_1c, selectedImages, imageMeta);
-      setShowImageModal(false);
+      await projectAPI.bulkUploadImages(editingProject.code_1c, selectedImages, imageMeta);
       setSelectedImages([]);
-      setSelectedProject(null);
       setImageMeta({ category: "", note: "" });
       loadProjects();
-      loadProjectImages(selectedProject.code_1c);
+      loadProjectImages(editingProject.code_1c);
       success(`${selectedImages.length} ta rasm muvaffaqiyatli yuklandi!`);
     } catch (err) {
       const errorMsg = err.response?.data?.error || err.response?.data?.detail || "Rasmlar yuklashda xatolik";
@@ -262,6 +278,158 @@ const ProjectAdmin = () => {
     setUpdatedFrom("");
     setUpdatedTo("");
     setPage(1);
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "asosiy":
+        return (
+          <div className="form-grid">
+            <div className="form-group">
+                <label>Code 1C *</label>
+                <input
+                  type="text"
+                  value={formData.code_1c}
+                  onChange={(e) =>
+                    setFormData({ ...formData, code_1c: e.target.value })
+                  }
+                  required
+                  className="form-input"
+                  disabled={!!editingProject}
+                />
+            </div>
+            <div className="form-group">
+                <label>Name *</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  required
+                  className="form-input"
+                />
+            </div>
+            <div className="form-group full-width">
+                <label>Title</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
+                  className="form-input"
+                />
+            </div>
+            <div className="form-group full-width">
+                <label>Description</label>
+                <QuillEditor
+                  value={formData.description}
+                  onChange={(value) =>
+                    setFormData({ ...formData, description: value })
+                  }
+                  modules={quillModules}
+                  className="quill-editor"
+                  style={{ height: '200px' }}
+                />
+            </div>
+            <div className="form-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_active}
+                    onChange={(e) =>
+                        setFormData({ ...formData, is_active: e.target.checked })
+                    }
+                  />
+                  Faol
+                </label>
+            </div>
+          </div>
+        );
+      case "rasmlar":
+        return (
+            <div className="image-management-tab">
+                {!editingProject ? (
+                    <p>Rasmlar uchun avval saqlang.</p>
+                ) : (
+                    <>
+                        <div className="image-upload-section">
+                            <div className="form-group">
+                                <label>Rasmlarni tanlang</label>
+                                <input
+                                    type="file"
+                                    multiple
+                                    accept="image/*"
+                                    onChange={handleImageSelect}
+                                    className="form-input"
+                                    disabled={uploading}
+                                />
+                                {selectedImages.length > 0 && <p className="image-count">{selectedImages.length} ta rasm tanlandi</p>}
+                            </div>
+                            <div className="form-group">
+                                <label>Toifa (ixtiyoriy)</label>
+                                <input
+                                    type="text"
+                                    value={imageMeta.category}
+                                    onChange={(e) => setImageMeta({ ...imageMeta, category: e.target.value })}
+                                    className="form-input"
+                                    placeholder="Masalan: banner"
+                                />
+                            </div>
+                             <button
+                                type="button"
+                                onClick={handleBulkUpload}
+                                className="btn-primary"
+                                disabled={uploading || selectedImages.length === 0}
+                                style={{ marginTop: '10px' }}
+                            >
+                                {uploading ? "Yuklanmoqda..." : `Yuklash (${selectedImages.length})`}
+                            </button>
+                        </div>
+
+                        <div className="current-images-section" style={{ marginTop: '30px' }}>
+                            <h4>Hozirgi rasmlar</h4>
+                            {currentImages.length === 0 ? <p className="no-data">Rasmlar yo'q</p> : (
+                                <div className="image-management-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
+                                    {currentImages.map(img => (
+                                        <div key={img.id} className="image-item" style={{ position: 'relative', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#fff' }}>
+                                            <div style={{ height: '120px', overflow: 'hidden' }}>
+                                                <img src={img.image_thumbnail_url || img.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            </div>
+                                            {img.is_main && <span className="main-badge" style={{ position: 'absolute', top: 5, right: 5, background: '#10b981', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>ASOSIY</span>}
+                                            <div className="image-item-actions" style={{ padding: '8px', display: 'flex', gap: '8px', justifyContent: 'center', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                                                {!img.is_main && (
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => handleSetMainImage(img.id)} 
+                                                        style={{ border: '1px solid #fbbf24', background: '#fff', color: '#fbbf24', borderRadius: '6px', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} 
+                                                        title="Asosiy qilish"
+                                                    >
+                                                        ⭐
+                                                    </button>
+                                                )}
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => handleDeleteImage(img.id)} 
+                                                    style={{ border: '1px solid #ef4444', background: '#fff', color: '#ef4444', borderRadius: '6px', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} 
+                                                    title="O'chirish"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
+            </div>
+        );
+      default:
+        return null;
+    }
   };
 
   const handlePageChange = (newPage) => {
@@ -536,6 +704,38 @@ const ProjectAdmin = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{editingProject ? "Project Tahrirlash" : "Yangi Project"}</h3>
+               <div className="admin-tabs" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button
+                    type="button"
+                    className={`tab-btn ${activeTab === "asosiy" ? "active" : ""}`}
+                    onClick={() => setActiveTab("asosiy")}
+                    style={{ 
+                        padding: '8px 16px', 
+                        border: 'none', 
+                        background: activeTab === "asosiy" ? '#3b82f6' : '#e2e8f0', 
+                        color: activeTab === "asosiy" ? 'white' : '#64748b',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Asosiy
+                </button>
+                <button
+                    type="button"
+                    className={`tab-btn ${activeTab === "rasmlar" ? "active" : ""}`}
+                    onClick={() => setActiveTab("rasmlar")}
+                    style={{ 
+                        padding: '8px 16px', 
+                        border: 'none', 
+                        background: activeTab === "rasmlar" ? '#3b82f6' : '#e2e8f0', 
+                        color: activeTab === "rasmlar" ? 'white' : '#64748b',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Rasmlar
+                </button>
+              </div>
               <button
                 className="modal-close"
                 onClick={() => setShowModal(false)}
@@ -544,204 +744,34 @@ const ProjectAdmin = () => {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="modal-form">
-              <div className="form-group">
-                <label>Code 1C *</label>
-                <input
-                  type="text"
-                  value={formData.code_1c}
-                  onChange={(e) =>
-                    setFormData({ ...formData, code_1c: e.target.value })
-                  }
-                  required
-                  className="form-input"
-                  disabled={!!editingProject}
-                />
-              </div>
-              <div className="form-group">
-                <label>Name *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>Title</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>Description</label>
-                <QuillEditor
-                  value={formData.description}
-                  onChange={(value) =>
-                    setFormData({ ...formData, description: value })
-                  }
-                  modules={quillModules}
-                  className="quill-editor"
-                  style={{ height: '200px' }}
-                />
-              </div>
-              <div className="form-group">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_active}
-                    onChange={(e) =>
-                      setFormData({ ...formData, is_active: e.target.checked })
-                    }
-                  />
-                  Active
-                </label>
-              </div>
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="btn-secondary"
-                >
-                  Bekor qilish
-                </button>
-                <button type="submit" className="btn-primary">
-                  Saqlash
-                </button>
-              </div>
+               {renderTabContent()}
+
+               {activeTab === "asosiy" && (
+                <>
+                 {error && <div className="error-message"><p>{error}</p></div>}
+                 <div className="modal-actions">
+                    <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">
+                        Bekor qilish
+                    </button>
+                    <button type="submit" className="btn-primary">
+                        Saqlash
+                    </button>
+                 </div>
+                </>
+               )}
+                {activeTab === "rasmlar" && (
+                    <div className="modal-actions">
+                         <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">
+                            Yopish
+                         </button>
+                    </div>
+                )}
             </form>
           </div>
         </div>
       )}
 
-      {showImageModal && (
-        <div className="modal-overlay" onClick={() => setShowImageModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Rasmlar Yuklash - {selectedProject?.name}</h3>
-              <button
-                className="modal-close"
-                onClick={() => setShowImageModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-form">
-              <div className="form-group">
-                <label>Rasmlarni tanlang (bir nechta tanlash mumkin)</label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  className="form-input"
-                  disabled={uploading}
-                />
-                {selectedImages.length > 0 && (
-                  <p className="image-count">
-                    {selectedImages.length} ta rasm tanlandi
-                  </p>
-                )}
-              </div>
-              <div className="meta-grid">
-                <div className="form-group">
-                  <label>Toifa (ixtiyoriy)</label>
-                  <input
-                    type="text"
-                    value={imageMeta.category}
-                    onChange={(e) =>
-                      setImageMeta((prev) => ({ ...prev, category: e.target.value }))
-                    }
-                    className="form-input"
-                    placeholder="Masalan: banner, katalog"
-                    disabled={uploading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Izoh (ixtiyoriy)</label>
-                  <textarea
-                    value={imageMeta.note}
-                    onChange={(e) =>
-                      setImageMeta((prev) => ({ ...prev, note: e.target.value }))
-                    }
-                    className="form-textarea"
-                    rows={3}
-                    placeholder="Qo'shimcha ma'lumot..."
-                    disabled={uploading}
-                  />
-                </div>
-              </div>
-              {error && (
-                <div className="error-message">
-                  <p>{error}</p>
-                </div>
-              )}
 
-              <div className="current-images-section" style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '20px', marginBottom: '20px' }}>
-                  <h4>Hozirgi rasmlar</h4>
-                  {currentImages.length === 0 ? <p className="no-data">Rasmlar yo'q</p> : (
-                    <div className="image-management-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
-                        {currentImages.map(img => (
-                            <div key={img.id} className="image-item" style={{ position: 'relative', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#fff' }}>
-                                <div style={{ height: '120px', overflow: 'hidden' }}>
-                                    <img src={img.image_thumbnail_url || img.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                </div>
-                                {img.is_main && <span className="main-badge" style={{ position: 'absolute', top: 5, right: 5, background: '#10b981', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>ASOSIY</span>}
-                                <div className="image-item-actions" style={{ padding: '8px', display: 'flex', gap: '8px', justifyContent: 'center', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
-                                    {!img.is_main && (
-                                        <button 
-                                            type="button" 
-                                            onClick={() => handleSetMainImage(img.id)} 
-                                            style={{ border: '1px solid #fbbf24', background: '#fff', color: '#fbbf24', borderRadius: '6px', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} 
-                                            title="Asosiy qilish"
-                                        >
-                                            ⭐
-                                        </button>
-                                    )}
-                                    <button 
-                                        type="button" 
-                                        onClick={() => handleDeleteImage(img.id)} 
-                                        style={{ border: '1px solid #ef4444', background: '#fff', color: '#ef4444', borderRadius: '6px', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} 
-                                        title="O'chirish"
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                  )}
-              </div>
-
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowImageModal(false)}
-                  className="btn-secondary"
-                  disabled={uploading}
-                >
-                  Bekor qilish
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBulkUpload}
-                  className="btn-primary"
-                  disabled={uploading || selectedImages.length === 0}
-                >
-                  {uploading ? "Yuklanmoqda..." : `Yuklash (${selectedImages.length})`}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

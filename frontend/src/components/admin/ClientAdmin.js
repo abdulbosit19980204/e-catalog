@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import QuillEditor from "./QuillEditor";
-import { clientAPI } from "../../api";
+import { clientAPI, projectAPI } from "../../api";
 import { useNotification } from "../../contexts/NotificationContext";
 import "./AdminCRUD.css";
 
@@ -23,6 +23,8 @@ const ClientAdmin = () => {
   const [imageStatus, setImageStatus] = useState("");
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
+  const [projectFilter, setProjectFilter] = useState("");
+  const [availableProjects, setAvailableProjects] = useState([]);
 
   const initialFormData = {
     client_code_1c: "",
@@ -58,6 +60,7 @@ const ClientAdmin = () => {
     rating: "",
     priority: 0,
     source: "",
+    project_ids: [],
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -76,6 +79,7 @@ const ClientAdmin = () => {
         image_status: imageStatus || undefined,
         created_from: createdFrom || undefined,
         created_to: createdTo || undefined,
+        project: projectFilter || undefined,
       };
       const response = await clientAPI.getClients(params);
       setClients(response.data.results || response.data);
@@ -89,11 +93,21 @@ const ClientAdmin = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, statusFilter, descriptionStatus, imageStatus, createdFrom, createdTo, showError]);
+  }, [page, pageSize, search, statusFilter, descriptionStatus, imageStatus, createdFrom, createdTo, projectFilter, showError]);
+
+  const loadAvailableProjects = useCallback(async () => {
+    try {
+      const response = await projectAPI.getProjects({ page_size: 100 });
+      setAvailableProjects(response.data.results || response.data);
+    } catch (err) {
+      console.error("Error loading projects:", err);
+    }
+  }, []);
 
   useEffect(() => {
     loadClients();
-  }, [loadClients]);
+    loadAvailableProjects();
+  }, [loadClients, loadAvailableProjects]);
 
   const handleCreate = () => {
     setEditingClient(null);
@@ -113,6 +127,13 @@ const ClientAdmin = () => {
         sanitizedData[key] = client[key];
       }
     });
+
+    // Populate project_ids from projects array
+    if (client.projects) {
+      sanitizedData.project_ids = client.projects.map(p => p.id);
+    } else {
+      sanitizedData.project_ids = [];
+    }
 
     setFormData(sanitizedData);
     setActiveTab("asosiy");
@@ -136,15 +157,28 @@ const ClientAdmin = () => {
     // Convert empty strings to null for date fields
     if (cleaned.established_date === "") cleaned.established_date = null;
     
-    // Remove read-only or dangerous fields if updating
-    // delete cleaned.client_code_1c; // Do not delete this if it's needed, but usually ID is in URL
-    
-    // Numeric fields should be null if empty string (if any)
+    // Numeric fields should be null if empty string
     ['annual_revenue', 'employee_count', 'credit_limit'].forEach(field => {
         if (cleaned[field] === "") cleaned[field] = null;
     });
 
+    // Clean project_ids
+    if (cleaned.project_ids) {
+        cleaned.project_ids = cleaned.project_ids.map(id => Number(id));
+    }
+
     return cleaned;
+  };
+
+  const handleProjectToggle = (projectId) => {
+    const currentIds = [...formData.project_ids];
+    const index = currentIds.indexOf(projectId);
+    if (index === -1) {
+      currentIds.push(projectId);
+    } else {
+      currentIds.splice(index, 1);
+    }
+    setFormData({ ...formData, project_ids: currentIds });
   };
 
   const handleToggleActive = async (client) => {
@@ -437,12 +471,15 @@ const ClientAdmin = () => {
             </div>
             <div className="form-group">
               <label>Valyuta</label>
-              <input
-                type="text"
+              <select
                 value={formData.currency}
                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                 className="form-input"
-              />
+              >
+                <option value="UZS">UZS</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
             </div>
             <div className="form-group">
               <label>Yillik daromad</label>
@@ -520,6 +557,40 @@ const ClientAdmin = () => {
                 onChange={(e) => setFormData({ ...formData, fax: e.target.value })}
                 className="form-input"
               />
+            </div>
+          </div>
+        );
+      case "loyihalar":
+        return (
+          <div className="projects-selection-tab">
+            <h4>Bog'langan loyihalar</h4>
+            <div className="projects-list-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', marginTop: '15px' }}>
+              {availableProjects.map(project => (
+                <div 
+                  key={project.id} 
+                  className={`project-selection-item ${formData.project_ids.includes(project.id) ? 'selected' : ''}`}
+                  onClick={() => handleProjectToggle(project.id)}
+                  style={{
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    backgroundColor: formData.project_ids.includes(project.id) ? '#e3f2fd' : 'white',
+                    borderColor: formData.project_ids.includes(project.id) ? '#2196f3' : '#ddd',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}
+                >
+                  <input 
+                    type="checkbox" 
+                    checked={formData.project_ids.includes(project.id)} 
+                    readOnly 
+                  />
+                  <span>{project.name}</span>
+                </div>
+              ))}
+              {availableProjects.length === 0 && <p>Loyihalar mavjud emas</p>}
             </div>
           </div>
         );
@@ -665,11 +736,8 @@ const ClientAdmin = () => {
             setImageStatus("");
             setCreatedFrom("");
             setCreatedTo("");
+            setProjectFilter("");
             setPage(1); 
-            // We need to trigger loadClients, but since it depends on state, 
-            // resetting state will trigger it via useEffect if we were using that pattern.
-            // But here we might need to manually call it or let the effect handle it.
-            // Since loadClients is in dependency of useEffect, resetting state works.
           }}>🔄 Tozalash</button>
         </div>
         <div className="filter-row">
@@ -705,10 +773,17 @@ const ClientAdmin = () => {
             <label>Yaratilgan (gacha)</label>
             <input type="date" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} />
           </div>
+          <div className="filter-field">
+            <label>Loyiha (Project)</label>
+            <select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
+              <option value="">Hammasi</option>
+              {availableProjects.map(p => (
+                <option key={p.id} value={p.code_1c}>{p.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </form>
-
-
 
       {loading ? (
         <div className="loading"><div className="spinner"></div><p>Yuklanmoqda...</p></div>
@@ -721,6 +796,7 @@ const ClientAdmin = () => {
                 <tr>
                   <th>Code 1C</th>
                   <th>Name</th>
+                  <th>Loyihalar</th>
                   <th>Email / Phone</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -728,12 +804,29 @@ const ClientAdmin = () => {
               </thead>
               <tbody>
                 {clients.length === 0 ? (
-                  <tr><td colSpan="5" className="no-data">Ma'lumot topilmadi</td></tr>
+                  <tr><td colSpan="6" className="no-data">Ma'lumot topilmadi</td></tr>
                 ) : (
                   clients.map((client) => (
                     <tr key={client.id}>
                       <td><span className="code-tag">{client.client_code_1c}</span></td>
                       <td><strong>{client.name}</strong></td>
+                      <td>
+                        <div className="project-tags">
+                          {client.projects && client.projects.map(p => (
+                            <span key={p.id} className="project-tag" style={{
+                              fontSize: '0.7rem',
+                              padding: '2px 6px',
+                              backgroundColor: '#f1f1f1',
+                              borderRadius: '4px',
+                              marginRight: '4px',
+                              border: '1px solid #ddd'
+                            }}>
+                              {p.name}
+                            </span>
+                          ))}
+                          {(!client.projects || client.projects.length === 0) && <span style={{fontSize: '0.7rem', color: '#999'}}>Bog'lanmagan</span>}
+                        </div>
+                      </td>
                       <td>
                         <div style={{fontSize: '0.8rem'}}>
                           {client.email && <div>✉️ {client.email}</div>}
@@ -762,8 +855,6 @@ const ClientAdmin = () => {
             </table>
           </div>
 
-
-
           {renderPagination()}
         </>
       )}
@@ -782,6 +873,7 @@ const ClientAdmin = () => {
               <button onClick={() => setActiveTab("manzillar")} className={`tab-btn ${activeTab === "manzillar" ? "active" : ""}`}>Manzillar</button>
               <button onClick={() => setActiveTab("moliya")} className={`tab-btn ${activeTab === "moliya" ? "active" : ""}`}>Moliya</button>
               <button onClick={() => setActiveTab("kontakt")} className={`tab-btn ${activeTab === "kontakt" ? "active" : ""}`}>Kontakt</button>
+              <button onClick={() => setActiveTab("loyihalar")} className={`tab-btn ${activeTab === "loyihalar" ? "active" : ""}`}>Loyihalar</button>
               <button onClick={() => setActiveTab("rasmlar")} className={`tab-btn ${activeTab === "rasmlar" ? "active" : ""}`}>Rasmlar</button>
             </div>
 
