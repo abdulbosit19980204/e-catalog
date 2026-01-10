@@ -84,23 +84,34 @@ class APINomenklaturaImageSerializer(serializers.ModelSerializer):
             return obj.image_thumbnail.url
         return None
 
+class ProjectSimpleSerializer(serializers.ModelSerializer):
+    """Faqatgina ID, code_1c va name ni qaytaruvchi yengil serializer"""
+    is_integration = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Project
+        fields = ['id', 'code_1c', 'name', 'is_integration']
+
+    def get_is_integration(self, obj) -> bool:
+        return obj.integrations.exists()
+
+
 class APINomenklaturaSerializer(serializers.ModelSerializer):
     images = APINomenklaturaImageSerializer(many=True, read_only=True)
+    project = ProjectSimpleSerializer(read_only=True)
     
     class Meta:
         model = Nomenklatura
         fields = [
-            'id', 'code_1c', 'name', 'title', 'description', 'images', 'projects',
+            'id', 'code_1c', 'name', 'title', 'description', 'images', 'project',
             'is_active', 'is_deleted', 'created_at', 'updated_at'
         ]
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Optimizatsiya: Nomenklatura ichida faqat yengil project ma'lumotlarini qaytarish
-        self.fields['projects'] = ProjectSimpleSerializer(many=True, read_only=True)
         if 'request' in self.context:
             self.fields['images'].context['request'] = self.context['request']
-            self.fields['projects'].context['request'] = self.context['request']
+            self.fields['project'].context['request'] = self.context['request']
 
 class ProjectImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
@@ -231,16 +242,6 @@ class AgentLocationSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
 
-class ProjectSimpleSerializer(serializers.ModelSerializer):
-    """Faqatgina ID, code_1c va name ni qaytaruvchi yengil serializer"""
-    is_integration = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Project
-        fields = ['id', 'code_1c', 'name', 'is_integration']
-
-    def get_is_integration(self, obj) -> bool:
-        return obj.integrations.exists()
 
 
 class ProjectSerializer(serializers.ModelSerializer):

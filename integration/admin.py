@@ -24,7 +24,7 @@ class IntegrationAdmin(admin.ModelAdmin):
             'fields': ('name', 'project', 'description')
         }),
         ('1C Web Service sozlamalari', {
-            'fields': ('wsdl_url', 'method_nomenklatura', 'method_clients', 'chunk_size')
+            'fields': ('wsdl_url', 'username', 'password', 'method_nomenklatura', 'method_clients', 'chunk_size')
         }),
         ('Status', {
             'fields': ('is_active', 'is_deleted')

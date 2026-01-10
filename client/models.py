@@ -13,7 +13,7 @@ class BaseModel(models.Model):
         abstract = True
 
 class Client(BaseModel):
-    projects = models.ManyToManyField('api.Project', related_name='clients', blank=True)
+    project = models.ForeignKey('api.Project', on_delete=models.CASCADE, related_name='clients', blank=True, null=True, help_text="Proyekt")
     client_code_1c = models.CharField(max_length=100, db_index=True)
     name = models.CharField(max_length=100, db_index=True)
     email = models.EmailField(max_length=100, blank=True, null=True, db_index=True)
@@ -66,9 +66,10 @@ class Client(BaseModel):
     metadata = models.JSONField(blank=True, null=True, default=dict, help_text="Qo'shimcha meta ma'lumotlar (JSON)")
 
     class Meta:
+        unique_together = ('project', 'client_code_1c')
         indexes = [
             models.Index(fields=['is_deleted', 'is_active']),
-            models.Index(fields=['client_code_1c', 'is_deleted']),
+            models.Index(fields=['project', 'client_code_1c', 'is_deleted']),
             models.Index(fields=['name', 'is_deleted']),
             models.Index(fields=['email', 'is_deleted']),
             models.Index(fields=['city', 'region']),

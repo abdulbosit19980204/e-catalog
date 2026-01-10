@@ -2,7 +2,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from django.db import transaction
+from django.db import transaction, OperationalError
+import random
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.core.cache import cache
@@ -315,9 +316,16 @@ def parse_client_item(item):
     return parsed_data
 
 
-def get_zeep_client(wsdl_url):
+def get_zeep_client(wsdl_url, username=None, password=None):
     """1C Web Service client yaratish"""
-    transport = Transport(cache=SqliteCache())
+    import requests
+    from requests.auth import HTTPBasicAuth
+    
+    session = requests.Session()
+    if username and password:
+        session.auth = HTTPBasicAuth(username, password)
+    
+    transport = Transport(cache=SqliteCache(), session=session)
     zeep_settings = Settings(strict=False, xml_huge_tree=True)
     return ZeepClient(wsdl=wsdl_url, settings=zeep_settings, transport=transport)
 
@@ -325,18 +333,32 @@ def get_zeep_client(wsdl_url):
 def get_nomenklatura_from_1c(integration):
     """1C dan nomenklatura'lar ro'yxatini olish"""
     try:
-        zeep_client = get_zeep_client(integration.wsdl_url)
+        zeep_client = get_zeep_client(
+            integration.wsdl_url, 
+            username=integration.username, 
+            password=integration.password
+        )
         method = getattr(zeep_client.service, integration.method_nomenklatura)
         response = method()
         
+        # SOAP response strukturasi: GetProductListResponse -> return -> ProductItem[]
+        return_obj = getattr(response, 'return', None)
+        if return_obj:
+            if hasattr(return_obj, 'ProductItem'):
+                return return_obj.ProductItem
+            elif isinstance(return_obj, list):
+                return return_obj
+        
+        # Fallback formatlar
         if hasattr(response, 'ProductItem'):
             return response.ProductItem
         elif isinstance(response, list):
             return response
         elif hasattr(response, 'TotalCount'):
-            logger.info(f"TotalCount: {response.TotalCount}")
-            return response.TotalCount
+            logger.info(f"Nomenklatura TotalCount from 1C: {response.TotalCount}")
+            return []
         else:
+            logger.warning(f"Unexpected nomenklatura response structure: {type(response)}")
             return []
     except Exception as e:
         logger.error(f"Error fetching nomenklatura from 1C: {e}")
@@ -346,12 +368,15 @@ def get_nomenklatura_from_1c(integration):
 def get_clients_from_1c(integration):
     """1C dan client'lar ro'yxatini olish"""
     try:
-        zeep_client = get_zeep_client(integration.wsdl_url)
+        zeep_client = get_zeep_client(
+            integration.wsdl_url, 
+            username=integration.username, 
+            password=integration.password
+        )
         method = getattr(zeep_client.service, integration.method_clients)
         response = method()
         
         # SOAP response strukturasi: GetClientListResponse -> return -> ClientItem[]
-        # Python'da 'return' reserved keyword, shuning uchun getattr ishlatamiz
         return_obj = getattr(response, 'return', None)
         if return_obj:
             if hasattr(return_obj, 'ClientItem'):
@@ -371,22 +396,31 @@ def get_clients_from_1c(integration):
             return items
         elif isinstance(response, list):
             return response
+        elif hasattr(response, 'TotalCount'):
+            logger.info(f"Clients TotalCount from 1C: {response.TotalCount}")
+            return []
         else:
+            logger.warning(f"Unexpected client response structure: {type(response)}")
             return []
     except Exception as e:
         logger.error(f"Error fetching clients from 1C: {e}")
         return []
 
 
-def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None):
-    """Nomenklatura chunk'larini batch qilib saqlash - bulk operations bilan optimallashtirilgan"""
+def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
+    """Nomenklatura chunk'larini project-scoped unique constraint bilan saqlash
+    
+    Optimized for concurrency:
+    - Small chunk_size (50) to reduce lock duration
+    - Delays between chunks to allow other queries
+    - Aggressive retry with exponential backoff
+    """
     created_count = 0
     updated_count = 0
     error_count = 0
     
-    
     try:
-        # Barcha itemlarni birinchi marta parse qilish
+        # Barcha itemlarni parse qilish
         parsed_items = []
         for item in items:
             try:
@@ -394,7 +428,6 @@ def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None)
                 name = clean_value(getattr(item, 'Name', None))
                 title = clean_value(getattr(item, 'Title', None))
                 description = clean_value(getattr(item, 'Description', None))
-
                 
                 if not code_1c or not name:
                     error_count += 1
@@ -405,80 +438,67 @@ def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None)
                     'name': name,
                     'title': title,
                     'description': description,
-
                 })
             except Exception as e:
                 logger.error(f"Error parsing nomenklatura item: {e}")
                 error_count += 1
                 continue
         
-        # Chunk'larga bo'lib ishlash - bulk operations bilan
+        # Chunk'larga bo'lib ishlash - kichik chunk'lar
         for i in range(0, len(parsed_items), chunk_size):
             chunk = parsed_items[i:i + chunk_size]
             
+            # Har bir chunk'dan oldin kichik delay - user API'larga imkon berish
+            if i > 0:
+                time_module.sleep(0.05)  # 50ms delay between chunks
+            
             try:
-                with transaction.atomic():
-                    # Barcha code_1c larni olish
-                    codes_1c = [item['code_1c'] for item in chunk]
-                    
-                    # Mavjud nomenklatura'larni olish
-                    existing_dict = {
-                        obj.code_1c: obj 
-                        for obj in Nomenklatura.objects.filter(
-                            code_1c__in=codes_1c,
-                            is_deleted=False
-                        )
-                    }
-                    
-                    # Project cache olib tashlandi, faqat default_project ishlatiladi
-                    default_project = integration.project
-                    
-                    to_create = []
-                    to_update = []
-                    
-                    for item_data in chunk:
-                        code_1c = item_data['code_1c']
+                # Retry logic for database locks
+                max_db_retries = 10  # Ko'proq retry
+                for db_retry in range(max_db_retries):
+                    try:
+                        # Har bir item uchun update_or_create
+                        for item_data in chunk:
+                            try:
+                                # update_or_create - atomic operation
+                                obj, created = Nomenklatura.objects.update_or_create(
+                                    project=integration.project,
+                                    code_1c=item_data['code_1c'],
+                                    defaults={
+                                        'name': item_data['name'],
+                                        'title': item_data['title'],
+                                        'description': item_data['description'],
+                                        'is_active': True,
+                                        'is_deleted': False,
+                                    }
+                                )
+                                if created:
+                                    created_count += 1
+                                else:
+                                    updated_count += 1
+                                    
+                                # Micro-delay har 10 itemdan keyin - concurrency uchun
+                                if (created_count + updated_count) % 10 == 0:
+                                    time_module.sleep(0.01)  # 10ms
+                                    
+                            except Exception as e:
+                                logger.error(f"Error processing nomenklatura {item_data.get('code_1c')}: {e}")
+                                error_count += 1
                         
-                        # Faqat integratsiya proyektini o'ziga bog'laymiz
-                        projects_to_add = [default_project] if default_project else []
+                        # Muvaffaqiyatli - retry loop'dan chiqish
+                        break
                         
-                        if code_1c in existing_dict:
-                            # Update
-                            existing = existing_dict[code_1c]
-                            existing.name = item_data['name']
-                            existing.title = item_data['title']
-                            existing.description = item_data['description']
-                            existing.updated_at = timezone.now()
-                            to_update.append(existing)
-                            
-                            # M2M projectlarni yangilash - faqat bitta bo'lishi kerak
-                            if projects_to_add:
-                                existing.projects.set(projects_to_add)
+                    except OperationalError as e:
+                        if "database is locked" in str(e).lower() and db_retry < max_db_retries - 1:
+                            # Exponential backoff - har retry'da ko'proq kutish
+                            wait_time = random.uniform(0.1, 0.5) * (2 ** db_retry)
+                            logger.warning(f"Database locked, retrying in {wait_time:.2f}s (attempt {db_retry+1}/{max_db_retries})")
+                            time_module.sleep(wait_time)
+                            continue
                         else:
-                            # Create
-                            new_obj = Nomenklatura(
-                                code_1c=code_1c,
-                                name=item_data['name'],
-                                title=item_data['title'],
-                                description=item_data['description'],
-                                is_active=True,
-                                is_deleted=False
-                            )
-                            new_obj.save()
-                            if projects_to_add:
-                                new_obj.projects.set(projects_to_add)
-                            created_count += 1
-                    
-                    # Bulk update for fields
-                    if to_update:
-                        Nomenklatura.objects.bulk_update(
-                            to_update, 
-                            ['name', 'title', 'description', 'updated_at'],
-                            batch_size=chunk_size
-                        )
-                        updated_count += len(to_update)
+                            raise e
                 
-                # Progress yangilash - har chunk'dan keyin
+                # Progress yangilash
                 if log_obj:
                     processed = min(i + chunk_size, len(parsed_items))
                     log_obj.processed_items = processed
@@ -486,7 +506,8 @@ def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None)
                     log_obj.updated_items = updated_count
                     log_obj.error_items = error_count
                     log_obj.status = 'processing'
-                    # Retry mechanism bilan save
+                    
+                    # Retry bilan save
                     max_retries = 3
                     for retry in range(max_retries):
                         try:
@@ -512,31 +533,35 @@ def process_nomenklatura_chunk(items, integration, chunk_size=100, log_obj=None)
             try:
                 log_obj.save(update_fields=['status', 'error_details', 'end_time'])
             except Exception:
-                pass  # Ignore save errors in error handler
+                pass
         raise
     
     return created_count, updated_count, error_count
 
 
-def process_clients_chunk(items, integration, chunk_size=100, log_obj=None):
-    """Client chunk'larini batch qilib saqlash - bulk operations bilan optimallashtirilgan"""
+def process_clients_chunk(items, integration, chunk_size=50, log_obj=None):
+    """Client chunk'larini project-scoped unique constraint bilan saqlash
+    
+    Optimized for concurrency:
+    - Small chunk_size (50) to reduce lock duration
+    - Delays between chunks to allow other queries
+    - Aggressive retry with exponential backoff
+    """
     created_count = 0
     updated_count = 0
     error_count = 0
     
     try:
-        # Barcha itemlarni birinchi marta parse qilish
+        # Barcha itemlarni parse qilish
         parsed_items = []
         for item in items:
             try:
-                # Barcha fieldlarni dinamik tarzda parse qilish
                 parsed_data = parse_client_item(item)
                 
                 if not parsed_data:
                     error_count += 1
                     continue
                 
-                # Default qiymatlarni o'rnatish
                 if 'is_deleted' not in parsed_data:
                     parsed_data['is_deleted'] = False
                 if 'is_active' not in parsed_data:
@@ -548,117 +573,57 @@ def process_clients_chunk(items, integration, chunk_size=100, log_obj=None):
                 error_count += 1
                 continue
         
-        # Chunk'larga bo'lib ishlash - bulk operations bilan
+        # Chunk'larga bo'lib ishlash - kichik chunk'lar
         for i in range(0, len(parsed_items), chunk_size):
             chunk = parsed_items[i:i + chunk_size]
             
+            # Har bir chunk'dan oldin kichik delay - user API'larga imkon berish
+            if i > 0:
+                time_module.sleep(0.05)  # 50ms delay between chunks
+            
             try:
-                with transaction.atomic():
-                    # Barcha client_code_1c larni olish
-                    codes_1c = [item['client_code_1c'] for item in chunk]
-                    
-                    # Mavjud client'larni olish - is_deleted=False bo'lganlarini ham olamiz
-                    existing_dict = {
-                        obj.client_code_1c: obj 
-                        for obj in Client.objects.filter(
-                            client_code_1c__in=codes_1c
-                        )
-                    }
-                    
-                    to_create = []
-                    to_update = []
-                    
-                    # Project cache olib tashlandi, faqat default_project ishlatiladi
-                    default_project = integration.project
-                    
-                    for item_data in chunk:
-                        client_code_1c = item_data['client_code_1c']
-                        
-                        # Faqat integratsiya proyektini o'ziga bog'laymiz
-                        projects_to_add = [default_project] if default_project else []
-                        
-                        if client_code_1c in existing_dict:
-                            # Update - barcha fieldlarni yangilash
-                            existing = existing_dict[client_code_1c]
-                            
-                            # Barcha fieldlarni yangilash
-                            for field_name, field_value in item_data.items():
-                                if hasattr(existing, field_name) and field_name not in ['id', 'created_at']:
-                                    try:
-                                        setattr(existing, field_name, field_value)
-                                    except Exception as e:
-                                        logger.warning(f"Error setting field {field_name} on client {client_code_1c}: {e}")
-                            
-                            existing.updated_at = timezone.now()
-                            to_update.append(existing)
-                            
-                            # M2M projectlarni yangilash - faqat bitta bo'lishi kerak
-                            if projects_to_add:
-                                existing.projects.set(projects_to_add)
-                        else:
-                            # Create - barcha fieldlar bilan yaratish
+                # Retry logic for database locks
+                max_db_retries = 10  # Ko'proq retry
+                for db_retry in range(max_db_retries):
+                    try:
+                        # Har bir item uchun update_or_create
+                        for item_data in chunk:
                             try:
-                                # project_name allaqachon pop qilingan
-                                new_client = Client(**item_data)
-                                new_client.save()
-                                if projects_to_add:
-                                    new_client.projects.set(projects_to_add)
-                                created_count += 1
+                                client_code_1c = item_data.pop('client_code_1c')
+                                
+                                # update_or_create - atomic operation
+                                obj, created = Client.objects.update_or_create(
+                                    project=integration.project,
+                                    client_code_1c=client_code_1c,
+                                    defaults=item_data
+                                )
+                                if created:
+                                    created_count += 1
+                                else:
+                                    updated_count += 1
+                                    
+                                # Micro-delay har 10 itemdan keyin - concurrency uchun
+                                if (created_count + updated_count) % 10 == 0:
+                                    time_module.sleep(0.01)  # 10ms
+                                    
                             except Exception as e:
-                                logger.error(f"Error creating client {client_code_1c}: {e}")
+                                logger.error(f"Error processing client {item_data.get('client_code_1c', 'Unknown')}: {e}")
                                 error_count += 1
-                                continue
-                    
-                    # Bulk operations
-                    # Bulk create olib tashlandi, chunki M2M uchun save() ishlatildi (Nomenklatura kabi)
-                    # if to_create:
-                    #     Client.objects.bulk_create(to_create, ignore_conflicts=True)
-                    #     created_count += len(to_create)
-                    
-                    if to_update:
-                        # Barcha yangilanishi kerak bo'lgan fieldlarni aniqlash
-                        # Client modelining barcha fieldlarini olish (auto fieldlar va foreign key'larni tashlab)
-                        update_fields = set()
                         
-                        # Birinchi client'dan barcha o'zgargan field nomlarini olish
-                        sample_client = to_update[0]
-                        for field in sample_client._meta.get_fields():
-                            field_name = field.name
-                            # Auto fieldlar, many-to-many va foreign key'larni tashlab o'tish
-                            if (field_name not in ['id', 'created_at'] and 
-                                not field.many_to_many and 
-                                not (hasattr(field, 'related_model') and field.related_model)):
-                                # Agar bu field Client modelida mavjud bo'lsa
-                                if hasattr(Client, field_name):
-                                    update_fields.add(field_name)
+                        # Muvaffaqiyatli - retry loop'dan chiqish
+                        break
                         
-                        # updated_at har doim qo'shiladi
-                        update_fields.add('updated_at')
-                        
-                        # Agar update_fields bo'sh bo'lsa, default fieldlarni ishlatamiz
-                        if not update_fields or len(update_fields) < 3:
-                            update_fields = {
-                                'name', 'email', 'phone', 'description', 
-                                'is_deleted', 'is_active', 'updated_at',
-                                'company_name', 'tax_id', 'registration_number',
-                                'legal_address', 'actual_address', 'fax', 'website',
-                                'social_media', 'additional_phones', 'industry',
-                                'business_type', 'employee_count', 'annual_revenue',
-                                'established_date', 'payment_terms', 'credit_limit',
-                                'currency', 'city', 'region', 'country', 'postal_code',
-                                'contact_person', 'contact_position', 'contact_email',
-                                'contact_phone', 'notes', 'tags', 'rating', 'priority',
-                                'source', 'metadata'
-                            }
-                        
-                        Client.objects.bulk_update(
-                            to_update, 
-                            list(update_fields),
-                            batch_size=chunk_size
-                        )
-                        updated_count += len(to_update)
+                    except OperationalError as e:
+                        if "database is locked" in str(e).lower() and db_retry < max_db_retries - 1:
+                            # Exponential backoff - har retry'da ko'proq kutish
+                            wait_time = random.uniform(0.1, 0.5) * (2 ** db_retry)
+                            logger.warning(f"Database locked, retrying in {wait_time:.2f}s (attempt {db_retry+1}/{max_db_retries})")
+                            time_module.sleep(wait_time)
+                            continue
+                        else:
+                            raise e
                 
-                # Progress yangilash - har chunk'dan keyin
+                # Progress yangilash
                 if log_obj:
                     processed = min(i + chunk_size, len(parsed_items))
                     log_obj.processed_items = processed
@@ -666,7 +631,8 @@ def process_clients_chunk(items, integration, chunk_size=100, log_obj=None):
                     log_obj.updated_items = updated_count
                     log_obj.error_items = error_count
                     log_obj.status = 'processing'
-                    # Retry mechanism bilan save
+                    
+                    # Retry bilan save
                     max_retries = 3
                     for retry in range(max_retries):
                         try:

@@ -13,7 +13,7 @@ class BaseModel(models.Model):
         abstract = True
 
 class Nomenklatura(BaseModel):
-    projects = models.ManyToManyField('api.Project', related_name='nomenclatures', blank=True)
+    project = models.ForeignKey('api.Project', on_delete=models.CASCADE, related_name='nomenclatures', blank=True, null=True, help_text="Proyekt")
     code_1c = models.CharField(max_length=255, db_index=True)
     name = models.CharField(max_length=255, db_index=True)
     title = models.CharField(max_length=255, blank=True, null=True)
@@ -67,9 +67,10 @@ class Nomenklatura(BaseModel):
     metadata = models.JSONField(blank=True, null=True, default=dict, help_text="Qo'shimcha meta ma'lumotlar (JSON)")
 
     class Meta:
+        unique_together = ('project', 'code_1c')
         indexes = [
             models.Index(fields=['is_deleted', 'is_active']),
-            models.Index(fields=['code_1c', 'is_deleted']),
+            models.Index(fields=['project', 'code_1c', 'is_deleted']),
             models.Index(fields=['name', 'is_deleted']),
             models.Index(fields=['sku', 'barcode']),
             models.Index(fields=['category', 'subcategory']),

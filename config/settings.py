@@ -140,27 +140,36 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
         'OPTIONS': {
-            'timeout': 60,  # Increased timeout for sync operations
-            'check_same_thread': False,  # Allow multiple threads
+            'timeout': 300,  # 5 minutes timeout for extreme sync scenarios
+            'check_same_thread': False,
         },
-        'CONN_MAX_AGE': 600,  # Connection pooling
+        'CONN_MAX_AGE': 600,
     }
 }
 
-# SQLite WAL mode - improves concurrency and prevents "readonly database" errors
-# This is set via database connection initialization
+# SQLite Optimization - High Performance & Concurrency settings
 from django.db.backends.signals import connection_created
 from django.dispatch import receiver
 
 @receiver(connection_created)
 def setup_sqlite_wal_mode(sender, connection, **kwargs):
-    """Enable WAL mode for SQLite to improve concurrency"""
+    """Enable high-concurrency settings for SQLite"""
     if connection.vendor == 'sqlite':
         with connection.cursor() as cursor:
+            # WAL mode enables read-write concurrency
             cursor.execute("PRAGMA journal_mode=WAL;")
-            cursor.execute("PRAGMA synchronous=NORMAL;")  # Faster than FULL, still safe
-            cursor.execute("PRAGMA cache_size=-64000;")  # 64MB cache
-            cursor.execute("PRAGMA temp_store=MEMORY;")  # Use memory for temp tables
+            # NORMAL is safer than OFF but faster than FULL (ideal for WAL)
+            cursor.execute("PRAGMA synchronous=NORMAL;")
+            # Increase the timeout for blocked writes
+            cursor.execute("PRAGMA busy_timeout=5000;")
+            # Limit the size of the WAL file to avoid disk growth issues
+            cursor.execute("PRAGMA journal_size_limit=67108864;")
+            # Use memory for temporary tables
+            cursor.execute("PRAGMA temp_store=MEMORY;")
+            # Enable memory-mapped I/O for faster reading
+            cursor.execute("PRAGMA mmap_size=268435456;")
+            # Larger cache (approx 64MB)
+            cursor.execute("PRAGMA cache_size=-64000;")
 
 
 # Password validation

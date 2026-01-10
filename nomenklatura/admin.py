@@ -66,14 +66,14 @@ class ImageStatusFilter(admin.SimpleListFilter):
 @admin.register(Nomenklatura)
 class NomenklaturaAdmin(admin.ModelAdmin):
     """Nomenklatura admin"""
-    list_display = ['name', 'code_1c', 'get_projects', 'sku', 'brand', 'category', 'base_price', 'stock_quantity', 'rating', 'images_count', 'is_active', 'is_deleted', 'created_at']
-    list_filter = ['is_active', 'is_deleted', 'projects', DescriptionStatusFilter, ImageStatusFilter, 'category', 'subcategory', 'brand', 'manufacturer', 'created_at', 'updated_at']
+    list_display = ['name', 'code_1c', 'project', 'sku', 'brand', 'category', 'base_price', 'stock_quantity', 'rating', 'images_count', 'is_active', 'is_deleted', 'created_at']
+    list_filter = ['is_active', 'is_deleted', 'project', DescriptionStatusFilter, ImageStatusFilter, 'category', 'subcategory', 'brand', 'manufacturer', 'created_at', 'updated_at']
     search_fields = ['name', 'code_1c', 'title', 'sku', 'barcode', 'brand', 'manufacturer', 'model', 'category']
     readonly_fields = ['created_at', 'updated_at', 'images_count_display']
     inlines = [NomenklaturaImageInline]
     fieldsets = (
         ('Asosiy ma\'lumotlar', {
-            'fields': ('code_1c', 'name', 'projects', 'title', 'description')
+            'fields': ('code_1c', 'name', 'project', 'title', 'description')
         }),
         ('Mahsulot identifikatsiyasi', {
             'fields': ('sku', 'barcode', 'brand', 'manufacturer', 'model', 'series', 'vendor_code'),
@@ -135,12 +135,8 @@ class NomenklaturaAdmin(admin.ModelAdmin):
     images_count_display.short_description = "Rasmlar soni"
     
     def get_queryset(self, request):
-        """Optimizatsiya: prefetch_related bilan images va projects yuklash"""
-        return super().get_queryset(request).prefetch_related('images', 'projects')
-
-    def get_projects(self, obj):
-        return ", ".join([p.name for p in obj.projects.all()])
-    get_projects.short_description = "Loyihalar"
+        """Optimizatsiya: prefetch_related(images) va select_related(project) yuklash"""
+        return super().get_queryset(request).prefetch_related('images').select_related('project')
 
 
 @admin.register(NomenklaturaImage)

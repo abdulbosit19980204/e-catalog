@@ -66,14 +66,14 @@ class ImageStatusFilter(admin.SimpleListFilter):
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
     """Client admin"""
-    list_display = ['name', 'client_code_1c', 'get_projects', 'email', 'phone', 'city', 'industry', 'rating', 'images_count', 'is_active', 'is_deleted', 'created_at']
-    list_filter = ['is_active', 'is_deleted', 'projects', DescriptionStatusFilter, ImageStatusFilter, 'city', 'region', 'country', 'industry', 'business_type', 'created_at', 'updated_at']
+    list_display = ['name', 'client_code_1c', 'project', 'email', 'phone', 'city', 'industry', 'rating', 'images_count', 'is_active', 'is_deleted', 'created_at']
+    list_filter = ['is_active', 'is_deleted', 'project', DescriptionStatusFilter, ImageStatusFilter, 'city', 'region', 'country', 'industry', 'business_type', 'created_at', 'updated_at']
     search_fields = ['name', 'client_code_1c', 'email', 'phone', 'company_name', 'tax_id', 'contact_person', 'city', 'region']
     readonly_fields = ['created_at', 'updated_at', 'images_count_display']
     inlines = [ClientImageInline]
     fieldsets = (
         ('Asosiy ma\'lumotlar', {
-            'fields': ('client_code_1c', 'name', 'projects', 'email', 'phone', 'description')
+            'fields': ('client_code_1c', 'name', 'project', 'email', 'phone', 'description')
         }),
         ('Kompaniya ma\'lumotlari', {
             'fields': ('company_name', 'tax_id', 'registration_number', 'legal_address', 'actual_address'),
@@ -139,12 +139,8 @@ class ClientAdmin(admin.ModelAdmin):
     images_count_display.short_description = "Rasmlar soni"
     
     def get_queryset(self, request):
-        """Optimizatsiya: prefetch_related bilan images va projects yuklash"""
-        return super().get_queryset(request).prefetch_related('images', 'projects')
-
-    def get_projects(self, obj):
-        return ", ".join([p.name for p in obj.projects.all()])
-    get_projects.short_description = "Loyihalar"
+        """Optimizatsiya: prefetch_related(images) va select_related(project) yuklash"""
+        return super().get_queryset(request).prefetch_related('images').select_related('project')
 
 
 @admin.register(ClientImage)

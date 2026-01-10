@@ -135,18 +135,18 @@ class NomenklaturaImageSerializer(serializers.ModelSerializer):
 
 class NomenklaturaSerializer(serializers.ModelSerializer):
     images = NomenklaturaImageSerializer(many=True, read_only=True)
-    projects = ProjectSerializer(many=True, read_only=True)
-    project_ids = serializers.ListField(
-        child=serializers.IntegerField(),
+    project = ProjectSimpleSerializer(read_only=True)
+    project_id = serializers.IntegerField(
         write_only=True,
         required=False,
-        help_text="Project ID lari ro'yxati"
+        allow_null=True,
+        help_text="Project ID"
     )
     
     class Meta:
         model = Nomenklatura
         fields = [
-            'id', 'projects', 'project_ids', 'code_1c', 'name', 'title', 'description',
+            'id', 'project', 'project_id', 'code_1c', 'name', 'title', 'description',
             'sku', 'barcode', 'brand', 'manufacturer', 'model', 'series', 'vendor_code',
             'base_price', 'sale_price', 'cost_price', 'currency', 'discount_percent',
             'tax_rate', 'stock_quantity', 'min_stock', 'max_stock', 'unit_of_measure',
@@ -162,31 +162,18 @@ class NomenklaturaSerializer(serializers.ModelSerializer):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Optimizatsiya: Nomenklatura ichida faqat yengil project ma'lumotlarini qaytarish
-        self.fields['projects'] = ProjectSimpleSerializer(many=True, read_only=True)
         # Pass request context to nested serializer
         if 'request' in self.context:
             self.fields['images'].context['request'] = self.context['request']
-            self.fields['projects'].context['request'] = self.context['request']
+            self.fields['project'].context['request'] = self.context['request']
     
     def create(self, validated_data):
-        project_ids = validated_data.pop('project_ids', None)
-        instance = super().create(validated_data)
-        if project_ids is not None:
-            instance.projects.set(Project.objects.filter(id__in=project_ids))
-        return instance
+        return super().create(validated_data)
 
     def update(self, instance, validated_data):
         """Update qilganda code_1c o'zgartirilmasligi kerak"""
         validated_data.pop('code_1c', None)  # code_1c o'zgartirilmaydi
-        project_ids = validated_data.pop('project_ids', None)
-        
-        instance = super().update(instance, validated_data)
-        
-        if project_ids is not None:
-            instance.projects.set(Project.objects.filter(id__in=project_ids))
-            
-        return instance
+        return super().update(instance, validated_data)
 
 
 class NomenklaturaImageBulkUploadSerializer(serializers.Serializer):

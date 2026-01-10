@@ -24,6 +24,18 @@ class Integration(BaseModel):
         max_length=500,
         help_text="1C Web Service WSDL URL"
     )
+    username = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="SOAP Authentication Username"
+    )
+    password = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="SOAP Authentication Password"
+    )
     method_nomenklatura = models.CharField(
         max_length=255,
         default='GetProductList',
@@ -35,7 +47,7 @@ class Integration(BaseModel):
         help_text="Client'larni olish uchun method nomi"
     )
     chunk_size = models.IntegerField(
-        default=100,
+        default=50,
         help_text="Bir vaqtda qancha ma'lumot yuklash (chunk size)"
     )
     description = RichTextField(blank=True, null=True, help_text="Integration tavsifi")
