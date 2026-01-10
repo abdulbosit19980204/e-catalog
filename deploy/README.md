@@ -25,21 +25,19 @@ Loyihada ikkita admin paneli mavjud:
 
 ### 1. Nginx Sozlamalari
 
-Nginx konfiguratsiya fayllari `deploy/nginx/` papkasida joylashgan. Frontend Nginx fayli nafaqat statik fayllarni beradi, balki API so'rovlarni ham backend-ga (unix socket orqali) proxy qiladi.
+Barcha sozlamalar (Frontend, Backend Proxy, Admin va Media) bitta faylda jamlangan. Uni serverga o'rnating:
 
 ```bash
-# Backend uchun (ixtiyoriy, agar frontdan foydalanmasangiz)
-sudo cp deploy/nginx/backend.conf /etc/nginx/sites-available/e-catalog-backend
-sudo ln -s /etc/nginx/sites-available/e-catalog-backend /etc/nginx/sites-enabled/
-
-# Frontend (va API Proxy) uchun - ASOSIY FAYL
-sudo cp deploy/nginx/frontend.conf /etc/nginx/sites-available/e-catalog-frontend
-sudo ln -s /etc/nginx/sites-available/e-catalog-frontend /etc/nginx/sites-enabled/
+# Yagona konfiguratsiya faylini nusxalash
+sudo cp deploy/nginx/e-catalog.conf /etc/nginx/sites-available/e-catalog
+sudo ln -s /etc/nginx/sites-available/e-catalog /etc/nginx/sites-enabled/
 
 # Tekshirish va qayta yuklash
 sudo nginx -t
 sudo systemctl restart nginx
 ```
+
+Bitta konfiguratsiya fayli orqali **1563-port**da ham interfeys, ham API ishlaydi. Bu CORS va portlardagi konfliktlarni oldini oladi.
 
 ### 2. Frontend Build (MUHIM)
 
