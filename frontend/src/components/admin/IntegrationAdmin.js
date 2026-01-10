@@ -71,7 +71,7 @@ const IntegrationAdmin = () => {
           setSyncStatus((prev) => ({ ...prev, [`${integrationId}_nomen`]: status }));
           
           if (status.status === 'processing' || status.status === 'fetching') {
-            setTimeout(checkProgress, 1500);
+            setTimeout(checkProgress, 1000);
           } else {
             setSyncing((prev) => {
               const newState = { ...prev };
@@ -124,7 +124,7 @@ const IntegrationAdmin = () => {
           setSyncStatus((prev) => ({ ...prev, [`${integrationId}_client`]: status }));
           
           if (status.status === 'processing' || status.status === 'fetching') {
-            setTimeout(checkProgress, 1500);
+            setTimeout(checkProgress, 1000);
           } else {
             setSyncing((prev) => {
               const newState = { ...prev };
@@ -192,6 +192,17 @@ const IntegrationAdmin = () => {
     });
   };
 
+  const formatTime = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('uz-UZ', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+
   const renderProgressBar = (integration) => {
     const nomenStatus = syncStatus[`${integration.id}_nomen`];
     const clientStatus = syncStatus[`${integration.id}_client`];
@@ -222,12 +233,23 @@ const IntegrationAdmin = () => {
                 <span>1C dan ma'lumotlar olinmoqda...</span>
               ) : (
                 <>
-                  <span>✅ {nomenStatus.created_items || 0}</span>
-                  <span>🔄 {nomenStatus.updated_items || 0}</span>
-                  {nomenStatus.error_items > 0 && <span className="error-count">❌ {nomenStatus.error_items}</span>}
+                  <div className="stat-main">
+                    <span>✅ {nomenStatus.created_items || 0}</span>
+                    <span>🔄 {nomenStatus.updated_items || 0}</span>
+                    {nomenStatus.error_items > 0 && <span className="error-count">❌ {nomenStatus.error_items}</span>}
+                  </div>
+                  
+                  {nomenStatus.status === 'completed' && (
+                    <span className="status-finished">✅ Bajarildi {formatTime(nomenStatus.completed_at)}</span>
+                  )}
+                  {nomenStatus.status === 'error' && (
+                    <span className="status-err-label">❌ To'xtadi {formatTime(nomenStatus.completed_at)}</span>
+                  )}
                 </>
               )}
             </div>
+
+
           </div>
         )}
         
@@ -253,18 +275,29 @@ const IntegrationAdmin = () => {
                 <span>1C dan ma'lumotlar olinmoqda...</span>
               ) : (
                 <>
-                  <span>✅ {clientStatus.created_items || 0}</span>
-                  <span>🔄 {clientStatus.updated_items || 0}</span>
-                  {clientStatus.error_items > 0 && <span className="error-count">❌ {clientStatus.error_items}</span>}
+                  <div className="stat-main">
+                    <span>✅ {clientStatus.created_items || 0}</span>
+                    <span>🔄 {clientStatus.updated_items || 0}</span>
+                    {clientStatus.error_items > 0 && <span className="error-count">❌ {clientStatus.error_items}</span>}
+                  </div>
+                  
+                  {clientStatus.status === 'completed' && (
+                    <span className="status-finished">✅ Bajarildi {formatTime(clientStatus.completed_at)}</span>
+                  )}
+                  {clientStatus.status === 'error' && (
+                    <span className="status-err-label">❌ To'xtadi {formatTime(clientStatus.completed_at)}</span>
+                  )}
                 </>
               )}
             </div>
+
           </div>
         )}
 
       </div>
     );
   };
+
 
   if (loading) {
     return (

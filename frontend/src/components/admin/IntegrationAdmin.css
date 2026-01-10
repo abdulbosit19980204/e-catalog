@@ -225,6 +225,7 @@
     from {
         margin-left: -30%;
     }
+
     to {
         margin-left: 100%;
     }
@@ -233,15 +234,39 @@
 
 .progress-stats {
     display: flex;
+    justify-content: space-between;
+    align-items: center;
     gap: 16px;
     font-size: 12px;
     color: #6b7280;
+}
+
+.stat-main {
+    display: flex;
+    gap: 12px;
+}
+
+.status-finished {
+    color: #10b981;
+    font-weight: 700;
+    background: #d1fae5;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.status-err-label {
+    color: #ef4444;
+    font-weight: 700;
+    background: #fee2e2;
+    padding: 2px 8px;
+    border-radius: 4px;
 }
 
 .progress-stats .error-count {
     color: #ef4444;
     font-weight: 600;
 }
+
 
 /* Sync Buttons */
 .card-actions {

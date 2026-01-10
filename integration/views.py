@@ -512,8 +512,15 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
                                 else:
                                     updated_count += 1
                                     
-                                # Micro-delay har 10 itemdan keyin - concurrency uchun
-                                if (created_count + updated_count) % 10 == 0:
+                                # Micro-delay and log update every 10 itemdan keyin - concurrency va smoothness uchun
+                                processed_so_far = i + (chunk.index(item_data) + 1)
+                                if processed_so_far % 10 == 0:
+                                    if log_obj:
+                                        log_obj.processed_items = processed_so_far
+                                        log_obj.created_items = created_count
+                                        log_obj.updated_items = updated_count
+                                        log_obj.error_items = error_count
+                                        log_obj.save(update_fields=['processed_items', 'created_items', 'updated_items', 'error_items'])
                                     time_module.sleep(0.01)  # 10ms
                                     
                             except Exception as e:
@@ -673,8 +680,15 @@ def process_clients_chunk(items, integration, chunk_size=50, log_obj=None):
                                 else:
                                     updated_count += 1
                                     
-                                # Micro-delay har 10 itemdan keyin - concurrency uchun
-                                if (created_count + updated_count) % 10 == 0:
+                                # Micro-delay and log update every 10 itemdan keyin - concurrency va smoothness uchun
+                                processed_so_far = i + (chunk.index(item_data) + 1)
+                                if processed_so_far % 10 == 0:
+                                    if log_obj:
+                                        log_obj.processed_items = processed_so_far
+                                        log_obj.created_items = created_count
+                                        log_obj.updated_items = updated_count
+                                        log_obj.error_items = error_count
+                                        log_obj.save(update_fields=['processed_items', 'created_items', 'updated_items', 'error_items'])
                                     time_module.sleep(0.01)  # 10ms
                                     
                             except Exception as e:
