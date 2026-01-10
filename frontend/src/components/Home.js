@@ -126,6 +126,25 @@ const Home = () => {
 
   const heroImage = heroProduct ? getPreviewImage(heroProduct) : null;
 
+  if (loading) {
+    return (
+      <div className="home-loading">
+        <div className="spinner"></div>
+        <p>Ma'lumotlar yuklanmoqda...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="home-error">
+        <div className="error-icon">⚠️</div>
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()} className="btn primary">Qayta urinish</button>
+      </div>
+    );
+  }
+
   return (
     <div className="home">
       <section className="hero">
@@ -180,31 +199,72 @@ const Home = () => {
         </div>
 
         <div className="project-feed">
-          {featured.projects.map((project) => {
-            const previewText = toPlainText(project.description);
-            const truncatedText =
-              previewText.length > 120
-                ? `${previewText.slice(0, 120).trim()}...`
-                : previewText;
+          {featured.projects.filter(p => !p.is_integration).length > 0 ? (
+            featured.projects.filter(p => !p.is_integration).map((project) => {
+              const previewText = toPlainText(project.description);
+              const truncatedText =
+                previewText.length > 120
+                  ? `${previewText.slice(0, 120).trim()}...`
+                  : previewText;
 
-            return (
-              <article key={project.id} className="project-feed-item">
-                <div className="project-thumb">
-                  {getPreviewImage(project) ? (
-                    <img src={getPreviewImage(project)} alt={project.name} />
-                  ) : (
-                    <div className="placeholder">Rasm yo‘q</div>
-                  )}
-                </div>
-                <div className="project-content">
-                  <h3>{project.name}</h3>
-                  <p>{truncatedText || "Loyiha tavsifi mavjud emas"}</p>
-                </div>
-              </article>
-            );
-          })}
+              return (
+                <article key={project.id} className="project-feed-item">
+                  <div className="project-thumb">
+                    {getPreviewImage(project) ? (
+                      <img src={getPreviewImage(project)} alt={project.name} />
+                    ) : (
+                      <div className="placeholder">Rasm yo‘q</div>
+                    )}
+                  </div>
+                  <div className="project-content">
+                    <h3 title={project.name}>{project.name}</h3>
+                    <p>{truncatedText || "Loyiha tavsifi mavjud emas"}</p>
+                  </div>
+                </article>
+              );
+            })
+          ) : (
+            <p className="no-data">Hozircha oddiy loyihalar mavjud emas</p>
+          )}
         </div>
       </section>
+
+      {featured.projects.filter(p => p.is_integration).length > 0 && (
+        <section className="section projects integration-projects">
+          <div className="section-header">
+            <div>
+              <h2>Integratsiya loyihalari</h2>
+              <p>Avtomatik tarzda bog'langan tashqi tizim loyihalari</p>
+            </div>
+          </div>
+
+          <div className="project-feed">
+            {featured.projects.filter(p => p.is_integration).map((project) => {
+              const previewText = toPlainText(project.description);
+              const truncatedText =
+                previewText.length > 120
+                  ? `${previewText.slice(0, 120).trim()}...`
+                  : previewText;
+
+              return (
+                <article key={project.id} className="project-feed-item integration-card">
+                  <div className="project-thumb">
+                    {getPreviewImage(project) ? (
+                      <img src={getPreviewImage(project)} alt={project.name} />
+                    ) : (
+                      <div className="placeholder">Rasm yo‘q</div>
+                    )}
+                  </div>
+                  <div className="project-content">
+                    <h3 title={project.name}>{project.name}</h3>
+                    <p>{truncatedText || "Loyiha tavsifi mavjud emas"}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="section clients">
         <div className="section-header">

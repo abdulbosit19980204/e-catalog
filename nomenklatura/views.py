@@ -209,6 +209,7 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
     queryset = Nomenklatura.objects.filter(is_deleted=False)
     serializer_class = NomenklaturaSerializer
     lookup_field = 'code_1c'
+    lookup_value_regex = '.+'
     filterset_class = NomenklaturaFilterSet
     search_fields = ['code_1c', 'name']
     

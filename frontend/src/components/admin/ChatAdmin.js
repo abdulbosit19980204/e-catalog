@@ -91,6 +91,15 @@ const ChatAdmin = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="chat-admin-loading">
+        <div className="spinner"></div>
+        <p>Suhbatlar yuklanmoqda...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="chat-admin-container">
       <div className="chat-admin-sidebar">

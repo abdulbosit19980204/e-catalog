@@ -314,13 +314,15 @@
 .table-container {
   border-radius: 20px;
   border: 1px solid var(--border-color);
-  overflow: hidden;
+  overflow-x: auto;
   background: white;
+  -webkit-overflow-scrolling: touch;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 800px; /* Ensure table doesn't get too squeezed horizontally */
 }
 
 .data-table th {
@@ -341,6 +343,9 @@
   font-size: 0.95rem;
   color: var(--text-main);
   vertical-align: middle;
+  word-break: break-all;
+  min-width: 150px; /* Prevent columns from getting too narrow */
+  max-width: 400px; /* Prevent any single column from taking too much space */
 }
 
 .data-table tr:last-child td {

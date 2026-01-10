@@ -81,12 +81,14 @@ class ProjectFilterSet(django_filters.FilterSet):
 
 
 class ProjectImageFilterSet(django_filters.FilterSet):
+    project = django_filters.CharFilter(field_name='project__code_1c')
+    project_id = django_filters.NumberFilter(field_name='project__id')
     created_from = django_filters.DateFilter(field_name='created_at', lookup_expr='date__gte')
     created_to = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
 
     class Meta:
         model = ProjectImage
-        fields = ['project', 'is_main', 'category', 'created_from', 'created_to']
+        fields = ['project', 'project_id', 'is_main', 'category', 'created_from', 'created_to']
 
 
 @extend_schema_view(
@@ -197,6 +199,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.filter(is_deleted=False)
     serializer_class = ProjectSerializer
     lookup_field = 'code_1c'
+    lookup_value_regex = '.+'
     filterset_class = ProjectFilterSet
     search_fields = ['code_1c', 'name', 'title']
     

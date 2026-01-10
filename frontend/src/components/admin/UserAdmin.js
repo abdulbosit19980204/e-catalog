@@ -75,6 +75,15 @@ const UserAdmin = () => {
     }
   };
 
+  if (loading && users.length === 0) {
+    return (
+      <div className="admin-loading">
+        <div className="spinner"></div>
+        <p>Foydalanuvchilar yuklanmoqda...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="user-admin">
       <div className="admin-header">

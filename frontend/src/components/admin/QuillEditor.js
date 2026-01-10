@@ -98,7 +98,7 @@ const QuillEditor = ({
       }
       isInternalChange.current = false;
     }
-  }, [value, sanitizeEmpty]);
+  }, [value]);
 
   return (
     <div

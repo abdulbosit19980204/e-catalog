@@ -163,7 +163,28 @@
 .section {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 80px 40px;
+  padding: 60px 40px;
+}
+
+.integration-projects {
+  background: var(--bg-soft);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  max-width: 100%;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.integration-projects .section-header {
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.integration-projects .project-feed {
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .section-header {
@@ -230,16 +251,40 @@
 }
 
 .project-content h3 {
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 700;
   margin-bottom: 12px;
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 3rem; /* Fixed height for 2 lines */
+  line-height: 1.5rem;
 }
 
 .project-content p {
   font-size: 0.95rem;
   color: var(--text-muted);
   line-height: 1.5;
-  margin-bottom: 20px;
+  margin-bottom: 0px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 3rem;
+}
+
+.integration-card {
+  border-left: 4px solid var(--primary);
+}
+
+.no-data {
+  color: var(--text-muted);
+  font-style: italic;
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
 }
 
 .client-grid {

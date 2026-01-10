@@ -233,19 +233,25 @@ class AgentLocationSerializer(serializers.ModelSerializer):
 
 class ProjectSimpleSerializer(serializers.ModelSerializer):
     """Faqatgina ID, code_1c va name ni qaytaruvchi yengil serializer"""
+    is_integration = serializers.SerializerMethodField()
+
     class Meta:
         model = Project
-        fields = ['id', 'code_1c', 'name']
+        fields = ['id', 'code_1c', 'name', 'is_integration']
+
+    def get_is_integration(self, obj) -> bool:
+        return obj.integrations.exists()
 
 
 class ProjectSerializer(serializers.ModelSerializer):
     images = ProjectImageSerializer(many=True, read_only=True)
+    is_integration = serializers.SerializerMethodField()
     
     class Meta:
         model = Project
         fields = [
             'id', 'code_1c', 'name', 'title', 'description', 'is_active', 'is_deleted',
-            'created_at', 'updated_at', 'images'
+            'created_at', 'updated_at', 'images', 'is_integration'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
         extra_kwargs = {
@@ -262,6 +268,9 @@ class ProjectSerializer(serializers.ModelSerializer):
         """Update qilganda code_1c o'zgartirilmasligi kerak"""
         validated_data.pop('code_1c', None)  # code_1c o'zgartirilmaydi
         return super().update(instance, validated_data)
+
+    def get_is_integration(self, obj) -> bool:
+        return obj.integrations.exists()
 
 
 class ProjectDetailSerializer(ProjectSerializer):

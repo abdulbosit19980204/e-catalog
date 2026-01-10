@@ -104,6 +104,10 @@ const ChatPage = () => {
     }
   };
 
+  if (loading) {
+    return <div className="chat-loading">Yuklanmoqda...</div>;
+  }
+
   return (
     <div className="chat-container">
       <div className="chat-sidebar">

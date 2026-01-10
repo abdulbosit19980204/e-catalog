@@ -188,6 +188,7 @@ class ClientViewSet(viewsets.ModelViewSet):
     queryset = Client.objects.filter(is_deleted=False)
     serializer_class = ClientSerializer
     lookup_field = 'client_code_1c'
+    lookup_value_regex = '.+'
     filterset_class = ClientFilterSet
     search_fields = ['client_code_1c', 'name', 'email']
     permission_classes = [IsAuthenticated]  # Faqat authenticated user'lar uchun
