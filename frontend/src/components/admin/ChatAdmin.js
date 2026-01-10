@@ -73,7 +73,7 @@ const ChatAdmin = () => {
     e.preventDefault();
     if (!newMessage.trim() || !socket) return;
     
-    socket.send(json.stringify({
+    socket.send(JSON.stringify({
       type: 'message',
       body: newMessage
     }));
@@ -94,7 +94,7 @@ const ChatAdmin = () => {
   return (
     <div className="chat-admin-container">
       <div className="chat-admin-sidebar">
-        <div className="sidebar-header">
+        <div className="chat-admin-sidebar-header">
           <h3>Suhbatlar boshqaruvi</h3>
           <button onClick={loadConversations} className="btn-refresh">🔄</button>
         </div>

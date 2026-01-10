@@ -119,8 +119,8 @@ const UserAdmin = () => {
       </div>
 
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="user-modal-overlay">
+          <div className="user-modal-content">
             <h3>{editingUser ? "Tahrirlash" : "Yangi Foydalanuvchi"}</h3>
             <form onSubmit={handleSave}>
               <div className="form-group">
@@ -149,7 +149,7 @@ const UserAdmin = () => {
                   onChange={e => setFormData({...formData, is_staff: e.target.checked})}
                 /> Admin huquqi
               </div>
-              <div className="modal-actions">
+              <div className="user-modal-actions">
                 <button type="button" onClick={() => setShowModal(false)}>Bekor qilish</button>
                 <button type="submit" className="btn-primary">Saqlash</button>
               </div>

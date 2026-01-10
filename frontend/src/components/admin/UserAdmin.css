@@ -5,7 +5,7 @@
 .user-table-container {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   margin-top: 20px;
 }
@@ -15,7 +15,8 @@
   border-collapse: collapse;
 }
 
-.user-table th, .user-table td {
+.user-table th,
+.user-table td {
   padding: 12px 15px;
   text-align: left;
   border-bottom: 1px solid #edf2f7;
@@ -34,8 +35,15 @@
   font-weight: 500;
 }
 
-.status-pill.active { background: #c6f6d5; color: #22543d; }
-.status-pill.inactive { background: #fed7d7; color: #742a2a; }
+.status-pill.active {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.status-pill.inactive {
+  background: #fed7d7;
+  color: #742a2a;
+}
 
 .btn-add {
   background: #4a5568;
@@ -46,19 +54,35 @@
   cursor: pointer;
 }
 
-.btn-edit { color: #3182ce; background: none; border: none; cursor: pointer; margin-right: 10px; }
-.btn-delete { color: #e53e3e; background: none; border: none; cursor: pointer; }
+.btn-edit {
+  color: #3182ce;
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-right: 10px;
+}
 
-.modal-overlay {
+.btn-delete {
+  color: #e53e3e;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.user-modal-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 10000;
 }
 
-.modal-content {
+.user-modal-content {
   background: white;
   padding: 25px;
   border-radius: 8px;
@@ -82,7 +106,7 @@
   border-radius: 4px;
 }
 
-.modal-actions {
+.user-modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;

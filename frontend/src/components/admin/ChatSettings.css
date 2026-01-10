@@ -3,7 +3,7 @@
     max-width: 800px;
 }
 
-.settings-card {
+.chat-settings-card {
     background: white;
     padding: 30px;
     border-radius: 12px;
@@ -51,7 +51,7 @@
     resize: vertical;
 }
 
-.form-actions {
+.chat-settings-actions {
     margin-top: 30px;
     display: flex;
     justify-content: flex-end;

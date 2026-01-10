@@ -44,7 +44,7 @@ const ChatSettings = () => {
   return (
     <div className="chat-settings">
       <h2>Chat Sozlamalari</h2>
-      <div className="settings-card">
+      <div className="chat-settings-card">
         <form onSubmit={handleSave}>
           <div className="setting-item">
             <div className="setting-info">
@@ -94,7 +94,7 @@ const ChatSettings = () => {
             </div>
           )}
 
-          <div className="form-actions">
+          <div className="chat-settings-actions">
             <button type="submit" className="btn-save">Saqlash</button>
           </div>
         </form>

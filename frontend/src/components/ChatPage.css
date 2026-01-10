@@ -16,7 +16,7 @@
   flex-direction: column;
 }
 
-.sidebar-header {
+.chat-sidebar-header {
   padding: 20px;
   border-bottom: 1px solid #f0f2f5;
   display: flex;
@@ -24,7 +24,7 @@
   align-items: center;
 }
 
-.sidebar-header h3 {
+.chat-sidebar-header h3 {
   margin: 0;
   font-size: 1.1rem;
   color: #1a202c;
@@ -222,7 +222,7 @@
   text-align: center;
 }
 
-.placeholder-icon {
+.chat-placeholder-icon {
   font-size: 4rem;
   margin-bottom: 20px;
   opacity: 0.3;

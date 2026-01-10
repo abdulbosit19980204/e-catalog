@@ -85,7 +85,7 @@ const ChatPage = () => {
     e.preventDefault();
     if (!newMessage.trim() || !socket) return;
     
-    socket.send(json.stringify({
+    socket.send(JSON.stringify({
       type: 'message',
       body: newMessage
     }));
@@ -107,7 +107,7 @@ const ChatPage = () => {
   return (
     <div className="chat-container">
       <div className="chat-sidebar">
-        <div className="sidebar-header">
+        <div className="chat-sidebar-header">
           <h3>Suhbatlar</h3>
           <button onClick={startNewConversation} className="btn-new-chat">+</button>
         </div>
@@ -167,7 +167,7 @@ const ChatPage = () => {
           </>
         ) : (
           <div className="no-chat-selected">
-            <div className="placeholder-icon">💬</div>
+            <div className="chat-placeholder-icon">💬</div>
             <p>Suhbatni tanlang yoki yangisini boshlang</p>
             <button onClick={startNewConversation} className="btn-primary">Yangi suhbat</button>
           </div>
