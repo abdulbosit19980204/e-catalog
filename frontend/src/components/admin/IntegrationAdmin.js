@@ -11,6 +11,8 @@ const IntegrationAdmin = () => {
   const [syncStatus, setSyncStatus] = useState({});
   const [syncing, setSyncing] = useState({});
   const [showHistory, setShowHistory] = useState(false);
+  const [expandedErrors, setExpandedErrors] = useState({});
+
   
   // Filters for history
   const [statusFilter, setStatusFilter] = useState("");
@@ -202,21 +204,29 @@ const IntegrationAdmin = () => {
           <div className="progress-section">
             <div className="progress-header">
               <span>📦 Nomenklatura</span>
-              <span className="progress-percentage">{nomenStatus.processed_items || 0} / {nomenStatus.total_items || 0}</span>
+              <span className="progress-percentage">
+                {nomenStatus.status === 'fetching' ? 'Bog\'lanmoqda...' : `${nomenStatus.processed_items || 0} / ${nomenStatus.total_items || 0}`}
+              </span>
             </div>
-            <div className="progress-bar-container">
+            <div className={`progress-bar-container ${nomenStatus.status === 'fetching' ? 'fetching' : ''}`}>
               <div 
-                className="progress-bar-fill" 
-                style={{ 
+                className={`progress-bar-fill ${nomenStatus.status === 'fetching' ? 'indeterminate' : ''}`}
+                style={nomenStatus.status === 'fetching' ? {} : { 
                   width: `${((nomenStatus.processed_items || 0) / (nomenStatus.total_items || 1)) * 100}%`,
                   backgroundColor: getStatusColor(nomenStatus.status)
                 }}
               />
             </div>
             <div className="progress-stats">
-              <span>✅ {nomenStatus.created_items || 0} yaratildi</span>
-              <span>🔄 {nomenStatus.updated_items || 0} yangilandi</span>
-              {nomenStatus.error_items > 0 && <span className="error-count">❌ {nomenStatus.error_items} xato</span>}
+              {nomenStatus.status === 'fetching' ? (
+                <span>1C dan ma'lumotlar olinmoqda...</span>
+              ) : (
+                <>
+                  <span>✅ {nomenStatus.created_items || 0}</span>
+                  <span>🔄 {nomenStatus.updated_items || 0}</span>
+                  {nomenStatus.error_items > 0 && <span className="error-count">❌ {nomenStatus.error_items}</span>}
+                </>
+              )}
             </div>
           </div>
         )}
@@ -225,24 +235,33 @@ const IntegrationAdmin = () => {
           <div className="progress-section">
             <div className="progress-header">
               <span>👥 Clients</span>
-              <span className="progress-percentage">{clientStatus.processed_items || 0} / {clientStatus.total_items || 0}</span>
+              <span className="progress-percentage">
+                {clientStatus.status === 'fetching' ? 'Bog\'lanmoqda...' : `${clientStatus.processed_items || 0} / ${clientStatus.total_items || 0}`}
+              </span>
             </div>
-            <div className="progress-bar-container">
+            <div className={`progress-bar-container ${clientStatus.status === 'fetching' ? 'fetching' : ''}`}>
               <div 
-                className="progress-bar-fill" 
-                style={{ 
+                className={`progress-bar-fill ${clientStatus.status === 'fetching' ? 'indeterminate' : ''}`}
+                style={clientStatus.status === 'fetching' ? {} : { 
                   width: `${((clientStatus.processed_items || 0) / (clientStatus.total_items || 1)) * 100}%`,
                   backgroundColor: getStatusColor(clientStatus.status)
                 }}
               />
             </div>
             <div className="progress-stats">
-              <span>✅ {clientStatus.created_items || 0} yaratildi</span>
-              <span>🔄 {clientStatus.updated_items || 0} yangilandi</span>
-              {clientStatus.error_items > 0 && <span className="error-count">❌ {clientStatus.error_items} xato</span>}
+              {clientStatus.status === 'fetching' ? (
+                <span>1C dan ma'lumotlar olinmoqda...</span>
+              ) : (
+                <>
+                  <span>✅ {clientStatus.created_items || 0}</span>
+                  <span>🔄 {clientStatus.updated_items || 0}</span>
+                  {clientStatus.error_items > 0 && <span className="error-count">❌ {clientStatus.error_items}</span>}
+                </>
+              )}
             </div>
           </div>
         )}
+
       </div>
     );
   };
@@ -391,9 +410,31 @@ const IntegrationAdmin = () => {
                   </div>
                   {log.error_details && (
                     <div className="history-error">
-                      <strong>Xato:</strong> {log.error_details}
+                      <strong>Umumiy xato:</strong> {log.error_details}
                     </div>
                   )}
+                  
+                  {log.error_items > 0 && log.item_errors && log.item_errors.length > 0 && (
+                    <div className="history-item-errors">
+                      <button 
+                        className="btn-text" 
+                        onClick={() => setExpandedErrors(prev => ({...prev, [log.id]: !prev[log.id]}))}
+                      >
+                        {expandedErrors[log.id] ? '🔼 Xatolarni yashirish' : `🔽 Barcha xatolarni ko'rish (${log.item_errors.length})`}
+                      </button>
+                      
+                      {expandedErrors[log.id] && (
+                        <div className="errors-list">
+                          {log.item_errors.map((err, idx) => (
+                            <div key={idx} className="error-item">
+                              <span className="err-code">{err.code}</span>: <span className="err-msg">{err.error}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                 </div>
               ))
             )}

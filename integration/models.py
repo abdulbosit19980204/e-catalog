@@ -101,6 +101,8 @@ class IntegrationLog(BaseModel):
     start_time = models.DateTimeField(auto_now_add=True)
     end_time = models.DateTimeField(blank=True, null=True)
     error_details = models.TextField(blank=True, null=True)
+    item_errors = models.JSONField(default=list, blank=True, help_text="Alohida itemlar uchun xatoliklar")
+
     
     @property
     def total(self):

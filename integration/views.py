@@ -418,6 +418,8 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
     created_count = 0
     updated_count = 0
     error_count = 0
+    item_errors = []
+
     
     # CRITICAL: Integration loyiha bo'lishi kerak!
     if not integration.project:
@@ -445,7 +447,13 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
                 
                 if not code_1c or not name:
                     error_count += 1
+                    item_errors.append({
+                        "code": code_1c or "Noma'lum",
+                        "error": "Kod yoki nom topilmadi",
+                        "timestamp": timezone.now().isoformat()
+                    })
                     continue
+
                 
                 # Invert is_active as per user requirement: 1C false -> DB True
                 db_is_active = True
@@ -511,6 +519,12 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
                             except Exception as e:
                                 logger.error(f"Error processing nomenklatura {item_data.get('code_1c')}: {e}")
                                 error_count += 1
+                                item_errors.append({
+                                    "code": item_data.get('code_1c'),
+                                    "error": str(e),
+                                    "timestamp": timezone.now().isoformat()
+                                })
+
                         
                         # Muvaffaqiyatli - retry loop'dan chiqish
                         break
@@ -532,7 +546,9 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
                     log_obj.created_items = created_count
                     log_obj.updated_items = updated_count
                     log_obj.error_items = error_count
+                    log_obj.item_errors = item_errors
                     log_obj.status = 'processing'
+
                     
                     # Retry bilan save
                     max_retries = 3
@@ -597,7 +613,13 @@ def process_clients_chunk(items, integration, chunk_size=50, log_obj=None):
                 
                 if not parsed_data:
                     error_count += 1
+                    item_errors.append({
+                        "code": clean_value(getattr(item, 'Code', 'Noma\'lum')),
+                        "error": "Ma'lumotlarni parse qilib bo'lmadi",
+                        "timestamp": timezone.now().isoformat()
+                    })
                     continue
+
                 
                 # Invert is_active logic: 1C false -> DB True
                 if 'is_active' in parsed_data:
@@ -658,6 +680,12 @@ def process_clients_chunk(items, integration, chunk_size=50, log_obj=None):
                             except Exception as e:
                                 logger.error(f"Error processing client {item_data.get('client_code_1c', 'Unknown')}: {e}")
                                 error_count += 1
+                                item_errors.append({
+                                    "code": client_code_1c if 'client_code_1c' in locals() else 'Unknown',
+                                    "error": str(e),
+                                    "timestamp": timezone.now().isoformat()
+                                })
+
                         
                         # Muvaffaqiyatli - retry loop'dan chiqish
                         break
@@ -679,7 +707,9 @@ def process_clients_chunk(items, integration, chunk_size=50, log_obj=None):
                     log_obj.created_items = created_count
                     log_obj.updated_items = updated_count
                     log_obj.error_items = error_count
+                    log_obj.item_errors = item_errors
                     log_obj.status = 'processing'
+
                     
                     # Retry bilan save
                     max_retries = 3
