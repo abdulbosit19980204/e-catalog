@@ -168,12 +168,23 @@ export const clientAPI = {
   createClient: (data) => {
     return apiClient.post("/client/", data);
   },
-  updateClient: (clientCode1c, data) => {
-    return apiClient.patch(`/client/${clientCode1c}/`, data);  // PATCH ishlatish
+  updateClient: (clientCode1c, data, project_id) => {
+    return apiClient.patch(`/client/${clientCode1c}/`, data, { params: { project_id } });
   },
-  deleteClient: (clientCode1c) => {
-    return apiClient.delete(`/client/${clientCode1c}/`);
+  deleteClient: (clientCode1c, project_id) => {
+    return apiClient.delete(`/client/${clientCode1c}/`, { params: { project_id } });
   },
+  importClients: (file, project_id) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (project_id) {
+      formData.append('project_id', project_id);
+    }
+    return apiClient.post("/client/import-xlsx/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
   // Image upload
   uploadImage: (clientCode, imageFile, options = {}) => {
     const formData = new FormData();
@@ -231,12 +242,26 @@ export const nomenklaturaAPI = {
   createNomenklatura: (data) => {
     return apiClient.post("/nomenklatura/", data);
   },
-  updateNomenklatura: (code1c, data) => {
-    return apiClient.patch(`/nomenklatura/${code1c}/`, data);  // PATCH ishlatish
+  updateNomenklatura: (code1c, data, project_id) => {
+    return apiClient.patch(`/nomenklatura/${code1c}/`, data, { params: { project_id } });
   },
-  deleteNomenklatura: (code1c) => {
-    return apiClient.delete(`/nomenklatura/${code1c}/`);
+  deleteNomenklatura: (code1c, project_id) => {
+    return apiClient.delete(`/nomenklatura/${code1c}/`, { params: { project_id } });
   },
+  importNomenklatura: (file, project_id) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (project_id) {
+      formData.append('project_id', project_id);
+    }
+    return apiClient.post("/nomenklatura/import-xlsx/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+  exportNomenklatura: (params = {}) => {
+    return apiClient.get("/nomenklatura/export-xlsx/", { params, responseType: 'blob' });
+  },
+
   // Image upload
   uploadImage: (nomenklaturaCode, imageFile, options = {}) => {
     const formData = new FormData();

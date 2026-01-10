@@ -427,6 +427,7 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        project_id = request.data.get('project_id')
         stats = {'created': 0, 'updated': 0, 'errors': []}
         for idx, row in enumerate(
             sheet.iter_rows(min_row=2, max_col=len(expected), values_only=True),
@@ -450,11 +451,18 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
                 'is_active': is_active,
                 'is_deleted': False,
             }
+            
             try:
+                lookup = {'code_1c': code, 'is_deleted': False}
+                if project_id:
+                    lookup['project_id'] = project_id
+                    defaults['project_id'] = project_id
+                
                 obj, created_flag = Nomenklatura.objects.update_or_create(
-                    code_1c=code,
+                    **lookup,
                     defaults=defaults,
                 )
+
                 if created_flag:
                     stats['created'] += 1
                 else:

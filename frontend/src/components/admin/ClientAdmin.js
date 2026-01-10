@@ -141,16 +141,17 @@ const ClientAdmin = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (clientCode1c) => {
+  const handleDelete = async (client) => {
     if (!window.confirm("Bu client'ni o'chirishni xohlaysizmi?")) return;
     try {
-      await clientAPI.deleteClient(clientCode1c);
+      await clientAPI.deleteClient(client.client_code_1c, client.project?.id);
       loadClients();
       success("Client muvaffaqiyatli o'chirildi");
     } catch (err) {
       showError(err.response?.data?.detail || "O'chirishda xatolik");
     }
   };
+
 
   // Helper to clean data before sending to API
   const prepareDataForSubmit = (data) => {
@@ -184,7 +185,7 @@ const ClientAdmin = () => {
 
   const handleToggleActive = async (client) => {
     try {
-      await clientAPI.updateClient(client.client_code_1c, { is_active: !client.is_active });
+      await clientAPI.updateClient(client.client_code_1c, { is_active: !client.is_active }, client.project?.id);
       loadClients();
       success(`Client statusi o'zgartirildi`);
     } catch (err) {
@@ -192,12 +193,13 @@ const ClientAdmin = () => {
     }
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const dataToSend = prepareDataForSubmit(formData);
       if (editingClient) {
-        await clientAPI.updateClient(editingClient.client_code_1c, dataToSend);
+        await clientAPI.updateClient(editingClient.client_code_1c, dataToSend, editingClient.project?.id);
         success("Client muvaffaqiyatli yangilandi");
       } else {
         await clientAPI.createClient(dataToSend);
@@ -206,6 +208,7 @@ const ClientAdmin = () => {
       setShowModal(false);
       loadClients();
     } catch (err) {
+
       let errorMsg = "Saqlashda xatolik yuz berdi";
       const data = err.response?.data;
       if (data) {
@@ -249,6 +252,37 @@ const ClientAdmin = () => {
       setUploading(false);
     }
   };
+
+  const handleImportExcel = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Get project ID if filter is project code_1c
+    let project_id = null;
+    if (projectFilter) {
+      const project = availableProjects.find(p => p.code_1c === projectFilter);
+      project_id = project?.id;
+      if (!window.confirm(`Ma'lumotlar "${project?.name}" loyihasiga import qilinadi. Davom etasizmi?`)) return;
+    } else {
+      if (!window.confirm("Loyiha tanlanmagan. Ma'lumotlar mavjud client_code_1c bo'yicha yangilanadi yoki yangi yozuvlar loyihasiz yaratiladi. Davom etasizmi?")) return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await clientAPI.importClients(file, project_id);
+      success(`Import yakunlandi: ${response.data.created} yaratildi, ${response.data.updated} yangilandi`);
+      if (response.data.errors.length > 0) {
+        console.warn("Import errors:", response.data.errors);
+      }
+      loadClients();
+    } catch (err) {
+      showError("Excel importda xatolik yuz berdi");
+    } finally {
+      setLoading(false);
+      e.target.value = null;
+    }
+  };
+
 
   const handleDeleteImage = async (imageId) => {
     if (!window.confirm("Bu rasmni o'chirishni xohlaysizmi?")) return;
@@ -723,10 +757,17 @@ const ClientAdmin = () => {
     <div className="admin-crud">
       <div className="crud-header">
         <h2>👥 Clients</h2>
-        <button onClick={handleCreate} className="btn-primary">
-          <span>+</span> Yangi Client
-        </button>
+        <div className="header-actions">
+          <label className="btn-tertiary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+            📥 Import Excel
+            <input type="file" accept=".xlsx, .xls" onChange={handleImportExcel} style={{ display: 'none' }} />
+          </label>
+          <button onClick={handleCreate} className="btn-primary">
+            <span>+</span> Yangi Client
+          </button>
+        </div>
       </div>
+
 
       <form onSubmit={(e) => {e.preventDefault(); setPage(1); loadClients();}} className="search-form">
         <div className="search-row">
@@ -857,9 +898,10 @@ const ClientAdmin = () => {
                       <td>
                         <div className="action-buttons">
                           <button onClick={() => handleEdit(client)} className="btn-edit" title="Tahrirlash">✏️</button>
-                          <button onClick={() => handleDelete(client.client_code_1c)} className="btn-delete" title="O'chirish">🗑️</button>
+                          <button onClick={() => handleDelete(client)} className="btn-delete" title="O'chirish">🗑️</button>
                         </div>
                       </td>
+
                     </tr>
                   ))
                 )}

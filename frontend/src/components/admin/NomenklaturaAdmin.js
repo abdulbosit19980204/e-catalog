@@ -146,16 +146,17 @@ const NomenklaturaAdmin = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (code1c) => {
+  const handleDelete = async (item) => {
     if (!window.confirm("Bu nomenklatura'ni o'chirishni xohlaysizmi?")) return;
     try {
-      await nomenklaturaAPI.deleteNomenklatura(code1c);
+      await nomenklaturaAPI.deleteNomenklatura(item.code_1c, item.project?.id);
       loadNomenklatura();
       success("Nomenklatura o'chirildi");
     } catch (err) {
       showError("O'chirishda xatolik");
     }
   };
+
 
   const handleProjectToggle = (projectId) => {
     const currentIds = [...formData.project_ids];
@@ -170,13 +171,14 @@ const NomenklaturaAdmin = () => {
 
   const handleToggleActive = async (item) => {
     try {
-      await nomenklaturaAPI.updateNomenklatura(item.code_1c, { is_active: !item.is_active });
+      await nomenklaturaAPI.updateNomenklatura(item.code_1c, { is_active: !item.is_active }, item.project?.id);
       loadNomenklatura();
       success(`Status o'zgartirildi`);
     } catch (err) {
       showError("Statusni o'zgartirib bo'lmadi");
     }
   };
+
 
   const prepareDataForSubmit = (data) => {
     const cleaned = { ...data };
@@ -199,7 +201,7 @@ const NomenklaturaAdmin = () => {
     try {
       const dataToSend = prepareDataForSubmit(formData);
       if (editingNomenklatura) {
-        await nomenklaturaAPI.updateNomenklatura(editingNomenklatura.code_1c, dataToSend);
+        await nomenklaturaAPI.updateNomenklatura(editingNomenklatura.code_1c, dataToSend, editingNomenklatura.project?.id);
         success("Muvaffaqiyatli yangilandi");
       } else {
         await nomenklaturaAPI.createNomenklatura(dataToSend);
@@ -208,6 +210,7 @@ const NomenklaturaAdmin = () => {
       setShowModal(false);
       loadNomenklatura();
     } catch (err) {
+
       let errorMsg = "Saqlashda xatolik";
       const data = err.response?.data;
       if (data) {
@@ -246,6 +249,34 @@ const NomenklaturaAdmin = () => {
       setUploading(false);
     }
   };
+
+  const handleImportExcel = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (filterProject) {
+        const project = projectsList.find(p => p.id === parseInt(filterProject));
+        if (!window.confirm(`Ma'lumotlar "${project?.name}" loyihasiga import qilinadi. Davom etasizmi?`)) return;
+    } else {
+        if (!window.confirm("Loyiha tanlanmagan. Ma'lumotlar mavjud code_1c bo'yicha yangilanadi yoki yangi yozuvlar loyihasiz yaratiladi. Davom etasizmi?")) return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await nomenklaturaAPI.importNomenklatura(file, filterProject);
+      success(`Import yakunlandi: ${response.data.created} yaratildi, ${response.data.updated} yangilandi`);
+      if (response.data.errors.length > 0) {
+        console.warn("Import errors:", response.data.errors);
+      }
+      loadNomenklatura();
+    } catch (err) {
+      showError("Excel importda xatolik yuz berdi");
+    } finally {
+      setLoading(false);
+      e.target.value = null;
+    }
+  };
+
 
   const handleDeleteImage = async (imageId) => {
     if (!window.confirm("Rasmni o'chirish?")) return;
@@ -430,7 +461,17 @@ const NomenklaturaAdmin = () => {
 
   return (
     <div className="admin-crud">
-      <div className="crud-header"><h2>📦 Nomenklatura</h2><button onClick={handleCreate} className="btn-primary">+ Yangi</button></div>
+      <div className="crud-header">
+        <h2>📦 Nomenklatura</h2>
+        <div className="header-actions">
+          <label className="btn-tertiary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+            📥 Import Excel
+            <input type="file" accept=".xlsx, .xls" onChange={handleImportExcel} style={{ display: 'none' }} />
+          </label>
+          <button onClick={handleCreate} className="btn-primary">+ Yangi</button>
+        </div>
+      </div>
+
       <form onSubmit={(e) => {e.preventDefault(); setPage(1);}} className="search-form">
         <div className="search-row">
           <input type="text" placeholder="Qidirish..." value={search} onChange={(e) => setSearch(e.target.value)} className="search-input" />
@@ -502,9 +543,10 @@ const NomenklaturaAdmin = () => {
                       </div>
                     </td>
                     <td><span className={`status-badge ${item.is_active ? 'active' : 'inactive'}`} onClick={() => handleToggleActive(item)} style={{cursor:'pointer'}}>{item.is_active ? "● Faol" : "○ Faol emas"}</span></td>
-                    <td><div className="action-buttons"><button onClick={() => handleEdit(item)} className="btn-edit">✏️</button><button onClick={() => handleDelete(item.code_1c)} className="btn-delete">🗑️</button></div></td>
+                    <td><div className="action-buttons"><button onClick={() => handleEdit(item)} className="btn-edit">✏️</button><button onClick={() => handleDelete(item)} className="btn-delete">🗑️</button></div></td>
                   </tr>
                 ))}
+
               </tbody>
             </table>
           </div>

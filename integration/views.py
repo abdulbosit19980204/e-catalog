@@ -439,16 +439,30 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
                 title = clean_value(getattr(item, 'Title', None))
                 description = clean_value(getattr(item, 'Description', None))
                 
+                # Status fields
+                is_active_1c = clean_boolean(getattr(item, 'is_active', None))
+                is_deleted_1c = clean_boolean(getattr(item, 'is_delete', None))
+                
                 if not code_1c or not name:
                     error_count += 1
                     continue
                 
+                # Invert is_active as per user requirement: 1C false -> DB True
+                db_is_active = True
+                if is_active_1c is True: # If 1C says true (meaning disabled), we set as False
+                    db_is_active = False
+                elif is_active_1c is False:
+                    db_is_active = True
+                    
                 parsed_items.append({
                     'code_1c': code_1c,
                     'name': name,
                     'title': title,
                     'description': description,
+                    'is_active': db_is_active,
+                    'is_deleted': is_deleted_1c if is_deleted_1c is not None else False,
                 })
+
             except Exception as e:
                 logger.error(f"Error parsing nomenklatura item: {e}")
                 error_count += 1
@@ -480,9 +494,10 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
                                         'name': item_data['name'],
                                         'title': item_data['title'],
                                         'description': item_data['description'],
-                                        'is_active': True,
-                                        'is_deleted': False,
+                                        'is_active': item_data['is_active'],
+                                        'is_deleted': item_data['is_deleted'],
                                     }
+
                                 )
                                 if created:
                                     created_count += 1
@@ -584,12 +599,21 @@ def process_clients_chunk(items, integration, chunk_size=50, log_obj=None):
                     error_count += 1
                     continue
                 
+                # Invert is_active logic: 1C false -> DB True
+                if 'is_active' in parsed_data:
+                    is_active_1c = parsed_data['is_active']
+                    if is_active_1c is True:
+                        parsed_data['is_active'] = False
+                    elif is_active_1c is False:
+                        parsed_data['is_active'] = True
+                else:
+                    parsed_data['is_active'] = True
+                    
                 if 'is_deleted' not in parsed_data:
                     parsed_data['is_deleted'] = False
-                if 'is_active' not in parsed_data:
-                    parsed_data['is_active'] = True
                 
                 parsed_items.append(parsed_data)
+
             except Exception as e:
                 logger.error(f"Error parsing client item: {e}")
                 error_count += 1
