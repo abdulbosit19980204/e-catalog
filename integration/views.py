@@ -7,7 +7,7 @@ import random
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.core.cache import cache
-from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample, OpenApiParameter
 import threading
 from zeep import Client as ZeepClient, Settings
 from zeep.cache import SqliteCache
@@ -982,3 +982,64 @@ def list_integrations(request):
     
     serializer = IntegrationSerializer(integrations, many=True, context={'request': request})
     return Response(serializer.data)
+
+
+@extend_schema(
+    tags=['Integration'],
+    summary="Integration sync history",
+    description="Integration sync tarixini olish. Status, integration_id, sync_type bo'yicha filter qilish mumkin.",
+    parameters=[
+        OpenApiParameter(name='status', type=str, description='completed, error, processing'),
+        OpenApiParameter(name='integration_id', type=int, description='Integration ID'),
+        OpenApiParameter(name='sync_type', type=str, description='nomenklatura yoki clients'),
+    ],
+    responses={
+        200: OpenApiResponse(description="Sync history list"),
+        401: OpenApiResponse(description="Authentication talab qilinadi"),
+    },
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_history(request):
+    """Integration sync history"""
+    # Filters
+    status_filter = request.GET.get('status')
+    integration_id = request.GET.get('integration_id')
+    sync_type = request.GET.get('sync_type')
+    
+    # Query
+    logs = IntegrationLog.objects.select_related('integration', 'integration__project').order_by('-created_at')
+    
+    if status_filter:
+        logs = logs.filter(status=status_filter)
+    if integration_id:
+        logs = logs.filter(integration_id=integration_id)
+    if sync_type:
+        logs = logs.filter(sync_type=sync_type)
+    
+    # Limit to last 100
+    logs = logs[:100]
+    
+    # Serialize
+    data = []
+    for log in logs:
+        data.append({
+            'id': log.id,
+            'task_id': log.task_id,
+            'integration_id': log.integration.id if log.integration else None,
+            'integration_name': log.integration.name if log.integration else 'Unknown',
+            'sync_type': log.sync_type,
+            'status': log.status,
+            'total_items': log.total_items,
+            'processed_items': log.processed_items,
+            'created_items': log.created_items,
+            'updated_items': log.updated_items,
+            'error_items': log.error_items,
+            'error_details': log.error_details,
+            'created_at': log.created_at.isoformat() if log.created_at else None,
+            'end_time': log.end_time.isoformat() if log.end_time else None,
+        })
+    
+    return Response({'results': data, 'count': len(data)})
+
+

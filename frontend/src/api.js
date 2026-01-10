@@ -304,6 +304,9 @@ export const integrationAPI = {
   getSyncStatus: (taskId) => {
     return apiClient.get(`/integration/sync/status/${taskId}/`);
   },
+  getHistory: (params = {}) => {
+    return apiClient.get("/integration/history/", { params });
+  },
 };
 
 // Chat API
