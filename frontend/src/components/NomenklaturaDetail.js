@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { nomenklaturaAPI } from "../api";
 import Navigation from "./Navigation";
 import "./NomenklaturaDetail.css";
 
 const NomenklaturaDetail = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const projectId = searchParams.get('project_id');
   const navigate = useNavigate();
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -16,7 +18,7 @@ const NomenklaturaDetail = () => {
     const loadItem = async () => {
       try {
         setLoading(true);
-        const response = await nomenklaturaAPI.getNomenklaturaItem(id);
+        const response = await nomenklaturaAPI.getNomenklaturaItem(id, projectId);
         setItem(response.data);
       } catch (err) {
         setError("Ma'lumot topilmadi");
@@ -26,7 +28,7 @@ const NomenklaturaDetail = () => {
       }
     };
     loadItem();
-  }, [id]);
+  }, [id, projectId]);
 
   const detailImages = useMemo(() => {
     if (!item?.images?.length) return [];

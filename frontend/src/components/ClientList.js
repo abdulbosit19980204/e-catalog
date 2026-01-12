@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { clientAPI } from "../api";
+import { clientAPI, projectAPI } from "../api";
 import { useNotification } from "../contexts/NotificationContext";
 import "./ClientList.css";
 
@@ -17,6 +17,21 @@ const ClientList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState("");
+  const [imageStatus, setImageStatus] = useState("");
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await projectAPI.getProjects();
+        setProjects(response.data.results || response.data);
+      } catch (err) {
+        console.error("Failed to load projects", err);
+      }
+    };
+    fetchProjects();
+  }, []);
 
   const loadClients = React.useCallback(async () => {
     try {
@@ -27,6 +42,8 @@ const ClientList = () => {
         search: search || undefined,
         created_from: createdFrom || undefined,
         created_to: createdTo || undefined,
+        project_id: selectedProject || undefined,
+        image_status: imageStatus || undefined,
       };
 
       const response = await clientAPI.getClients(params);
@@ -41,7 +58,7 @@ const ClientList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, search, createdFrom, createdTo]);
+  }, [page, search, createdFrom, createdTo, selectedProject, imageStatus]);
 
   useEffect(() => {
     loadClients();
@@ -53,8 +70,11 @@ const ClientList = () => {
     loadClients();
   };
 
-  const handleCardClick = (clientCode1c) => {
-    navigate(`/clients/${clientCode1c}`);
+  const handleCardClick = (client) => {
+    // Navigating with project_id to avoid ambiguity
+    // client.project can be an object (nested serializer) or an ID
+    const projectId = client.project?.id || client.project;
+    navigate(`/clients/${client.client_code_1c}?project_id=${projectId}`);
   };
 
   return (
@@ -93,6 +113,33 @@ const ClientList = () => {
               />
             </label>
           </div>
+          <div className="filters-row">
+            <select
+              value={selectedProject}
+              onChange={(e) => {
+                setSelectedProject(e.target.value);
+                setPage(1);
+              }}
+              className="filter-select"
+            >
+              <option value="">Barcha loyihalar</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <select
+              value={imageStatus}
+              onChange={(e) => {
+                setImageStatus(e.target.value);
+                setPage(1);
+              }}
+              className="filter-select"
+            >
+              <option value="">Rasm holati (Barchasi)</option>
+              <option value="with">Rasmli</option>
+              <option value="without">Rasmsiz</option>
+            </select>
+          </div>
           <button type="submit" className="search-button">
             Qidirish
           </button>
@@ -124,7 +171,7 @@ const ClientList = () => {
                 <div 
                   key={client.id} 
                   className="client-card"
-                  onClick={() => handleCardClick(client.client_code_1c)}
+                  onClick={() => handleCardClick(client)}
                 >
                   <div className="client-image">
                     {client.images && client.images.length > 0 ? (

@@ -1,6 +1,6 @@
 import React, { useEffect, useState,  useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { nomenklaturaAPI } from "../api";
+import { nomenklaturaAPI, projectAPI } from "../api";
 import "./NomenklaturaList.css";
 
 const NomenklaturaList = () => {
@@ -13,6 +13,21 @@ const NomenklaturaList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState("");
+  const [imageStatus, setImageStatus] = useState("");
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await projectAPI.getProjects();
+        setProjects(response.data.results || response.data);
+      } catch (err) {
+        console.error("Failed to load projects", err);
+      }
+    };
+    fetchProjects();
+  }, []);
 
   const loadNomenklatura = useCallback(async () => {
     try {
@@ -23,6 +38,8 @@ const NomenklaturaList = () => {
         search: search || undefined,
         created_from: createdFrom || undefined,
         created_to: createdTo || undefined,
+        project_id: selectedProject || undefined,
+        image_status: imageStatus || undefined,
       };
 
       const response = await nomenklaturaAPI.getNomenklatura(params);
@@ -37,7 +54,7 @@ const NomenklaturaList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, search, createdFrom, createdTo]);
+  }, [page, search, createdFrom, createdTo, selectedProject, imageStatus]);
 
   useEffect(() => {
     loadNomenklatura();
@@ -49,8 +66,11 @@ const NomenklaturaList = () => {
     loadNomenklatura();
   };
 
-  const handleCardClick = (code1c) => {
-    navigate(`/nomenklatura/${code1c}`);
+  const handleCardClick = (item) => {
+    // Navigating with project_id to avoid ambiguity
+    // item.project can be an object (nested serializer) or an ID
+    const projectId = item.project?.id || item.project;
+    navigate(`/nomenklatura/${item.code_1c}?project_id=${projectId}`);
   };
 
   const toPlainText = (value) => {
@@ -110,6 +130,33 @@ const NomenklaturaList = () => {
               />
             </label>
           </div>
+          <div className="filters-row">
+            <select
+              value={selectedProject}
+              onChange={(e) => {
+                setSelectedProject(e.target.value);
+                setPage(1);
+              }}
+              className="filter-select"
+            >
+              <option value="">Barcha loyihalar</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <select
+              value={imageStatus}
+              onChange={(e) => {
+                setImageStatus(e.target.value);
+                setPage(1);
+              }}
+              className="filter-select"
+            >
+              <option value="">Rasm holati (Barchasi)</option>
+              <option value="with">Rasmli</option>
+              <option value="without">Rasmsiz</option>
+            </select>
+          </div>
           <button type="submit" className="search-button">
             Qidirish
           </button>
@@ -149,7 +196,7 @@ const NomenklaturaList = () => {
                   <article
                     key={item.id}
                     className="nomenklatura-card"
-                    onClick={() => handleCardClick(item.code_1c)}
+                    onClick={() => handleCardClick(item)}
                   >
                     <div className="nomenklatura-media">
                       {previewImage ? (

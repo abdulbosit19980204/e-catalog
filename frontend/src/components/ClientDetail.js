@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { clientAPI } from "../api";
 import Navigation from "./Navigation";
 import "./NomenklaturaDetail.css"; // Reuse styling logic
 
 const ClientDetail = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const projectId = searchParams.get('project_id');
   const navigate = useNavigate();
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -16,7 +18,7 @@ const ClientDetail = () => {
     const loadClient = async () => {
       try {
         setLoading(true);
-        const response = await clientAPI.getClient(id);
+        const response = await clientAPI.getClient(id, projectId);
         setClient(response.data);
       } catch (err) {
         setError("Mijoz topilmadi");
@@ -26,7 +28,7 @@ const ClientDetail = () => {
       }
     };
     loadClient();
-  }, [id]);
+  }, [id, projectId]);
 
   const detailImages = useMemo(() => {
     if (!client?.images?.length) return [];
