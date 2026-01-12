@@ -2,12 +2,18 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResponse
 from .models import ChatSettings, Conversation, ChatMessage
 from .serializers import ChatSettingsSerializer, ConversationSerializer, ChatMessageSerializer
 
 @extend_schema_view(
-    list=extend_schema(tags=['Chat'], summary="Chat sozlamalari ro'yxati"),
+    list=extend_schema(
+        tags=['Chat'], 
+        summary="Chat sozlamalari ro'yxati",
+        description="Tizimdagi barcha chat sozlamalarini ko'rish."
+    ),
     retrieve=extend_schema(tags=['Chat'], summary="Bitta chat sozlamasini olish"),
     create=extend_schema(tags=['Chat'], summary="Yangi chat sozlamasi yaratish"),
     update=extend_schema(tags=['Chat'], summary="Chat sozlamasini o'zgartirish"),
@@ -41,7 +47,36 @@ class ChatSettingsViewSet(viewsets.ModelViewSet):
     list=extend_schema(
         tags=['Chat'], 
         summary="Suhbatlar (conversations) ro'yxati",
-        description="Foydalanuvchiga tegishli (admin bo'lsa barcha) suhbatlar ro'yxatini qaytaradi."
+        description="""
+Foydalanuvchiga tegishli (admin bo'lsa barcha) suhbatlar ro'yxatini qaytaradi.
+
+### 1C Foydalanuvchilari uchun Chat tizimi:
+1C orqali autentifikatsiya qilingan foydalanuvchilar (masalan: `ТП-3`) chatdan to'liq foydalanishlari mumkin.
+
+### Chat bilan ishlash tartibi:
+1. **Suhbatni boshlash**: POST `/conversations/` - Yangi suhbat (conversation) yaratadi. 
+   - *Eslatma*: Agar suhbat allaqachon mavjud bo'lsa, u existing suhbatni qaytaradi.
+2. **WebSocket ulanishi**: 
+   - **URL**: `ws://HOST/ws/chat/{conversation_id}/?token=YOUR_ACCESS_TOKEN`
+   - **Autentifikatsiya**: `token` parametri orqali 1C dan olingan `access` tokenini yuboring.
+3. **Xabar yuborish (Matn)**: WebSocket orqali JSON yuboring:
+   ```json
+   {
+     "type": "message",
+     "body": "Xabar matni"
+   }
+   ```
+4. **Xabar yuborish (Fayl/Skrinshot)**: POST `/messages/` orqali `multipart/form-data` yuboring.
+   - Maydonlar: `conversation`, `body` (ixtiyoriy), `file` (skrinshot yoki fayl).
+   - *Real-time*: Fayl yuborilganda backend WebSocket orqali barchaga bildirishnoma yuboradi.
+
+### Developer Setup (Serverda ishga tushirish):
+WebSocketlar ishlashi uchun serverda quyidagilar ishga tushirilgan bo'lishi shart:
+- **Redis Server**: **Redis 5.0+** talab qilinadi (`BZPOPMIN` buyrug'i uchun). 
+  - *Windows uchun*: Memurai yoki WSL dagi Redis dan foydalanish tavsiya etiladi. Standart MSOpenTech Redis (3.0.x) ishlata olmaydi.
+- **ASGI Server**: `daphne -p 8000 config.asgi:application` (Developmentda `python manage.py runserver` ham ASGI ni qo'llab-quvvatlaydi).
+- **Python**: Tizim Python 3.14+ ni qo'llab-quvvatlaydi (Daphne 4.2.1+ va Channels 4.3.2+ orqali).
+        """
     ),
     retrieve=extend_schema(tags=['Chat'], summary="Suhbat tafsilotlarini olish"),
     create=extend_schema(tags=['Chat'], summary="Yangi suhbat boshlash"),
@@ -99,4 +134,14 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(sender=self.request.user)
+        instance = serializer.save(sender=self.request.user)
+        
+        # Broadcast to WebSocket group
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'chat_{instance.conversation.id}',
+            {
+                'type': 'chat_message',
+                'message': ChatMessageSerializer(instance).data
+            }
+        )

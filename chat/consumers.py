@@ -3,6 +3,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
 from .models import Conversation, ChatMessage
+from .serializers import ChatMessageSerializer
 
 User = get_user_model()
 
@@ -35,18 +36,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if message_type == 'message':
             body = data.get('body')
             if body:
-                message = await self.save_message(body)
+                message_data = await self.save_message(body)
                 await self.channel_layer.group_send(
                     self.group_name,
                     {
                         'type': 'chat_message',
-                        'message': {
-                            'id': message.id,
-                            'body': message.body,
-                            'sender_id': message.sender_id,
-                            'sender_username': message.sender.username,
-                            'created_at': str(message.created_at),
-                        }
+                        'message': message_data
                     }
                 )
         elif message_type == 'read_receipt':
@@ -79,4 +74,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
         # Update conversation last message time
         conversation.save() # Auto-updates updated_at/last_message_at
-        return message
+        
+        # Return serialized data for consistency
+        return ChatMessageSerializer(message).data

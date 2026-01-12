@@ -364,6 +364,11 @@ export const chatAPI = {
     return apiClient.get(`/chat/conversations/${conversationId}/messages/`);
   },
   sendMessage: (data) => {
+    if (data instanceof FormData) {
+      return apiClient.post("/chat/messages/", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    }
     return apiClient.post("/chat/messages/", data);
   },
 };

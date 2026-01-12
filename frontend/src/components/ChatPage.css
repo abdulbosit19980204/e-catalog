@@ -4,7 +4,7 @@
   background: #f4f7f9;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   margin: 20px;
 }
 
@@ -110,8 +110,13 @@
   border-radius: 50%;
 }
 
-.status-dot.open { background: #4caf50; }
-.status-dot.closed { background: #f44336; }
+.status-dot.open {
+  background: #4caf50;
+}
+
+.status-dot.closed {
+  background: #f44336;
+}
 
 .messages-display {
   flex: 1;
@@ -137,7 +142,7 @@
   padding: 12px 16px;
   border-radius: 12px;
   position: relative;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
 }
 
 .sent .message-bubble {
@@ -176,7 +181,32 @@
   padding: 20px 25px;
   border-top: 1px solid #f0f2f5;
   display: flex;
+  flex-direction: column;
   gap: 12px;
+}
+
+.input-with-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+}
+
+.btn-attach {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 5px;
+  color: #718096;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.btn-attach:hover {
+  color: #2196f3;
 }
 
 .message-input {
@@ -226,4 +256,56 @@
   font-size: 4rem;
   margin-bottom: 20px;
   opacity: 0.3;
+}
+
+.selected-file-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f1f5f9;
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #475569;
+  margin-top: 5px;
+}
+
+.btn-remove-file {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+.message-image-preview {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  margin-top: 8px;
+  cursor: pointer;
+  display: block;
+}
+
+.file-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  font-size: 0.9rem;
+  margin-top: 5px;
+}
+
+.sent .file-link {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.message-content {
+  display: flex;
+  flex-direction: column;
 }
