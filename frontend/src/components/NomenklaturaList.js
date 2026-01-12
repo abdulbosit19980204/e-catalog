@@ -24,7 +24,9 @@ const NomenklaturaList = () => {
         created_from: createdFrom || undefined,
         created_to: createdTo || undefined,
       };
+
       const response = await nomenklaturaAPI.getNomenklatura(params);
+
       setNomenklatura(response.data.results || response.data);
       if (response.data.count) {
         setTotalPages(Math.ceil(response.data.count / 20));

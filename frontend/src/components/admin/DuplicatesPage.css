@@ -1,0 +1,71 @@
+.duplicates-page {
+    padding: 20px;
+}
+
+.duplicates-page .page-header {
+    margin-bottom: 20px;
+}
+
+.duplicates-page h1 {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.duplicates-page .tabs {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.duplicates-page .tab-btn {
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    color: #666;
+    border-radius: 4px;
+}
+
+.duplicates-page .tab-btn.active {
+    background-color: #f0f7ff;
+    color: #0066cc;
+}
+
+.duplicates-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.duplicates-table th,
+.duplicates-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+
+.duplicates-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.btn-view {
+    padding: 6px 12px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.no-data {
+    padding: 40px;
+    text-align: center;
+    color: #666;
+    background: #f8f9fa;
+    border-radius: 8px;
+}

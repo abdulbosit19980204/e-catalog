@@ -22,6 +22,7 @@ import ChatAdmin from "./components/admin/ChatAdmin";
 import ChatSettings from "./components/admin/ChatSettings";
 import UserAdmin from "./components/admin/UserAdmin";
 import ClearDbPage from "./components/admin/ClearDbPage";
+import DuplicatesPage from "./components/admin/DuplicatesPage";
 
 function App() {
   return (
@@ -159,6 +160,17 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout>
                   <ClearDbPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/duplicates"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <DuplicatesPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

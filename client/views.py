@@ -238,6 +238,30 @@ class ClientViewSet(viewsets.ModelViewSet):
         return context
 
     # Excel helpers ---------------------------------------------------------
+    @action(detail=False, methods=['get'])
+    def duplicates(self, request):
+        """
+        Turli project'larda lekin bir xil code_1c ga ega clientlarni topish.
+        """
+        from django.db.models import Count
+        
+        # 1. code_1c bo'yicha guruhlash va soni > 1 bo'lganlarni topish
+        duplicate_codes = Client.objects.filter(is_deleted=False).values('client_code_1c').annotate(
+            project_count=Count('project', distinct=True)
+        ).filter(project_count__gt=1).values_list('client_code_1c', flat=True)
+        
+        # 2. Ushbu codelarga ega bo'lgan barcha objectlarni qaytarish
+        queryset = self.filter_queryset(self.get_queryset())
+        queryset = queryset.filter(client_code_1c__in=duplicate_codes)
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     @staticmethod
     def _client_excel_headers():
         return [
@@ -652,7 +676,7 @@ class VisitImageViewSet(viewsets.ModelViewSet):
         ).select_related(
             'client', 'client__project', 'status', 'source'
         ).only(
-            'id', 'client__id', 'client__name', 'client__client_code_1c',
+            'id', 'client__id', 'client__name', 'client__client_code_1c', 'client__project',
             'image', 'is_main', 'category', 'note', 'status', 'source',
             'created_at'
         ).order_by('-created_at')

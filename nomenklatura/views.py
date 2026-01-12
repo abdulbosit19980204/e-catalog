@@ -283,6 +283,30 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
         return context
 
     # Excel helpers ---------------------------------------------------------
+    @action(detail=False, methods=['get'])
+    def duplicates(self, request):
+        """
+        Turli project'larda lekin bir xil code_1c ga ega nomenklaturalarni topish.
+        """
+        from django.db.models import Count
+        
+        # 1. code_1c bo'yicha guruhlash va soni > 1 bo'lganlarni topish
+        duplicate_codes = Nomenklatura.objects.filter(is_deleted=False).values('code_1c').annotate(
+            project_count=Count('project', distinct=True)
+        ).filter(project_count__gt=1).values_list('code_1c', flat=True)
+        
+        # 2. Ushbu codelarga ega bo'lgan barcha objectlarni qaytarish
+        queryset = self.filter_queryset(self.get_queryset())
+        queryset = queryset.filter(code_1c__in=duplicate_codes)
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     @staticmethod
     def _nomenklatura_excel_headers():
         return [

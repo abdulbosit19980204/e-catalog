@@ -97,6 +97,14 @@ const AdminLayout = ({ children }) => {
           </Link>
 
           <Link
+            to="/admin/duplicates"
+            className={`nav-item ${isActive("/admin/duplicates")}`}
+          >
+            <span className="nav-icon">👯</span>
+            {sidebarOpen && <span>Dublikatlar</span>}
+          </Link>
+
+          <Link
             to="/admin/clear-db"
             className={`nav-item ${isActive("/admin/clear-db")}`}
           >
