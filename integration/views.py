@@ -1,13 +1,13 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import serializers, status
 from django.db import transaction, OperationalError
 import random
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.core.cache import cache
-from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample, OpenApiParameter
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample, OpenApiParameter, inline_serializer
 import threading
 from zeep import Client as ZeepClient, Settings
 from zeep.cache import SqliteCache
@@ -1085,15 +1085,41 @@ def list_integrations(request):
 
 @extend_schema(
     tags=['Integration'],
-    summary="Integration sync history",
-    description="Integration sync tarixini olish. Status, integration_id, sync_type bo'yicha filter qilish mumkin.",
+    summary="Integration sync tarixi (history)",
+    description="Oxirgi 100 ta sync jarayoni tarixini qaytaradi. Status, integration_id va sync_type bo'yicha filter qilish mumkin.",
     parameters=[
-        OpenApiParameter(name='status', type=str, description='completed, error, processing'),
-        OpenApiParameter(name='integration_id', type=int, description='Integration ID'),
-        OpenApiParameter(name='sync_type', type=str, description='nomenklatura yoki clients'),
+        OpenApiParameter(name='status', type=str, description='Status bo\'yicha filter (completed, error, processing)'),
+        OpenApiParameter(name='integration_id', type=int, description='Integration ID bo\'yicha filter'),
+        OpenApiParameter(name='sync_type', type=str, description='Sync turi bo\'yicha filter (nomenklatura yoki clients)'),
     ],
     responses={
-        200: OpenApiResponse(description="Sync history list"),
+        200: inline_serializer(
+            name='IntegrationHistoryList',
+            fields={
+                'results': inline_serializer(
+                    name='IntegrationHistoryEntry',
+                    many=True,
+                    fields={
+                        'id': serializers.IntegerField(),
+                        'task_id': serializers.CharField(),
+                        'integration_id': serializers.IntegerField(),
+                        'integration_name': serializers.CharField(),
+                        'sync_type': serializers.CharField(),
+                        'status': serializers.CharField(),
+                        'total_items': serializers.IntegerField(),
+                        'processed_items': serializers.IntegerField(),
+                        'created_items': serializers.IntegerField(),
+                        'updated_items': serializers.IntegerField(),
+                        'error_items': serializers.IntegerField(),
+                        'item_errors': serializers.ListField(child=serializers.CharField()),
+                        'error_details': serializers.CharField(),
+                        'created_at': serializers.DateTimeField(),
+                        'end_time': serializers.DateTimeField(),
+                    }
+                ),
+                'count': serializers.IntegerField(),
+            }
+        ),
         401: OpenApiResponse(description="Authentication talab qilinadi"),
     },
 )

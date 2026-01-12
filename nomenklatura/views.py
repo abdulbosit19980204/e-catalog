@@ -82,8 +82,9 @@ class NomenklaturaImageFilterSet(django_filters.FilterSet):
         tags=['Nomenklatura'],
         summary="Nomenklatura ro'yxatini olish",
         description=(
-            "Aktiv va soft-delete qilinmagan nomenklaturalarning ro'yxatini qaytaradi."
-            " `search` parametri `code_1c` va `name` bo'yicha qidirish imkonini beradi."
+            "Aktiv va soft-delete qilinmagan (is_deleted=False) nomenklaturalarning ro'yxatini qaytaradi. "
+            "Filtrlash uchun `django-filters` qo'llanilgan, shuningdek `search` parametri `code_1c` va `name` bo'yicha qidirish imkonini beradi. "
+            "Ma'lumotlar prefetch_related orqali optimallashtirilgan va keshlanadi."
         ),
         parameters=[
             OpenApiParameter(
@@ -181,12 +182,12 @@ class NomenklaturaImageFilterSet(django_filters.FilterSet):
     retrieve=extend_schema(
         tags=['Nomenklatura'],
         summary="Bitta nomenklatura ma'lumotini olish",
-        description="`code_1c` identifikatoriga ko'ra nomenklatura ma'lumotlarini qaytaradi.",
+        description="`code_1c` identifikatoriga ko'ra nomenklatura ma'lumotlarini qaytaradi. Agar bir xil code bir nechta projectda bo'lsa, `project_id` parametridan foydalanish tavsiya etiladi.",
     ),
     create=extend_schema(
         tags=['Nomenklatura'],
         summary="Yangi nomenklatura yaratish",
-        description="Yangi nomenklatura yozuvini yaratadi.",
+        description="Yangi nomenklatura yozuvini yaratadi. Kesh yaratilgandan so'ng avtomatik tozalanadi.",
     ),
     update=extend_schema(
         tags=['Nomenklatura'],
@@ -196,12 +197,12 @@ class NomenklaturaImageFilterSet(django_filters.FilterSet):
     partial_update=extend_schema(
         tags=['Nomenklatura'],
         summary="Nomenklatura ma'lumotlarini qisman yangilash",
-        description="Faqat yuborilgan maydonlarni yangilaydi. `code_1c` o'zgarmaydi.",
+        description="Faqat yuborilgan maydonlarni yangilaydi. `code_1c` identifikator sifatida qoladi.",
     ),
     destroy=extend_schema(
         tags=['Nomenklatura'],
         summary="Nomenklaturani soft-delete qilish",
-        description="Nomenklatura yozuvini `is_deleted=True` qilib belgilaydi.",
+        description="Nomenklatura yozuvini o'chirmasdan, `is_deleted=True` qilib belgilaydi va keshni yangilaydi.",
         responses={204: OpenApiResponse(description="Nomenklatura soft-delete qilindi")},
     ),
 )

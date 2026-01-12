@@ -96,8 +96,9 @@ class ProjectImageFilterSet(django_filters.FilterSet):
         tags=['Projects'],
         summary="Project ro'yxatini olish",
         description=(
-            "Aktiv va soft-delete qilinmagan project'lar ro'yxatini pagination bilan qaytaradi."
-            " `search` parametri orqali nom, title va `code_1c` bo'yicha qidirish mumkin."
+            "Aktiv va soft-delete qilinmagan (is_deleted=False) project'lar ro'yxatini pagination bilan qaytaradi. "
+            "Ma'lumotlar prefetch_related orqali optimallashtirilgan va 5 daqiqaga keshlanadi. "
+            "`search` parametri orqali nom, title va `code_1c` bo'yicha qidirish mumkin."
         ),
         parameters=[
             OpenApiParameter(
@@ -171,12 +172,12 @@ class ProjectImageFilterSet(django_filters.FilterSet):
     retrieve=extend_schema(
         tags=['Projects'],
         summary="Bitta project ma'lumotini olish",
-        description="`code_1c` identifikatoriga ko'ra project ma'lumotlarini qaytaradi.",
+        description="`code_1c` identifikatoriga ko'ra project ma'lumotlarini qaytaradi. Ma'lumotlar 10 daqiqaga keshlanadi.",
     ),
     create=extend_schema(
         tags=['Projects'],
         summary="Project yaratish",
-        description="Yangi project yozuvini yaratadi. `code_1c` unikal bo'lishi kerak.",
+        description="Yangi project yozuvini yaratadi. `code_1c` unikal bo'lishi kerak. Yaratilgandan so'ng kesh avtomatik tozalanadi.",
     ),
     update=extend_schema(
         tags=['Projects'],
@@ -191,7 +192,7 @@ class ProjectImageFilterSet(django_filters.FilterSet):
     destroy=extend_schema(
         tags=['Projects'],
         summary="Project'ni soft-delete qilish",
-        description="Yozuvni `is_deleted=True` qilib belgilaydi va ro'yxatdan yashiradi.",
+        description="Yozuvni o'chirmasdan, `is_deleted=True` qilib belgilaydi va keshdan o'chiradi.",
         responses={204: OpenApiResponse(description="Project soft-delete qilindi")},
     ),
 )
@@ -431,122 +432,32 @@ class AgentLocationFilterSet(django_filters.FilterSet):
         tags=['Agent Locations'],
         summary="Agent lokatsiya yozuvlari ro'yxati",
         description=(
-            "Mobil agentlar tomonidan yuborilgan geolokatsiya yozuvlarini qaytaradi. "
-            "Barcha maydonlar ixtiyoriy (majburiy emas). "
-            "Qurilma, lokatsiya, tarmoq, sensor va boshqa ma'lumotlar bilan birga saqlanadi."
+            "Mobil agentlar tomonidan yuborilgan barcha geolokatsiya va qurilma ma'lumotlarini qaytaradi. "
+            "Filtrlash uchun `agent_code`, `region`, `platform` va sana orqali foydalanish mumkin. "
+            "Ma'lumotlar prefetch qilinmasdan, to'g'ridan-to'g'ri bazadan olinadi (high-frequency data)."
         ),
-        parameters=[
-            OpenApiParameter(name='agent_code', type=OpenApiTypes.STR, description="Agent kodi bo'yicha filter"),
-            OpenApiParameter(name='region', type=OpenApiTypes.STR, description="Hudud bo'yicha filter"),
-            OpenApiParameter(name='platform', type=OpenApiTypes.STR, description="Mobil platforma bo'yicha filter (Android/iOS)"),
-            OpenApiParameter(name='device_id', type=OpenApiTypes.STR, description="Qurilma ID bo'yicha filter"),
-            OpenApiParameter(name='date_from', type=OpenApiTypes.DATETIME, description="Yaratilgan vaqtdan boshlab"),
-            OpenApiParameter(name='date_to', type=OpenApiTypes.DATETIME, description="Yaratilgan vaqtgacha"),
-        ],
     ),
     create=extend_schema(
         tags=['Agent Locations'],
-        summary="Agent lokatsiyasini yaratish",
+        summary="Yangi agent lokatsiyasini yaratish",
         description=(
-            "Mobil agent ilovasi lokatsiya ma'lumotlarini yuboradi. "
-            "Barcha maydonlar ixtiyoriy, faqat `agent_code`, `latitude` va `longitude` majburiy. "
-            "Qo'shimcha ma'lumotlar: qurilma (manufacturer, model, RAM, storage, camera), "
-            "lokatsiya (city, country, timezone), tarmoq (WiFi, cellular, IP), "
-            "sensorlar (accelerometer, gyroscope, magnetometer), "
-            "batareya (level, health, temperature), "
-            "xavfsizlik (fingerprint, encryption, screen lock) va boshqalar."
-        ),
-        request=inline_serializer(
-            name='AgentLocationCreate',
-            fields={
-                'agent_code': serializers.CharField(required=True, help_text="Agent kodi (majburiy)"),
-                'latitude': serializers.DecimalField(required=True, max_digits=9, decimal_places=6, help_text="Latitude (majburiy)"),
-                'longitude': serializers.DecimalField(required=True, max_digits=9, decimal_places=6, help_text="Longitude (majburiy)"),
-                'agent_name': serializers.CharField(required=False, allow_blank=True, help_text="Agent ismi"),
-                'agent_phone': serializers.CharField(required=False, allow_blank=True, help_text="Agent telefoni"),
-                'region': serializers.CharField(required=False, allow_blank=True, help_text="Hudud"),
-                'device_id': serializers.CharField(required=False, allow_blank=True, help_text="Qurilma ID"),
-                'device_name': serializers.CharField(required=False, allow_blank=True, help_text="Qurilma nomi"),
-                'device_manufacturer': serializers.CharField(required=False, allow_blank=True, help_text="Ishlab chiqaruvchi"),
-                'device_model': serializers.CharField(required=False, allow_blank=True, help_text="Qurilma modeli"),
-                'platform': serializers.CharField(required=False, allow_blank=True, help_text="OS (Android/iOS)"),
-                'os_version': serializers.CharField(required=False, allow_blank=True, help_text="OS versiyasi"),
-                'screen_width': serializers.IntegerField(required=False, allow_null=True, help_text="Ekran kengligi (px)"),
-                'screen_height': serializers.IntegerField(required=False, allow_null=True, help_text="Ekran balandligi (px)"),
-                'screen_density': serializers.DecimalField(required=False, allow_null=True, max_digits=5, decimal_places=2, help_text="Ekran zichligi (DPI)"),
-                'ram_total': serializers.IntegerField(required=False, allow_null=True, help_text="Jami RAM (byte)"),
-                'ram_available': serializers.IntegerField(required=False, allow_null=True, help_text="Mavjud RAM (byte)"),
-                'storage_total': serializers.IntegerField(required=False, allow_null=True, help_text="Jami xotira (byte)"),
-                'storage_available': serializers.IntegerField(required=False, allow_null=True, help_text="Mavjud xotira (byte)"),
-                'camera_front': serializers.BooleanField(required=False, help_text="Old kamera mavjudligi"),
-                'camera_back': serializers.BooleanField(required=False, help_text="Orqa kamera mavjudligi"),
-                'camera_resolution': serializers.CharField(required=False, allow_blank=True, help_text="Kamera o'lchami"),
-                'app_version': serializers.CharField(required=False, allow_blank=True, help_text="Ilova versiyasi"),
-                'app_build_number': serializers.CharField(required=False, allow_blank=True, help_text="Build raqami"),
-                'app_installation_date': serializers.DateTimeField(required=False, allow_null=True, help_text="O'rnatilgan sana"),
-                'app_last_update': serializers.DateTimeField(required=False, allow_null=True, help_text="Oxirgi yangilanish"),
-                'accuracy': serializers.DecimalField(required=False, allow_null=True, max_digits=7, decimal_places=2, help_text="Aniqlik (m)"),
-                'altitude': serializers.DecimalField(required=False, allow_null=True, max_digits=8, decimal_places=2, help_text="Balandlik (m)"),
-                'speed': serializers.DecimalField(required=False, allow_null=True, max_digits=6, decimal_places=2, help_text="Tezlik (m/s)"),
-                'heading': serializers.DecimalField(required=False, allow_null=True, max_digits=6, decimal_places=2, help_text="Yo'nalish (gradus)"),
-                'city': serializers.CharField(required=False, allow_blank=True, help_text="Shahar"),
-                'country': serializers.CharField(required=False, allow_blank=True, help_text="Davlat"),
-                'postal_code': serializers.CharField(required=False, allow_blank=True, help_text="Pochta indeksi"),
-                'timezone': serializers.CharField(required=False, allow_blank=True, help_text="Vaqt mintaqasi"),
-                'location_provider': serializers.CharField(required=False, allow_blank=True, help_text="Lokatsiya manbasi"),
-                'battery_level': serializers.DecimalField(required=False, allow_null=True, max_digits=4, decimal_places=1, help_text="Batareya (%)"),
-                'is_charging': serializers.BooleanField(required=False, help_text="Batareya zaryadlanayaptimi"),
-                'battery_health': serializers.CharField(required=False, allow_blank=True, help_text="Batareya holati"),
-                'battery_temperature': serializers.DecimalField(required=False, allow_null=True, max_digits=5, decimal_places=2, help_text="Batareya harorati (°C)"),
-                'battery_voltage': serializers.DecimalField(required=False, allow_null=True, max_digits=6, decimal_places=3, help_text="Batareya kuchlanishi (V)"),
-                'signal_strength': serializers.CharField(required=False, allow_blank=True, help_text="Signal kuchi"),
-                'network_type': serializers.CharField(required=False, allow_blank=True, help_text="Tarmoq turi"),
-                'wifi_ssid': serializers.CharField(required=False, allow_blank=True, help_text="WiFi SSID"),
-                'wifi_bssid': serializers.CharField(required=False, allow_blank=True, help_text="WiFi BSSID"),
-                'cellular_operator': serializers.CharField(required=False, allow_blank=True, help_text="Mobil operator"),
-                'cellular_network_type': serializers.CharField(required=False, allow_blank=True, help_text="Mobil tarmoq turi"),
-                'ip_address': serializers.IPAddressField(required=False, allow_null=True, help_text="IP manzil"),
-                'connection_type': serializers.CharField(required=False, allow_blank=True, help_text="Ulanish turi"),
-                'accelerometer_x': serializers.DecimalField(required=False, allow_null=True, max_digits=8, decimal_places=4, help_text="Accelerometer X"),
-                'accelerometer_y': serializers.DecimalField(required=False, allow_null=True, max_digits=8, decimal_places=4, help_text="Accelerometer Y"),
-                'accelerometer_z': serializers.DecimalField(required=False, allow_null=True, max_digits=8, decimal_places=4, help_text="Accelerometer Z"),
-                'gyroscope_x': serializers.DecimalField(required=False, allow_null=True, max_digits=8, decimal_places=4, help_text="Gyroscope X"),
-                'gyroscope_y': serializers.DecimalField(required=False, allow_null=True, max_digits=8, decimal_places=4, help_text="Gyroscope Y"),
-                'gyroscope_z': serializers.DecimalField(required=False, allow_null=True, max_digits=8, decimal_places=4, help_text="Gyroscope Z"),
-                'magnetometer_x': serializers.DecimalField(required=False, allow_null=True, max_digits=8, decimal_places=4, help_text="Magnetometer X"),
-                'magnetometer_y': serializers.DecimalField(required=False, allow_null=True, max_digits=8, decimal_places=4, help_text="Magnetometer Y"),
-                'magnetometer_z': serializers.DecimalField(required=False, allow_null=True, max_digits=8, decimal_places=4, help_text="Magnetometer Z"),
-                'proximity_sensor': serializers.DecimalField(required=False, allow_null=True, max_digits=8, decimal_places=4, help_text="Proximity sensor"),
-                'light_sensor': serializers.DecimalField(required=False, allow_null=True, max_digits=8, decimal_places=2, help_text="Yorug'lik sensori"),
-                'temperature': serializers.DecimalField(required=False, allow_null=True, max_digits=5, decimal_places=2, help_text="Harorat (°C)"),
-                'humidity': serializers.DecimalField(required=False, allow_null=True, max_digits=5, decimal_places=2, help_text="Namlik (%)"),
-                'pressure': serializers.DecimalField(required=False, allow_null=True, max_digits=7, decimal_places=2, help_text="Bosim (hPa)"),
-                'device_fingerprint': serializers.CharField(required=False, allow_blank=True, help_text="Qurilma fingerprint"),
-                'is_rooted': serializers.BooleanField(required=False, help_text="Root qilinganmi"),
-                'is_jailbroken': serializers.BooleanField(required=False, help_text="Jailbreak qilinganmi"),
-                'encryption_enabled': serializers.BooleanField(required=False, help_text="Shifrlash yoqilganmi"),
-                'screen_lock_type': serializers.CharField(required=False, allow_blank=True, help_text="Ekran qulfi turi"),
-                'logged_at': serializers.DateTimeField(required=False, allow_null=True, help_text="Qurilmada yozilgan vaqt"),
-                'address': serializers.CharField(required=False, allow_blank=True, help_text="Manzil"),
-                'note': serializers.CharField(required=False, allow_blank=True, help_text="Izoh"),
-                'metadata': serializers.JSONField(required=False, allow_null=True, help_text="Qo'shimcha JSON ma'lumotlar"),
-            }
+            "Mobil ilova tomonidan yuborilgan kompleks ma'lumotlarni saqlaydi. "
+            "Majburiy maydonlar: `agent_code`, `latitude`, `longitude`. "
+            "Qo'shimcha ma'lumotlar: qurilma modellari, sensorlar (accelerometer, gyroscope), "
+            "batareya holati, tarmoq sifati va xavfsizlik (root/jailbreak) statuslari. "
+            "Bu ma'lumotlar keyinchalik tahlil va monitoring uchun xizmat qiladi."
         ),
     ),
     retrieve=extend_schema(
         tags=['Agent Locations'],
-        summary="Bitta lokatsiya yozuvini olish",
-        description="Barcha maydonlar bilan birga lokatsiya yozuvini qaytaradi."
+        summary="Bitta lokatsiya yozuvi tafsiloti",
+        description="Barcha texnik va geografik metama'lumotlar bilan birga yozuvni qaytaradi."
     ),
-    update=extend_schema(
+    destroy=extend_schema(
         tags=['Agent Locations'],
-        summary="Lokatsiya yozuvini to'liq yangilash",
+        summary="Lokatsiya yozuvini soft-delete qilish",
+        description="Yozuvni `is_deleted=True` qilib belgilaydi."
     ),
-    partial_update=extend_schema(
-        tags=['Agent Locations'],
-        summary="Lokatsiya yozuvini qisman yangilash",
-    ),
-    destroy=extend_schema(tags=['Agent Locations'], summary="Lokatsiya yozuvini soft-delete qilish"),
 )
 class AgentLocationViewSet(viewsets.ModelViewSet):
     queryset = AgentLocation.objects.filter(is_deleted=False)
@@ -1042,11 +953,13 @@ class ThumbnailFeedMixin:
 
 @extend_schema(
     tags=['Image Management'],
-    summary="Birlashtirilgan thumbnail feed",
+    summary="Birlashtirilgan thumbnail feed (Project/Client/Nomenklatura)",
     description=(
-        "Project, Client va Nomenklatura rasmlarining faqat thumbnail URL larini qaytaradi. "
-        "Har bir element entity haqida identifikatsion ma'lumotlar (ID, code, nom) bilan birga keladi. "
-        "Endpoint mobil yoki frontend ilovasi uchun tezkor rasm previewlarini olishga mo'ljallangan."
+        "Project, Client va Nomenklatura rasmlarining faqat thumbnail URL larini birlashtirilgan holda qaytaradi. "
+        "Har bir element entity haqida batafsil ma'lumotlar (ID, code, nom, o'lchamlar) bilan birga keladi. "
+        "Javob tarkibida `total_size` maydoni mavjud bo'lib, u barcha qaytarilgan rasmlarning "
+        "umumiy hajmini (thumbnail va original) bayt va inson o'qiydigan formatda ko'rsatadi. "
+        "Ushbu endpoint mobil ilovalar uchun preview ro'yxatini tezkor shakllantirishga mo'ljallangan va keshlanadi."
     ),
     parameters=[
         OpenApiParameter(
@@ -1076,9 +989,31 @@ class ThumbnailFeedMixin:
         ),
     ],
     responses={
-        200: OpenApiResponse(
-            response=ThumbnailEntrySerializer(many=True),
-            description="Thumbnail feed ma'lumotlari",
+        200: inline_serializer(
+            name='ThumbnailFeedResponse',
+            fields={
+                'results': ThumbnailEntrySerializer(many=True),
+                'total_count': serializers.IntegerField(),
+                'total_size': inline_serializer(
+                    name='TotalSizeSummary',
+                    fields={
+                        'thumbnail': inline_serializer(
+                            name='SizeDetail',
+                            fields={
+                                'size_bytes': serializers.IntegerField(),
+                                'size': serializers.CharField(),
+                            }
+                        ),
+                        'original': inline_serializer(
+                            name='OriginalSizeDetail',
+                            fields={
+                                'size_bytes': serializers.IntegerField(),
+                                'size': serializers.CharField(),
+                            }
+                        ),
+                    }
+                ),
+            }
         )
     }
 )

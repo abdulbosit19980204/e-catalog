@@ -87,8 +87,9 @@ class ClientImageFilterSet(django_filters.FilterSet):
         tags=['Clients'],
         summary="Client ro'yxatini olish",
         description=(
-            "Authentication talab qilinadi. Client'lar ro'yxatini pagination bilan qaytaradi."
-            " `search` parametri orqali `name`, `email` va `client_code_1c` bo'yicha qidirish mumkin."
+            "Authentication talab qilinadi. Aktiv va soft-delete qilinmagan (is_deleted=False) client'lar ro'yxatini pagination bilan qaytaradi. "
+            " `search` parametri orqali `name`, `email` va `client_code_1c` bo'yicha qidirish mumkin. "
+            "Ma'lumotlar prefetch_related orqali optimallashtirilgan bo'lib, images, status va source ma'lumotlarini ham o'z ichiga oladi."
         ),
         parameters=[
             OpenApiParameter(
@@ -162,12 +163,12 @@ class ClientImageFilterSet(django_filters.FilterSet):
     retrieve=extend_schema(
         tags=['Clients'],
         summary="Bitta client ma'lumotini olish",
-        description="`client_code_1c` identifikatoriga ko'ra client ma'lumotlarini qaytaradi.",
+        description="`client_code_1c` identifikatoriga ko'ra client ma'lumotlarini qaytaradi. Bitta code bir nechta projectda bo'lishi mumkinligi sababli `project_id` yuborish tavsiya etiladi.",
     ),
     create=extend_schema(
         tags=['Clients'],
         summary="Yangi client yaratish",
-        description="Authentication ostida yangi client qo'shish.",
+        description="Ilova ichida yangi client qo'shish. Yarashilganidan so'ng kesh avtomatik tozalanadi.",
     ),
     update=extend_schema(
         tags=['Clients'],
@@ -177,12 +178,12 @@ class ClientImageFilterSet(django_filters.FilterSet):
     partial_update=extend_schema(
         tags=['Clients'],
         summary="Client ma'lumotlarini qisman yangilash",
-        description="Faqat yuborilgan maydonlarni yangilaydi. `client_code_1c` o'zgarmaydi.",
+        description="Faqat yuborilgan maydonlarni yangilaydi. `client_code_1c` identifikator sifatida qoladi.",
     ),
     destroy=extend_schema(
         tags=['Clients'],
         summary="Client'ni soft-delete qilish",
-        description="Client yozuvini `is_deleted=True` qilib belgilaydi.",
+        description="Client yozuvini o'chirmasdan, `is_deleted=True` qilib belgilaydi va keshni tozalaydi.",
         responses={204: OpenApiResponse(description="Client soft-delete qilindi")},
     ),
 )
@@ -605,13 +606,20 @@ class ClientImageViewSet(viewsets.ModelViewSet):
     list=extend_schema(
         tags=['Agent Visits'],
         summary="Agent tashrifi rasmlari ro'yxatini olish",
-        description="Agentlar tomonidan magazinlarga tashrif buyurilganda olingan rasmlarni qaytaradi (millonlab recordlar uchun optimallashtirilgan).",
+        description=(
+            "Agentlar tomonidan magazinlarga tashrif buyurilgan (visit) vaqtida olingan barcha rasmlarni qaytaradi. "
+            "Ushbu endpoint rekordlar soni juda ko'p bo'lishini (millonlab) hisobga olib, "
+            "maxsus optimallashtirilgan (`select_related`, `only`). "
+            "Ma'lumotlar faqat o'qish uchun mo'ljallangan va keshlanishi tavsiya etiladi."
+        ),
     ),
     create=extend_schema(
         tags=['Agent Visits'],
-        summary="Tashrif rasmini yuklash",
-        description="Agent tashrifi davomida olingan rasmni yuklash.",
+        summary="Yangi tashrif rasmini yuklash",
+        description="Agent tashrifi davomida olingan rasmni tizimga yuklash. Fayl hajmi va formati tekshiriladi.",
     ),
+    retrieve=extend_schema(tags=['Agent Visits'], summary="Bitta tashrif rasmi tafsiloti"),
+    destroy=extend_schema(tags=['Agent Visits'], summary="Tashrif rasmini o'chirish (soft-delete)"),
 )
 class VisitImageViewSet(viewsets.ModelViewSet):
     """

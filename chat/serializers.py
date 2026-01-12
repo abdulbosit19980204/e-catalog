@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 from .models import ChatSettings, Conversation, ChatMessage
 
 User = get_user_model()
@@ -32,12 +34,14 @@ class ConversationSerializer(serializers.ModelSerializer):
         model = Conversation
         fields = ['id', 'user', 'responder', 'status', 'last_message_at', 'last_message', 'unread_count', 'created_at']
 
+    @extend_schema_field(ChatMessageSerializer(allow_null=True))
     def get_last_message(self, obj):
         msg = obj.messages.last()
         if msg:
             return ChatMessageSerializer(msg).data
         return None
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_unread_count(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
