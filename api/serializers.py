@@ -29,61 +29,6 @@ class ImageSourceSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
 
-class APINomenklaturaImageSerializer(serializers.ModelSerializer):
-    image_url = serializers.SerializerMethodField()
-    image_sm_url = serializers.SerializerMethodField()
-    image_md_url = serializers.SerializerMethodField()
-    image_lg_url = serializers.SerializerMethodField()
-    image_thumbnail_url = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = NomenklaturaImage
-        fields = [
-            'id', 'nomenklatura', 'image', 'is_main', 'category', 'note',
-            'status', 'source', 'created_at', 'updated_at', 'is_active', 'is_deleted',
-            'image_url', 'image_sm_url', 'image_md_url', 'image_lg_url', 'image_thumbnail_url'
-        ]
-    
-    def get_image_url(self, obj) -> Optional[str]:
-        if obj.image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        return None
-    
-    def get_image_sm_url(self, obj) -> Optional[str]:
-        if obj.image_sm:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image_sm.url)
-            return obj.image_sm.url
-        return None
-    
-    def get_image_md_url(self, obj) -> Optional[str]:
-        if obj.image_md:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image_md.url)
-            return obj.image_md.url
-        return None
-    
-    def get_image_lg_url(self, obj) -> Optional[str]:
-        if obj.image_lg:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image_lg.url)
-            return obj.image_lg.url
-        return None
-    
-    def get_image_thumbnail_url(self, obj) -> Optional[str]:
-        if obj.image_thumbnail:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image_thumbnail.url)
-            return obj.image_thumbnail.url
-        return None
-
 class ProjectSimpleSerializer(serializers.ModelSerializer):
     """Faqatgina ID, code_1c va name ni qaytaruvchi yengil serializer"""
     is_integration = serializers.SerializerMethodField()
@@ -93,7 +38,79 @@ class ProjectSimpleSerializer(serializers.ModelSerializer):
         fields = ['id', 'code_1c', 'name', 'is_integration']
 
     def get_is_integration(self, obj) -> bool:
+        if hasattr(obj, 'has_integration'):
+            return obj.has_integration
         return obj.integrations.exists()
+
+
+class ProjectNestedSerializer(serializers.ModelSerializer):
+    """Eng yengil project serializer (faqat display uchun)"""
+    class Meta:
+        model = Project
+        fields = ['id', 'code_1c', 'name']
+
+
+class APINomenklaturaImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    image_sm_url = serializers.SerializerMethodField()
+    image_md_url = serializers.SerializerMethodField()
+    image_lg_url = serializers.SerializerMethodField()
+    image_thumbnail_url = serializers.SerializerMethodField()
+    project = ProjectNestedSerializer(source='nomenklatura.project', read_only=True)
+    
+    class Meta:
+        model = NomenklaturaImage
+        fields = [
+            'id', 'nomenklatura', 'project', 'image', 'is_main', 'category', 'note',
+            'status', 'source', 'created_at', 'updated_at', 'is_active', 'is_deleted',
+            'image_url', 'image_sm_url', 'image_md_url', 'image_lg_url', 'image_thumbnail_url'
+        ]
+    
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_image_url(self, obj) -> Optional[str]:
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+    
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_image_sm_url(self, obj) -> Optional[str]:
+        if obj.image_sm:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image_sm.url)
+            return obj.image_sm.url
+        return None
+    
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_image_md_url(self, obj) -> Optional[str]:
+        if obj.image_md:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image_md.url)
+            return obj.image_md.url
+        return None
+    
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_image_lg_url(self, obj) -> Optional[str]:
+        if obj.image_lg:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image_lg.url)
+            return obj.image_lg.url
+        return None
+    
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_image_thumbnail_url(self, obj) -> Optional[str]:
+        if obj.image_thumbnail:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image_thumbnail.url)
+            return obj.image_thumbnail.url
+        return None
+
 
 
 class APINomenklaturaSerializer(serializers.ModelSerializer):
@@ -119,6 +136,7 @@ class ProjectImageSerializer(serializers.ModelSerializer):
     image_md_url = serializers.SerializerMethodField()
     image_lg_url = serializers.SerializerMethodField()
     image_thumbnail_url = serializers.SerializerMethodField()
+    project = ProjectNestedSerializer(read_only=True)
     status = ImageStatusSerializer(read_only=True)
     status_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     source = ImageSourceSerializer(read_only=True)

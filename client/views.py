@@ -379,6 +379,12 @@ class ClientViewSet(viewsets.ModelViewSet):
             )
 
         project_id = request.data.get('project_id')
+        if project_id:
+            try:
+                project_id = int(str(project_id).strip())
+            except (ValueError, TypeError):
+                project_id = None
+        
         stats = {'created': 0, 'updated': 0, 'errors': []}
         for idx, row in enumerate(
             sheet.iter_rows(min_row=2, max_col=len(expected), values_only=True),
@@ -511,7 +517,7 @@ class ClientImageViewSet(viewsets.ModelViewSet):
         if cached_qs is None:
             qs = ClientImage.objects.filter(
                 is_deleted=False
-            ).select_related('client', 'status', 'source').order_by('-created_at')
+            ).select_related('client', 'client__project', 'status', 'source').order_by('-created_at')
             smart_cache_set(cache_key, qs, 300)
             return qs
         return cached_qs
@@ -562,7 +568,12 @@ class ClientImageViewSet(viewsets.ModelViewSet):
         project_id = request.data.get('project_id')
         query = Q(client_code_1c=client_code, is_deleted=False)
         if project_id:
-            query &= Q(project_id=project_id)
+            try:
+                project_id = int(str(project_id).strip())
+                query &= Q(project_id=project_id)
+            except (ValueError, TypeError):
+                # Agar project_id noto'g'ri kelsa, uni ignor qilamiz yoki xato berishimiz mumkin
+                pass
             
         client = Client.objects.filter(query).first()
 
@@ -639,7 +650,7 @@ class VisitImageViewSet(viewsets.ModelViewSet):
             # Faqat tashrifga aloqador statusdagi rasmlarni qaytaramiz (agar buni xoxlashsa)
             # status__code__in=['store_before', 'store_after'] 
         ).select_related(
-            'client', 'status', 'source'
+            'client', 'client__project', 'status', 'source'
         ).only(
             'id', 'client__id', 'client__name', 'client__client_code_1c',
             'image', 'is_main', 'category', 'note', 'status', 'source',

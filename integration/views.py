@@ -1035,9 +1035,9 @@ def get_sync_status(request, task_id):
             {
                 'task_id': log_obj.task_id,
                 'integration': {
-                    'id': log_obj.integration.id,
-                    'name': log_obj.integration.name,
-                    'project': log_obj.integration.project.name,
+                    'id': log_obj.integration.id if log_obj.integration else None,
+                    'name': log_obj.integration.name if log_obj.integration else 'Deleted/Unknown',
+                    'project': log_obj.integration.project.name if (log_obj.integration and log_obj.integration.project) else 'Unknown',
                 },
                 'sync_type': log_obj.sync_type,
                 'status': log_obj.status,

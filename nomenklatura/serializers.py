@@ -3,7 +3,7 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 from PIL import Image
-from api.serializers import ImageStatusSerializer, ImageSourceSerializer, ProjectSerializer, ProjectSimpleSerializer
+from api.serializers import ImageStatusSerializer, ImageSourceSerializer, ProjectSerializer, ProjectSimpleSerializer, ProjectNestedSerializer
 from api.models import ImageStatus, ImageSource, Project
 from .models import Nomenklatura, NomenklaturaImage
 
@@ -17,12 +17,14 @@ class NomenklaturaImageSerializer(serializers.ModelSerializer):
     status_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     source = ImageSourceSerializer(read_only=True)
     source_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+    project = ProjectNestedSerializer(source='nomenklatura.project', read_only=True)
     
     class Meta:
         model = NomenklaturaImage
         fields = [
             'id',
             'nomenklatura',
+            'project',
             'image',
             'category',
             'note',

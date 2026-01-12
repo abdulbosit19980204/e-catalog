@@ -429,6 +429,12 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
             )
 
         project_id = request.data.get('project_id')
+        if project_id:
+            try:
+                project_id = int(str(project_id).strip())
+            except (ValueError, TypeError):
+                project_id = None
+        
         stats = {'created': 0, 'updated': 0, 'errors': []}
         for idx, row in enumerate(
             sheet.iter_rows(min_row=2, max_col=len(expected), values_only=True),
@@ -534,7 +540,7 @@ class NomenklaturaImageViewSet(viewsets.ModelViewSet):
         """Optimizatsiya: bog'langan model'larni yuklash - N+1 query muammosini hal qiladi"""
         return NomenklaturaImage.objects.filter(
             is_deleted=False
-        ).select_related('nomenklatura', 'status', 'source').order_by('-created_at')
+        ).select_related('nomenklatura', 'nomenklatura__project', 'status', 'source').order_by('-created_at')
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -582,7 +588,11 @@ class NomenklaturaImageViewSet(viewsets.ModelViewSet):
             project_id = request.data.get('project_id')
             query = Q(code_1c=nomenklatura_code, is_deleted=False)
             if project_id:
-                query &= Q(project_id=project_id)
+                try:
+                    project_id = int(str(project_id).strip())
+                    query &= Q(project_id=project_id)
+                except (ValueError, TypeError):
+                    pass
             
             # Agar project_id berilmagan bo'lsa va MultipleObjectsReturned bo'lsa, xatolik qaytaramiz
             nomenklatura = Nomenklatura.objects.get(query)
