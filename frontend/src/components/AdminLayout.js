@@ -95,6 +95,14 @@ const AdminLayout = ({ children }) => {
             <span className="nav-icon">👤</span>
             {sidebarOpen && <span>Users</span>}
           </Link>
+
+          <Link
+            to="/admin/clear-db"
+            className={`nav-item ${isActive("/admin/clear-db")}`}
+          >
+            <span className="nav-icon">🗑️</span>
+            {sidebarOpen && <span>Clear DB</span>}
+          </Link>
         </nav>
         
         <div className="sidebar-footer">

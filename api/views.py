@@ -20,10 +20,10 @@ from drf_spectacular.utils import (
     extend_schema_view,
     inline_serializer,
 )
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from openpyxl import load_workbook
-from client.models import ClientImage
-from nomenklatura.models import NomenklaturaImage
+from client.models import Client, ClientImage
+from nomenklatura.models import Nomenklatura, NomenklaturaImage
 from utils.excel import (
     build_template_workbook,
     clean_cell,
@@ -1305,3 +1305,53 @@ class NomenklaturaThumbnailView(ThumbnailFeedMixin, APIView):
         }
         
         return Response(response_data, status=status.HTTP_200_OK)
+
+class ClearDatabaseView(APIView):
+    """
+    Adminlar uchun bazani tozalash messodi.
+    Tanlangan table'lardagi barcha ma'lumotlarni o'chirib tashlaydi.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request):
+        # Model mapping
+        MODELS_MAP = {
+            'client': Client,
+            'client_image': ClientImage,
+            'nomenklatura': Nomenklatura,
+            'nomenklatura_image': NomenklaturaImage,
+            'project': Project,
+            'project_image': ProjectImage,
+            'agent_location': AgentLocation,
+            'image_source': ImageSource,
+            'image_status': ImageStatus,
+        }
+
+        selected_models = request.data.get('models', [])
+        if not selected_models:
+            return Response(
+                {'error': 'Hech qanday table tanlanmadi'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        stats = {}
+        errors = []
+
+        # Transaction bilan o'rash tavsiya etiladi, lekin bu "dangerous" operation
+        # shuning uchun har biri alohida o'chgani ma'qul bo'lishi mumkin (partial success).
+        
+        for key in selected_models:
+            model = MODELS_MAP.get(key)
+            if model:
+                try:
+                    # cascade delete bo'ladi
+                    count, _ = model.objects.all().delete()
+                    stats[key] = count
+                except Exception as e:
+                    errors.append(f"{key}: {str(e)}")
+        
+        return Response({
+            'message': 'Tozalash yakunlandi',
+            'stats': stats,
+            'errors': errors
+        })

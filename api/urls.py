@@ -12,6 +12,7 @@ from .views import (
     ClientThumbnailView,
     NomenklaturaThumbnailView,
     AgentLocationViewSet,
+    ClearDatabaseView,
 )
 
 router = DefaultRouter()
@@ -31,6 +32,7 @@ urlpatterns = [
     path('thumbnails/projects/', ProjectThumbnailView.as_view(), name='project-thumbnail-feed'),
     path('thumbnails/clients/', ClientThumbnailView.as_view(), name='client-thumbnail-feed'),
     path('thumbnails/nomenklatura/', NomenklaturaThumbnailView.as_view(), name='nomenklatura-thumbnail-feed'),
+    path('admin/clear-db/', ClearDatabaseView.as_view(), name='clear-database'),
 ]
 
 urlpatterns += router.urls

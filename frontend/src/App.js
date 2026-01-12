@@ -21,6 +21,7 @@ import ChatPage from "./components/ChatPage";
 import ChatAdmin from "./components/admin/ChatAdmin";
 import ChatSettings from "./components/admin/ChatSettings";
 import UserAdmin from "./components/admin/UserAdmin";
+import ClearDbPage from "./components/admin/ClearDbPage";
 
 function App() {
   return (
@@ -147,6 +148,17 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout>
                   <UserAdmin />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/admin/clear-db"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <ClearDbPage />
                 </AdminLayout>
               </ProtectedRoute>
             }
