@@ -93,6 +93,7 @@ class NomenklaturaImageSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
     
+    @extend_schema_field(OpenApiTypes.URI)
     def get_image_url(self, obj) -> Optional[str]:
         if obj.image:
             request = self.context.get('request')
@@ -101,6 +102,7 @@ class NomenklaturaImageSerializer(serializers.ModelSerializer):
             return obj.image.url
         return None
     
+    @extend_schema_field(OpenApiTypes.URI)
     def get_image_sm_url(self, obj) -> Optional[str]:
         if obj.image_sm:
             request = self.context.get('request')
@@ -109,6 +111,7 @@ class NomenklaturaImageSerializer(serializers.ModelSerializer):
             return obj.image_sm.url
         return None
     
+    @extend_schema_field(OpenApiTypes.URI)
     def get_image_md_url(self, obj) -> Optional[str]:
         if obj.image_md:
             request = self.context.get('request')
@@ -117,6 +120,7 @@ class NomenklaturaImageSerializer(serializers.ModelSerializer):
             return obj.image_md.url
         return None
     
+    @extend_schema_field(OpenApiTypes.URI)
     def get_image_lg_url(self, obj) -> Optional[str]:
         if obj.image_lg:
             request = self.context.get('request')
@@ -125,6 +129,7 @@ class NomenklaturaImageSerializer(serializers.ModelSerializer):
             return obj.image_lg.url
         return None
     
+    @extend_schema_field(OpenApiTypes.URI)
     def get_image_thumbnail_url(self, obj) -> Optional[str]:
         if obj.image_thumbnail:
             request = self.context.get('request')

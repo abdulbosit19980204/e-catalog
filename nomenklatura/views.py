@@ -475,7 +475,13 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
     list=extend_schema(
         tags=['Nomenklatura Image'],
         summary="Nomenklatura rasm ro'yxatini olish",
-        description="Filtirlash: `nomenklatura` (ID), `category`, `project` (code_1c) yoki `project_id` orqali.",
+        description="""
+Nomenklatura rasmlarini `nomenklatura` (ID) va `category` bo'yicha filterlash mumkin.
+
+**is_main xususiyati:**
+- Har bir nomenklatura uchun faqat **bitta** rasm `is_main=True` bo'lishi mumkin.
+- Agar yangi rasm `is_main=True` qilib belgilansa, ushbu nomenklatura'ning boshqa barcha rasmlari avtomatik ravishda `is_main=False` holatiga o'tadi.
+""",
         parameters=[
             OpenApiParameter(name="nomenklatura", type=OpenApiTypes.INT, description="Nomenklatura ID"),
             OpenApiParameter(name="project", type=OpenApiTypes.STR, description="Loyiha code_1c bo'yicha filtrlash"),
@@ -524,10 +530,10 @@ class NomenklaturaImageViewSet(viewsets.ModelViewSet):
     search_fields = ['nomenklatura__code_1c', 'nomenklatura__name']
     
     def get_queryset(self):
-        """Optimizatsiya: select_related bilan nomenklatura yuklash - N+1 query muammosini hal qiladi"""
+        """Optimizatsiya: bog'langan model'larni yuklash - N+1 query muammosini hal qiladi"""
         return NomenklaturaImage.objects.filter(
             is_deleted=False
-        ).select_related('nomenklatura').order_by('-created_at')
+        ).select_related('nomenklatura', 'status', 'source').order_by('-created_at')
     
     def get_serializer_context(self):
         context = super().get_serializer_context()

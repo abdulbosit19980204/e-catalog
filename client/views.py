@@ -6,6 +6,8 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from drf_spectacular.types import OpenApiTypes
+from django.core.cache import cache
+from utils.cache import smart_cache_get, smart_cache_set, smart_cache_delete
 from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiParameter,
@@ -424,7 +426,13 @@ class ClientViewSet(viewsets.ModelViewSet):
     list=extend_schema(
         tags=['Clients'],
         summary="Client rasmlari ro'yxatini olish",
-        description="Client rasmlarini `client` (ID) va `client_code_1c` bo'yicha filterlash mumkin.",
+        description="""
+Client rasmlarini `client` (ID) va `client_code_1c` bo'yicha filterlash mumkin.
+
+**is_main xususiyati:**
+- Har bir client uchun faqat **bitta** rasm `is_main=True` bo'lishi mumkin.
+- Agar yangi rasm `is_main=True` qilib belgilansa, ushbu client'ning boshqa barcha rasmlari avtomatik ravishda `is_main=False` holatiga o'tadi.
+""",
         parameters=[
             OpenApiParameter(
                 name='client',
@@ -481,12 +489,31 @@ class ClientImageViewSet(viewsets.ModelViewSet):
     filterset_class = ClientImageFilterSet
     search_fields = ['client__client_code_1c', 'client__name']
     permission_classes = [IsAuthenticated]  # Faqat authenticated user'lar uchun
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        cache.clear()
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        cache.clear()
+
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.save(update_fields=['is_deleted', 'updated_at'])
+        cache.clear()
     
     def get_queryset(self):
-        """Optimizatsiya: select_related bilan client yuklash - N+1 query muammosini hal qiladi"""
-        return ClientImage.objects.filter(
-            is_deleted=False
-        ).select_related('client').order_by('-created_at')
+        """Optimizatsiya: bog'langan model'larni yuklash va keshdan foydalanish"""
+        cache_key = f"client_image_queryset_{hash(str(self.request.query_params))}"
+        cached_qs = smart_cache_get(cache_key)
+        if cached_qs is None:
+            qs = ClientImage.objects.filter(
+                is_deleted=False
+            ).select_related('client', 'status', 'source').order_by('-created_at')
+            smart_cache_set(cache_key, qs, 300)
+            return qs
+        return cached_qs
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -569,6 +596,7 @@ class ClientImageViewSet(viewsets.ModelViewSet):
             serializer = ClientImageSerializer(image_obj, context={'request': request})
             created_images.append(serializer.data)
         
+        cache.clear()
         return Response({
             'message': f'{len(created_images)} ta rasm muvaffaqiyatli yuklandi',
             'images': created_images
