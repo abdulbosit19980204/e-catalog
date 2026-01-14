@@ -20,7 +20,7 @@ from drf_spectacular.utils import (
     extend_schema_view,
     inline_serializer,
 )
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly
 from openpyxl import load_workbook
 from client.models import Client, ClientImage
 from nomenklatura.models import Nomenklatura, NomenklaturaImage
@@ -203,6 +203,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     lookup_value_regex = '.+'
     filterset_class = ProjectFilterSet
     search_fields = ['code_1c', 'name', 'title']
+    permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -528,6 +529,7 @@ class ProjectImageViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectImageSerializer
     filterset_class = ProjectImageFilterSet
     search_fields = ['project__code_1c', 'project__name']
+    permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_queryset(self):
         """Optimizatsiya: select_related bilan project yuklash - N+1 query muammosini hal qiladi"""

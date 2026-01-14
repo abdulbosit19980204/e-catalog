@@ -258,3 +258,81 @@
     padding-top: 16px;
   }
 }
+
+@media (max-width: 768px) {
+  .nomenklatura-list-container {
+    padding: 24px 16px 60px;
+  }
+
+  .page-heading h1 {
+    font-size: 1.75rem;
+    text-align: center;
+  }
+
+  .page-heading p {
+    text-align: center;
+    font-size: 1rem;
+  }
+
+  .nomenklatura-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .nomenklatura-card {
+    border-radius: 20px;
+  }
+
+  .nomenklatura-body {
+    padding: 12px;
+  }
+
+  .nomenklatura-body h3 {
+    font-size: 0.95rem;
+    line-height: 1.3;
+    height: 2.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .nomenklatura-codes {
+    gap: 2px;
+  }
+
+  .nomenklatura-code,
+  .nomenklatura-article {
+    font-size: 0.75rem;
+  }
+
+  .status-chip {
+    padding: 4px 8px;
+    font-size: 0.65rem;
+  }
+
+  .price-placeholder {
+    font-size: 0.95rem;
+  }
+
+  .search-input {
+    min-width: 100%;
+    padding: 12px 16px;
+  }
+
+  .date-filters {
+    flex-direction: column;
+    padding: 0;
+    gap: 8px;
+  }
+
+  .date-filters label {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .date-filters input {
+    width: 140px;
+  }
+}

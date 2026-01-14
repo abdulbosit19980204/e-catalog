@@ -4,7 +4,7 @@ from nomenklatura.models import Nomenklatura, NomenklaturaImage
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from django.core.cache import cache
 from utils.cache import smart_cache_get, smart_cache_set, smart_cache_delete
@@ -215,6 +215,7 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
     lookup_value_regex = '.+'
     filterset_class = NomenklaturaFilterSet
     search_fields = ['code_1c', 'article_code', 'name']
+    permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_object(self):
         """code_1c bo'yicha bitta obyektni olish, MultipleObjectsReturned xatosi oldini olish uchun"""
@@ -561,6 +562,7 @@ class NomenklaturaImageViewSet(viewsets.ModelViewSet):
     serializer_class = NomenklaturaImageSerializer
     filterset_class = NomenklaturaImageFilterSet
     search_fields = ['nomenklatura__code_1c', 'nomenklatura__article_code', 'nomenklatura__name']
+    permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_queryset(self):
         """Optimizatsiya: bog'langan model'larni yuklash - N+1 query muammosini hal qiladi"""

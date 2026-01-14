@@ -330,6 +330,7 @@
         font-weight: 600;
     }
 }
+
 .mobile-codes {
     display: flex;
     flex-wrap: wrap;
@@ -347,4 +348,55 @@
     font-size: 1.1rem;
     border-bottom: 2px solid var(--primary-light);
     display: inline-block;
+}
+
+@media (max-width: 768px) {
+    .detail-page-container {
+        padding: 16px 12px;
+    }
+
+    .back-button {
+        margin-bottom: 16px;
+        font-size: 0.9rem;
+    }
+
+    .detail-main-card {
+        padding: 20px;
+        border-radius: 24px;
+        gap: 24px;
+    }
+
+    .detail-header-mobile h1 {
+        font-size: 1.5rem;
+        line-height: 1.2;
+    }
+
+    .gallery-main-view {
+        aspect-ratio: 1;
+        border-radius: 16px;
+    }
+
+    .nav-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1.2rem;
+    }
+
+    .thumb-btn {
+        width: 64px;
+        height: 64px;
+    }
+
+    .specifications-grid {
+        padding: 16px;
+        gap: 12px;
+    }
+
+    .spec-value {
+        font-size: 0.9rem;
+    }
+
+    .description-text {
+        font-size: 0.95rem;
+    }
 }

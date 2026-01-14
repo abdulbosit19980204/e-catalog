@@ -5,10 +5,19 @@ import "./Navigation.css";
 const Navigation = () => {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     if (typeof window === "undefined") return false;
     return !!localStorage.getItem("authToken");
   });
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const isActive = (paths) => {
     const pathList = Array.isArray(paths) ? paths : [paths];
@@ -55,7 +64,7 @@ const Navigation = () => {
 
   return (
     <>
-      <nav className="navigation">
+      <nav className={`navigation ${scrolled ? "scrolled" : ""}`}>
         <div className="nav-container">
           <Link to="/" className="nav-logo">
             <span className="logo-mark">E</span>
@@ -83,15 +92,17 @@ const Navigation = () => {
                 Projects
               </Link>
             </li>
-            <li>
-              <Link
-                to="/clients"
-                className={`nav-link ${isActive("/clients")}`}
-                onClick={handleLinkClick}
-              >
-                Clients
-              </Link>
-            </li>
+            {isAuthenticated && (
+              <li>
+                <Link
+                  to="/clients"
+                  className={`nav-link ${isActive("/clients")}`}
+                  onClick={handleLinkClick}
+                >
+                  Clients
+                </Link>
+              </li>
+            )}
             <li>
               <Link
                 to="/nomenklatura"

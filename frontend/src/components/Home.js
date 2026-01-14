@@ -42,11 +42,15 @@ const Home = () => {
       try {
         setLoading(true);
         setError(null);
-        const [projectsRes, clientsRes, productsRes] = await Promise.all([
+        const results = await Promise.allSettled([
           projectAPI.getProjects({ page_size: 4 }),
           clientAPI.getClients({ page_size: 6 }),
           nomenklaturaAPI.getNomenklatura({ page_size: 12 }),
         ]);
+
+        const projectsRes = results[0].status === "fulfilled" ? results[0].value : null;
+        const clientsRes = results[1].status === "fulfilled" ? results[1].value : null;
+        const productsRes = results[2].status === "fulfilled" ? results[2].value : null;
 
         const projectItems = extractItems(projectsRes);
         const clientItems = extractItems(clientsRes);
@@ -266,31 +270,33 @@ const Home = () => {
         </section>
       )}
 
-      <section className="section clients">
-        <div className="section-header">
-          <div>
-            <h2>Mijozlar bazasi</h2>
-            <p>Bizning ishonchli hamkorlarimiz</p>
-          </div>
-        </div>
-        <div className="client-grid">
-          {featured.clients.map((client) => (
-            <div key={client.id} className="client-card">
-              <div className="client-avatar">
-                {getPreviewImage(client) ? (
-                  <img src={getPreviewImage(client)} alt={client.name} />
-                ) : (
-                  <span>{client.name?.charAt(0)}</span>
-                )}
-              </div>
-              <div className="client-info">
-                <h3>{client.name}</h3>
-                {client.city && <p>{client.city}</p>}
-              </div>
+      {featured.clients.length > 0 && (
+        <section className="section clients">
+          <div className="section-header">
+            <div>
+              <h2>Mijozlar bazasi</h2>
+              <p>Bizning ishonchli hamkorlarimiz</p>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+          <div className="client-grid">
+            {featured.clients.map((client) => (
+              <div key={client.id} className="client-card">
+                <div className="client-avatar">
+                  {getPreviewImage(client) ? (
+                    <img src={getPreviewImage(client)} alt={client.name} />
+                  ) : (
+                    <span>{client.name?.charAt(0)}</span>
+                  )}
+                </div>
+                <div className="client-info">
+                  <h3>{client.name}</h3>
+                  {client.city && <p>{client.city}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="section products">
         <div className="section-header">
