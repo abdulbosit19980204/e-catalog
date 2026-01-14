@@ -480,6 +480,11 @@ class AgentLocationViewSet(viewsets.ModelViewSet):
         instance.is_deleted = True
         instance.save(update_fields=['is_deleted', 'updated_at'])
 
+    @extend_schema(
+        tags=['Agent Locations'],
+        summary="Unikal agentlar ro'yxati",
+        description="Barcha unikal agentlarning code, name va phone ma'lumotlarini qaytaradi (dropdown uchun)."
+    )
     @action(detail=False, methods=['get'], url_path='unique-agents')
     def unique_agents(self, request):
         """Hamma agentlarning unikal ro'yxatini qaytaradi (dropdown uchun)"""
@@ -498,6 +503,15 @@ class AgentLocationViewSet(viewsets.ModelViewSet):
                 
         return Response(unique_agents_list)
 
+    @extend_schema(
+        tags=['Agent Locations'],
+        summary="Trayektoriya va visitlar",
+        description="Agentning ma'lum kundagi harakati va o'sha kundagi visitlarini qaytaradi.",
+        parameters=[
+            OpenApiParameter(name='agent_code', required=True, type=str),
+            OpenApiParameter(name='date', required=True, type=str, description="YYYY-MM-DD")
+        ]
+    )
     @action(detail=False, methods=['get'], url_path='trajectory')
     def trajectory(self, request):
         """Berilgan agent va sana uchun harakat trayektoriyasini qaytaradi"""
@@ -589,6 +603,16 @@ class AgentLocationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=500)
 
+    @extend_schema(
+        tags=['Agent Locations'],
+        summary="Hududiy aktivlik",
+        description="Agentning vaqt oralig'idagi regionlar bo'yicha aktivligini qaytaradi.",
+        parameters=[
+            OpenApiParameter(name='agent_code', required=False, type=str),
+            OpenApiParameter(name='date_from', required=False, type=str, description="YYYY-MM-DD"),
+            OpenApiParameter(name='date_to', required=False, type=str, description="YYYY-MM-DD")
+        ]
+    )
     @action(detail=False, methods=['get'], url_path='regional-activity')
     def regional_activity(self, request):
         """Regionlar va shaharlar bo'yicha agent aktivligini qaytaradi"""

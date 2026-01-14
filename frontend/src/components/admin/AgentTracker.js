@@ -24,6 +24,9 @@ const AgentTracker = () => {
   useEffect(() => {
     const script = document.createElement("script");
     const apiKey = process.env.REACT_APP_YANDEX_MAPS_KEY || "";
+    if (!apiKey) {
+      console.warn("Yandex Maps API key (REACT_APP_YANDEX_MAPS_KEY) topilmadi. Map ba'zi joylarda ishlamasligi mumkin.");
+    }
     script.src = `https://api-maps.yandex.ru/2.1/?lang=ru_RU${apiKey ? `&apikey=${apiKey}` : ""}`;
     script.async = true;
     script.onload = () => {
@@ -72,7 +75,9 @@ const AgentTracker = () => {
     mapInstanceRef.current.geoObjects.removeAll();
 
     try {
+      console.log(`Fetching trajectory for ${selectedAgent} on ${selectedDate}`);
       const res = await agentLocationAPI.getTrajectory(selectedAgent, selectedDate);
+      console.log('Trajectory response:', res.data);
       let allPoints = res.data.points || [];
       let allVisits = res.data.visits || [];
 
@@ -168,6 +173,7 @@ const AgentTracker = () => {
           date_from,
           date_to
         });
+        console.log('Regional activity response:', regRes.data);
         setRegionalActivity(regRes.data.regions || []);
       }
 

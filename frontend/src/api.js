@@ -14,7 +14,7 @@ if (!derivedApiBase && typeof window !== "undefined") {
     }
   }
 }
-const API_BASE_URL = derivedApiBase || "http://178.218.200.120:1596/api/v1";
+const API_BASE_URL = derivedApiBase || "http://178.218.200.120:1596/api/v1/";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -379,21 +379,21 @@ export const chatAPI = {
 // Agent Location API
 export const agentLocationAPI = {
   getLocations: (params = {}) => {
-    return apiClient.get("/agent-location/", { params });
+    return apiClient.get("agent-location/", { params });
   },
   getUniqueAgents: () => {
-    return apiClient.get("/agent-location/unique-agents/");
+    return apiClient.get("agent-location/unique-agents/");
   },
   getTrajectory: (agentCode, date) => {
-    return apiClient.get("/agent-location/trajectory/", {
+    return apiClient.get("agent-location/trajectory/", {
       params: { agent_code: agentCode, date }
     });
   },
   getRegionalActivity: (params) => {
-    return apiClient.get("/agent-location/regional-activity/", { params });
+    return apiClient.get("agent-location/regional-activity/", { params });
   },
   deleteLocation: (id) => {
-    return apiClient.delete(`/agent-location/${id}/`);
+    return apiClient.delete(`agent-location/${id}/`);
   }
 };
 
