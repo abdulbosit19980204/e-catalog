@@ -25,6 +25,7 @@ import ClearDbPage from "./components/admin/ClearDbPage";
 import DuplicatesPage from "./components/admin/DuplicatesPage";
 import AgentTracker from "./components/admin/AgentTracker";
 import AgentTrackerPage from "./components/AgentTrackerPage";
+import VisitManagement from "./components/admin/VisitManagement";
 
 function App() {
   return (
@@ -69,6 +70,14 @@ function App() {
           <Route path="/tracker" element={
             <ProtectedRoute>
               <AgentTrackerPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/visits" element={
+            <ProtectedRoute>
+              <div style={{paddingTop: '60px'}}>
+                <VisitManagement />
+              </div>
             </ProtectedRoute>
           } />
           
@@ -189,6 +198,16 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout>
                   <AgentTracker />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/visits"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <VisitManagement />
                 </AdminLayout>
               </ProtectedRoute>
             }

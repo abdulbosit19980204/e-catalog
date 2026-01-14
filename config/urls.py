@@ -47,6 +47,9 @@ urlpatterns = [
 
     # Chat API
     path('api/v1/chat/', include('chat.urls')),
+    
+    # Visit Management API
+    path('api/v1/', include('visits.urls')),
 ]
 
 # Serve media files in development

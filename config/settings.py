@@ -157,21 +157,41 @@ if os.environ.get('USE_LOCAL_CACHE') == 'True' or not DEBUG:
     # but for this specific request we allow the user to control it
     pass
 else:
-    # Default to LocMemCache for local dev if REDIS_URL not explicitly used or if it fails
-    # but the above IGNORE_EXCEPTIONS already helps.
     pass
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-        'OPTIONS': {
-            'timeout': 300,  # 5 minutes timeout for extreme sync scenarios
-            'check_same_thread': False,
-        },
-        'CONN_MAX_AGE': 600,
+# Database Configuration with PostgreSQL Support
+# ---------------------------------------------
+db_engine = os.environ.get('DB_ENGINE', 'sqlite3')
+
+if db_engine == 'postgresql':
+    # PostgreSQL Configuration (Production)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME', 'ecatalog'),
+            'USER': os.environ.get('DB_USER', 'postgres'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+            'CONN_MAX_AGE': int(os.environ.get('DB_CONN_MAX_AGE', '600')),
+            'OPTIONS': {
+                'connect_timeout': 10,
+            }
+        }
     }
-}
+else:
+    # SQLite Configuration (Development)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+            'OPTIONS': {
+                'timeout': 300,  # 5 minutes timeout for extreme sync scenarios
+                'check_same_thread': False,
+            },
+            'CONN_MAX_AGE': 600,
+        }
+    }
 
 # SQLite Optimization - High Performance & Concurrency settings
 from django.db.backends.signals import connection_created

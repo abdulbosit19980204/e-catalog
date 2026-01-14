@@ -400,4 +400,82 @@ export const agentLocationAPI = {
   }
 };
 
+// Visit Management API
+export const visitAPI = {
+  // Visit CRUD operations
+  getVisits: (params = {}) => {
+    return apiClient.get("visit/", { params });
+  },
+  getVisit: (visitId) => {
+    return apiClient.get(`visit/${visitId}/`);
+  },
+  createVisit: (data) => {
+    return apiClient.post("visit/", data);
+  },
+  updateVisit: (visitId, data) => {
+    return apiClient.patch(`visit/${visitId}/`, data);
+  },
+  deleteVisit: (visitId) => {
+    return apiClient.delete(`visit/${visitId}/`);
+  },
+
+  // Visit lifecycle actions
+  checkIn: (visitId, data) => {
+    return apiClient.post(`visit/${visitId}/check-in/`, data);
+  },
+  checkOut: (visitId, data) => {
+    return apiClient.post(`visit/${visitId}/check-out/`, data);
+  },
+  cancelVisit: (visitId, data) => {
+    return apiClient.post(`visit/${visitId}/cancel/`, data);
+  },
+
+  // Visit images
+  uploadImage: (visitId, formData) => {
+    return apiClient.post(`visit/${visitId}/upload-image/`, formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+  },
+
+  // Statistics
+  getStatistics: (params = {}) => {
+    return apiClient.get("visit/statistics/", { params });
+  },
+};
+
+// Visit Plan API
+export const visitPlanAPI = {
+  getPlans: (params = {}) => {
+    return apiClient.get("visit-plan/", { params });
+  },
+  getPlan: (planId) => {
+    return apiClient.get(`visit-plan/${planId}/`);
+  },
+  createPlan: (data) => {
+    return apiClient.post("visit-plan/", data);
+  },
+  updatePlan: (planId, data) => {
+    return apiClient.patch(`visit-plan/${planId}/`, data);
+  },
+  deletePlan: (planId) => {
+    return apiClient.delete(`visit-plan/${planId}/`);
+  },
+  generateWeekly: () => {
+    return apiClient.post("visit-plan/generate-weekly/");
+  },
+};
+
+// Visit Image API
+export const visitImageAPI = {
+  getImages: (params = {}) => {
+    return apiClient.get("visit-image/", { params });
+  },
+  getImage: (imageId) => {
+    return apiClient.get(`visit-image/${imageId}/`);
+  },
+  deleteImage: (imageId) => {
+    return apiClient.delete(`visit-image/${imageId}/`);
+  },
+};
+
 export default apiClient;

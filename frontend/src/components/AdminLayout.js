@@ -113,6 +113,14 @@ const AdminLayout = ({ children }) => {
           </Link>
 
           <Link
+            to="/admin/visits"
+            className={`nav-item ${isActive("/admin/visits")}`}
+          >
+            <span className="nav-icon">📍</span>
+            {sidebarOpen && <span>Tashriflar</span>}
+          </Link>
+
+          <Link
             to="/admin/clear-db"
             className={`nav-item ${isActive("/admin/clear-db")}`}
           >

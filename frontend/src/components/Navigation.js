@@ -132,6 +132,17 @@ const Navigation = () => {
                 </Link>
               </li>
             )}
+            {isAuthenticated && (
+              <li>
+                <Link
+                  to="/visits"
+                  className={`nav-link ${isActive("/visits")}`}
+                  onClick={handleLinkClick}
+                >
+                  Tashriflar
+                </Link>
+              </li>
+            )}
             <li>
               <Link
                 to={isAuthenticated ? "/admin" : "/login"}
