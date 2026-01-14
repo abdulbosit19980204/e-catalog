@@ -743,7 +743,7 @@ class ThumbnailFeedMixin:
             return None
         return raw.strip().lower() in ('1', 'true', 'yes')
 
-    def _collect_project_thumbnails(self, request, limit, is_main, status_code):
+    def _collect_project_thumbnails(self, request, limit, is_main, status_code, code_1c=None):
         qs = ProjectImage.objects.filter(
             is_deleted=False,
             is_active=True,
@@ -753,6 +753,8 @@ class ThumbnailFeedMixin:
             qs = qs.filter(is_main=is_main)
         if status_code:
             qs = qs.filter(status__code=status_code)
+        if code_1c:
+            qs = qs.filter(project__code_1c=code_1c)
         qs = qs[:limit]
         return [
             self._build_entry(
@@ -765,7 +767,7 @@ class ThumbnailFeedMixin:
             for image in qs
         ]
 
-    def _collect_client_thumbnails(self, request, limit, is_main, status_code):
+    def _collect_client_thumbnails(self, request, limit, is_main, status_code, client_id=None, client_code_1c=None):
         qs = ClientImage.objects.filter(
             is_deleted=False,
             is_active=True,
@@ -775,6 +777,10 @@ class ThumbnailFeedMixin:
             qs = qs.filter(is_main=is_main)
         if status_code:
             qs = qs.filter(status__code=status_code)
+        if client_id:
+            qs = qs.filter(client_id=client_id)
+        if client_code_1c:
+            qs = qs.filter(client__client_code_1c=client_code_1c)
         qs = qs[:limit]
         return [
             self._build_entry(
@@ -787,7 +793,7 @@ class ThumbnailFeedMixin:
             for image in qs
         ]
 
-    def _collect_nomenklatura_thumbnails(self, request, limit, is_main, status_code):
+    def _collect_nomenklatura_thumbnails(self, request, limit, is_main, status_code, nomenklatura_id=None, code_1c=None, article_code=None):
         qs = NomenklaturaImage.objects.filter(
             is_deleted=False,
             is_active=True,
@@ -797,6 +803,12 @@ class ThumbnailFeedMixin:
             qs = qs.filter(is_main=is_main)
         if status_code:
             qs = qs.filter(status__code=status_code)
+        if nomenklatura_id:
+            qs = qs.filter(nomenklatura_id=nomenklatura_id)
+        if code_1c:
+            qs = qs.filter(nomenklatura__code_1c=code_1c)
+        if article_code:
+            qs = qs.filter(nomenklatura__article_code=article_code)
         qs = qs[:limit]
         return [
             self._build_entry(
@@ -1034,21 +1046,24 @@ class ThumbnailFeedView(ThumbnailFeedMixin, APIView):
         limit = self._parse_limit(request.query_params.get('limit'))
         is_main = self._parse_bool(request.query_params.get('is_main'))
         status_code = request.query_params.get('status')
+        code_1c = request.query_params.get('code_1c')
+        client_code_1c = request.query_params.get('client_code_1c') or code_1c
+        article_code = request.query_params.get('article_code')
 
         per_type_limit = max(limit, 1)
         entries = []
 
         if 'project' in requested_types:
             entries.extend(
-                self._collect_project_thumbnails(request, per_type_limit, is_main, status_code)
+                self._collect_project_thumbnails(request, per_type_limit, is_main, status_code, code_1c=code_1c)
             )
         if 'client' in requested_types:
             entries.extend(
-                self._collect_client_thumbnails(request, per_type_limit, is_main, status_code)
+                self._collect_client_thumbnails(request, per_type_limit, is_main, status_code, client_code_1c=client_code_1c)
             )
         if 'nomenklatura' in requested_types:
             entries.extend(
-                self._collect_nomenklatura_thumbnails(request, per_type_limit, is_main, status_code)
+                self._collect_nomenklatura_thumbnails(request, per_type_limit, is_main, status_code, code_1c=code_1c, article_code=article_code)
             )
 
         entries.sort(key=lambda item: item['created_at'], reverse=True)
@@ -1124,8 +1139,9 @@ class ProjectThumbnailView(ThumbnailFeedMixin, APIView):
         limit = self._parse_limit(request.query_params.get('limit'))
         is_main = self._parse_bool(request.query_params.get('is_main'))
         status_code = request.query_params.get('status')
+        code_1c = request.query_params.get('code_1c')
 
-        entries = self._collect_project_thumbnails(request, limit, is_main, status_code)
+        entries = self._collect_project_thumbnails(request, limit, is_main, status_code, code_1c=code_1c)
         serialized = ThumbnailEntrySerializer(entries, many=True)
         
         # Umumiy hajmni hisoblash
@@ -1275,8 +1291,10 @@ class NomenklaturaThumbnailView(ThumbnailFeedMixin, APIView):
         limit = self._parse_limit(request.query_params.get('limit'))
         is_main = self._parse_bool(request.query_params.get('is_main'))
         status_code = request.query_params.get('status')
+        code_1c = request.query_params.get('code_1c')
+        article_code = request.query_params.get('article_code')
 
-        entries = self._collect_nomenklatura_thumbnails(request, limit, is_main, status_code)
+        entries = self._collect_nomenklatura_thumbnails(request, limit, is_main, status_code, code_1c=code_1c, article_code=article_code)
         serialized = ThumbnailEntrySerializer(entries, many=True)
         
         # Umumiy hajmni hisoblash

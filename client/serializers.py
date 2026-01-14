@@ -18,6 +18,7 @@ class ClientImageSerializer(serializers.ModelSerializer):
     source = ImageSourceSerializer(read_only=True)
     source_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     project = ProjectNestedSerializer(source='client.project', read_only=True)
+    client_code_1c = serializers.CharField(source='client.client_code_1c', read_only=True)
     
     class Meta:
         model = ClientImage
@@ -25,6 +26,7 @@ class ClientImageSerializer(serializers.ModelSerializer):
             'id',
             'client',
             'project',
+            'client_code_1c',
             'image',
             'category',
             'note',

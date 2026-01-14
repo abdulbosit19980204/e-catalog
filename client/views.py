@@ -79,7 +79,7 @@ class ClientImageFilterSet(django_filters.FilterSet):
 
     class Meta:
         model = ClientImage
-        fields = ['client', 'client_code_1c', 'is_main', 'category', 'created_from', 'created_to']
+        fields = ['client', 'client_code_1c', 'status', 'is_main', 'category', 'created_from', 'created_to']
 
 
 @extend_schema_view(
@@ -664,8 +664,8 @@ class VisitImageViewSet(viewsets.ModelViewSet):
     queryset = ClientImage.objects.filter(is_deleted=False)
     serializer_class = ClientImageSerializer
     permission_classes = [IsAuthenticated]
+    filterset_class = ClientImageFilterSet
     search_fields = ['client__name', 'client__client_code_1c', 'note']
-    filterset_fields = ['client', 'status', 'is_main', 'category']
 
     def get_queryset(self):
         # Faqat kerakli maydonlarni yuklash orqali memory va I/O ni tejaymiz

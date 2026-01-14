@@ -21,6 +21,7 @@ class Nomenklatura(BaseModel):
     
     # Product Information
     sku = models.CharField(max_length=100, blank=True, null=True, db_index=True, help_text="SKU (Stock Keeping Unit)")
+    article_code = models.CharField(max_length=100, blank=True, null=True, db_index=True, help_text="Artikul kodi")
     barcode = models.CharField(max_length=100, blank=True, null=True, db_index=True, help_text="Barkod")
     brand = models.CharField(max_length=150, blank=True, null=True, help_text="Brend")
     manufacturer = models.CharField(max_length=200, blank=True, null=True, help_text="Ishlab chiqaruvchi")

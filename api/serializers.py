@@ -57,11 +57,13 @@ class APINomenklaturaImageSerializer(serializers.ModelSerializer):
     image_lg_url = serializers.SerializerMethodField()
     image_thumbnail_url = serializers.SerializerMethodField()
     project = ProjectNestedSerializer(source='nomenklatura.project', read_only=True)
+    code_1c = serializers.CharField(source='nomenklatura.code_1c', read_only=True)
+    article_code = serializers.CharField(source='nomenklatura.article_code', read_only=True)
     
     class Meta:
         model = NomenklaturaImage
         fields = [
-            'id', 'nomenklatura', 'project', 'image', 'is_main', 'category', 'note',
+            'id', 'nomenklatura', 'project', 'code_1c', 'article_code', 'image', 'is_main', 'category', 'note',
             'status', 'source', 'created_at', 'updated_at', 'is_active', 'is_deleted',
             'image_url', 'image_sm_url', 'image_md_url', 'image_lg_url', 'image_thumbnail_url'
         ]
@@ -137,6 +139,7 @@ class ProjectImageSerializer(serializers.ModelSerializer):
     image_lg_url = serializers.SerializerMethodField()
     image_thumbnail_url = serializers.SerializerMethodField()
     project = ProjectNestedSerializer(read_only=True)
+    code_1c = serializers.CharField(source='project.code_1c', read_only=True)
     status = ImageStatusSerializer(read_only=True)
     status_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     source = ImageSourceSerializer(read_only=True)
@@ -147,6 +150,7 @@ class ProjectImageSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'project',
+            'code_1c',
             'image',
             'category',
             'note',

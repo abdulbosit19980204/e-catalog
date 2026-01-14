@@ -18,6 +18,8 @@ class NomenklaturaImageSerializer(serializers.ModelSerializer):
     source = ImageSourceSerializer(read_only=True)
     source_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     project = ProjectNestedSerializer(source='nomenklatura.project', read_only=True)
+    code_1c = serializers.CharField(source='nomenklatura.code_1c', read_only=True)
+    article_code = serializers.CharField(source='nomenklatura.article_code', read_only=True)
     
     class Meta:
         model = NomenklaturaImage
@@ -25,6 +27,8 @@ class NomenklaturaImageSerializer(serializers.ModelSerializer):
             'id',
             'nomenklatura',
             'project',
+            'code_1c',
+            'article_code',
             'image',
             'category',
             'note',
@@ -153,7 +157,7 @@ class NomenklaturaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Nomenklatura
         fields = [
-            'id', 'project', 'project_id', 'code_1c', 'name', 'title', 'description',
+            'id', 'project', 'project_id', 'code_1c', 'article_code', 'name', 'title', 'description',
             'sku', 'barcode', 'brand', 'manufacturer', 'model', 'series', 'vendor_code',
             'base_price', 'sale_price', 'cost_price', 'currency', 'discount_percent',
             'tax_rate', 'stock_quantity', 'min_stock', 'max_stock', 'unit_of_measure',

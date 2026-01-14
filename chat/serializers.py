@@ -7,9 +7,11 @@ from .models import ChatSettings, Conversation, ChatMessage
 User = get_user_model()
 
 class UserSimpleSerializer(serializers.ModelSerializer):
+    code_1c = serializers.CharField(source='profile.code_1c', read_only=True)
+    
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name']
+        fields = ['id', 'username', 'first_name', 'code_1c']
 
 class ChatSettingsSerializer(serializers.ModelSerializer):
     class Meta:

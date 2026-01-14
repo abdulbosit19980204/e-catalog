@@ -71,10 +71,12 @@ class NomenklaturaImageFilterSet(django_filters.FilterSet):
 
     project = django_filters.CharFilter(field_name='nomenklatura__project__code_1c', label="Project code_1c")
     project_id = django_filters.NumberFilter(field_name='nomenklatura__project__id', label="Project ID")
+    code_1c = django_filters.CharFilter(field_name='nomenklatura__code_1c', label="Nomenklatura code_1c")
+    article_code = django_filters.CharFilter(field_name='nomenklatura__article_code', label="Artikul kodi")
 
     class Meta:
         model = NomenklaturaImage
-        fields = ['nomenklatura', 'is_main', 'category', 'project', 'project_id', 'created_from', 'created_to']
+        fields = ['nomenklatura', 'code_1c', 'article_code', 'is_main', 'category', 'project', 'project_id', 'created_from', 'created_to']
 
 
 @extend_schema_view(
@@ -212,7 +214,7 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
     lookup_field = 'code_1c'
     lookup_value_regex = '.+'
     filterset_class = NomenklaturaFilterSet
-    search_fields = ['code_1c', 'name']
+    search_fields = ['code_1c', 'article_code', 'name']
     
     def get_object(self):
         """code_1c bo'yicha bitta obyektni olish, MultipleObjectsReturned xatosi oldini olish uchun"""
@@ -558,7 +560,7 @@ class NomenklaturaImageViewSet(viewsets.ModelViewSet):
     queryset = NomenklaturaImage.objects.filter(is_deleted=False)
     serializer_class = NomenklaturaImageSerializer
     filterset_class = NomenklaturaImageFilterSet
-    search_fields = ['nomenklatura__code_1c', 'nomenklatura__name']
+    search_fields = ['nomenklatura__code_1c', 'nomenklatura__article_code', 'nomenklatura__name']
     
     def get_queryset(self):
         """Optimizatsiya: bog'langan model'larni yuklash - N+1 query muammosini hal qiladi"""

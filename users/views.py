@@ -8,8 +8,8 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('-id')
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAdminUser]
-    search_fields = ['username', 'first_name', 'last_name', 'email']
-    filterset_fields = ['is_staff', 'is_active']
+    search_fields = ['username', 'first_name', 'last_name', 'email', 'profile__code_1c']
+    filterset_fields = ['is_staff', 'is_active', 'profile__code_1c']
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
