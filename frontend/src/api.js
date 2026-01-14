@@ -83,18 +83,21 @@ apiClient.interceptors.response.use(
 // Authentication API
 export const authAPI = {
   login: (username, password) => {
-    return axios.post(`${API_BASE_URL.replace("/v1", "")}/token/`, {
+    const baseUrl = API_BASE_URL.replace(/\/v1\/?$/, "");
+    return axios.post(`${baseUrl}/token/`, {
       username,
       password,
     });
   },
   refreshToken: (refresh) => {
-    return axios.post(`${API_BASE_URL.replace("/v1", "")}/token/refresh/`, {
+    const baseUrl = API_BASE_URL.replace(/\/v1\/?$/, "");
+    return axios.post(`${baseUrl}/token/refresh/`, {
       refresh,
     });
   },
   verifyToken: (token) => {
-    return axios.post(`${API_BASE_URL.replace("/v1", "")}/token/verify/`, {
+    const baseUrl = API_BASE_URL.replace(/\/v1\/?$/, "");
+    return axios.post(`${baseUrl}/token/verify/`, {
       token,
     });
   },
