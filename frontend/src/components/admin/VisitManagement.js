@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { visitAPI } from '../../api';
 import {
   Chart as ChartJS,
@@ -9,10 +9,8 @@ import {
   Tooltip,
   Legend,
   ArcElement,
-  PointElement,
-  LineElement
 } from 'chart.js';
-import { Bar, Doughnut, Line } from 'react-chartjs-2';
+import { Doughnut } from 'react-chartjs-2';
 import './VisitManagement.css';
 
 ChartJS.register(
@@ -23,8 +21,6 @@ ChartJS.register(
   Tooltip,
   Legend,
   ArcElement,
-  PointElement,
-  LineElement
 );
 
 const VisitManagement = () => {
@@ -41,12 +37,7 @@ const VisitManagement = () => {
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    loadVisits();
-    loadStatistics();
-  }, [filters]);
-
-  const loadVisits = async () => {
+  const loadVisits = useCallback(async () => {
     setLoading(true);
     try {
       const response = await visitAPI.getVisits(filters);
@@ -55,16 +46,21 @@ const VisitManagement = () => {
       console.error('Error loading visits:', error);
     }
     setLoading(false);
-  };
+  }, [filters]);
 
-  const loadStatistics = async () => {
+  const loadStatistics = useCallback(async () => {
     try {
       const response = await visitAPI.getStatistics(filters);
       setStatistics(response.data);
     } catch (error) {
       console.error('Error loading statistics:', error);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    loadVisits();
+    loadStatistics();
+  }, [loadVisits, loadStatistics]);
 
   const handleFilterChange = (e) => {
     setFilters({

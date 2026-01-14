@@ -114,7 +114,7 @@ class VisitViewSet(viewsets.ModelViewSet):
         visit = self.get_object()
         
         # Validate status
-        if visit.visit_status not in [visit.VisitStatus.SCHEDULED, visit.VisitStatus.CONFIRMED]:
+        if visit.visit_status not in ['SCHEDULED', 'CONFIRMED']:
             return Response(
                 {'error': 'Faqat rejalashtirilgan tashriflarga check-in qilish mumkin'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -151,7 +151,7 @@ class VisitViewSet(viewsets.ModelViewSet):
         """Complete visit and save outcomes"""
         visit = self.get_object()
         
-        if visit.visit_status != visit.VisitStatus.IN_PROGRESS:
+        if visit.visit_status != 'IN_PROGRESS':
             return Response(
                 {'error': 'Faqat jarayondagi tashriflarga check-out qilish mumkin'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -229,7 +229,7 @@ class VisitViewSet(viewsets.ModelViewSet):
         """Cancel scheduled visit"""
         visit = self.get_object()
         
-        if visit.visit_status == visit.VisitStatus.COMPLETED:
+        if visit.visit_status == 'COMPLETED':
             return Response(
                 {'error': 'Yakunlangan tashrifni bekor qilib bo\'lmaydi'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -282,13 +282,13 @@ class VisitViewSet(viewsets.ModelViewSet):
         
         # Calculate statistics
         total = queryset.count()
-        completed = queryset.filter(visit_status=Visit.VisitStatus.COMPLETED).count()
-        in_progress = queryset.filter(visit_status=Visit.VisitStatus.IN_PROGRESS).count()
-        cancelled = queryset.filter(visit_status=Visit.VisitStatus.CANCELLED).count()
+        completed = queryset.filter(visit_status='COMPLETED').count()
+        in_progress = queryset.filter(visit_status='IN_PROGRESS').count()
+        cancelled = queryset.filter(visit_status='CANCELLED').count()
         
         # Calculate averages
         avg_duration = queryset.filter(
-            visit_status=Visit.VisitStatus.COMPLETED,
+            visit_status='COMPLETED',
             duration_minutes__isnull=False
         ).aggregate(avg=Avg('duration_minutes'))['avg'] or 0
         
