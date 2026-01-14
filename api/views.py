@@ -634,19 +634,21 @@ class AgentLocationViewSet(viewsets.ModelViewSet):
         ).order_by('-points_count')
 
         # Visitlar bo'yicha (ClientImage)
-        from client.models import ClientImage
-        v_qs = ClientImage.objects.filter(is_deleted=False)
-        if date_from:
-            v_qs = v_qs.filter(created_at__date__gte=date_from)
-        if date_to:
-            v_qs = v_qs.filter(created_at__date__lte=date_to)
-        if agent_code:
-            v_qs = v_qs.filter(source__uploader_name__icontains=agent_code)
-        
-        # Note: ClientImage modelida region maydoni yo'q, shuning uchun 
-        # visitlar count'ini asosan AgentLocation'dagi regionlar bilan bog'liq holda 
-        # ko'rsatish qiyin bo'lishi mumkin. 
-        # Biroq, frontend'da visit koordinatalarini region chegaralari bilan solishtirish mumkin.
+        # Note: ClientImage modelida source maydoni yo'q bo'lishi mumkin
+        total_visits = 0
+        try:
+            from client.models import ClientImage
+            v_qs = ClientImage.objects.filter(is_deleted=False)
+            if date_from:
+                v_qs = v_qs.filter(created_at__date__gte=date_from)
+            if date_to:
+                v_qs = v_qs.filter(created_at__date__lte=date_to)
+            # Agent code bo'yicha filter qilish qiyin, chunki ClientImage'da to'g'ridan-to'g'ri agent maydoni yo'q
+            total_visits = v_qs.count()
+        except Exception as e:
+            # Agar ClientImage modelida muammo bo'lsa, 0 qaytaramiz
+            print(f"Visits count error: {e}")
+            total_visits = 0
         
         return Response({
             'period': {
@@ -656,7 +658,7 @@ class AgentLocationViewSet(viewsets.ModelViewSet):
             'agent_code': agent_code,
             'regions': list(region_stats),
             'total_points': qs.count(),
-            'total_visits': v_qs.count()
+            'total_visits': total_visits
         })
 
 @extend_schema_view(

@@ -2,19 +2,18 @@
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    background: #f1f5f9;
+    background: white;
 }
 
 .standalone-tracker-page .tracker-main {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding-top: 70px;
-    /* Space for fixed Navigation */
+    padding-top: 60px;
 }
 
 .standalone-tracker-page .agent-tracker-container {
     flex: 1;
     height: auto;
-    min-height: calc(100vh - 70px);
+    min-height: calc(100vh - 60px);
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { agentLocationAPI, clientAPI } from "../../api";
+import { agentLocationAPI } from "../../api";
 import "./AgentTracker.css";
 
 const AgentTracker = () => {
@@ -16,7 +16,6 @@ const AgentTracker = () => {
   const [regionalActivity, setRegionalActivity] = useState([]);
   const [error, setError] = useState(null);
 
-  const mapRef = useRef(null);
   const ymapsRef = useRef(null);
   const mapInstanceRef = useRef(null);
 
