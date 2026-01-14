@@ -24,6 +24,7 @@ import UserAdmin from "./components/admin/UserAdmin";
 import ClearDbPage from "./components/admin/ClearDbPage";
 import DuplicatesPage from "./components/admin/DuplicatesPage";
 import AgentTracker from "./components/admin/AgentTracker";
+import AgentTrackerPage from "./components/AgentTrackerPage";
 
 function App() {
   return (
@@ -64,6 +65,11 @@ function App() {
                 <ChatPage />
               </main>
             </>
+          } />
+          <Route path="/tracker" element={
+            <ProtectedRoute>
+              <AgentTrackerPage />
+            </ProtectedRoute>
           } />
           
           {/* Detail Pages */}

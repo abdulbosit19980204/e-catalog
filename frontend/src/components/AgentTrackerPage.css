@@ -1,0 +1,16 @@
+.standalone-tracker-page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #f1f5f9;
+}
+
+.standalone-tracker-page .tracker-main {
+    flex: 1;
+    margin-top: 80px; /* Space for Navigation */
+    overflow: hidden;
+}
+
+.standalone-tracker-page .agent-tracker-container {
+    height: 100%;
+}

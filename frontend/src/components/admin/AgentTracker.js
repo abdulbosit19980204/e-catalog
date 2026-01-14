@@ -8,6 +8,8 @@ const AgentTracker = () => {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const [startTime, setStartTime] = useState("00:00");
+  const [endTime, setEndTime] = useState("23:59");
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ points: 0, distance: 0, stops: 0 });
   const [error, setError] = useState(null);
@@ -19,7 +21,8 @@ const AgentTracker = () => {
   // Load Yandex Maps Script
   useEffect(() => {
     const script = document.createElement("script");
-    script.src = "https://api-maps.yandex.ru/2.1/?lang=ru_RU";
+    const apiKey = process.env.REACT_APP_YANDEX_MAPS_KEY || "";
+    script.src = `https://api-maps.yandex.ru/2.1/?lang=ru_RU${apiKey ? `&apikey=${apiKey}` : ""}`;
     script.async = true;
     script.onload = () => {
       window.ymaps.ready(() => {
@@ -68,7 +71,19 @@ const AgentTracker = () => {
 
     try {
       const res = await agentLocationAPI.getTrajectory(selectedAgent, selectedDate);
-      const points = res.data.points || [];
+      let allPoints = res.data.points || [];
+      let allVisits = res.data.visits || [];
+
+      // Filter by time
+      const points = allPoints.filter(p => {
+        const timeStr = new Date(p.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        return timeStr >= startTime && timeStr <= endTime;
+      });
+
+      const visits = allVisits.filter(v => {
+        const timeStr = new Date(v.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        return timeStr >= startTime && timeStr <= endTime;
+      });
 
       if (points.length === 0) {
         setError("Ushbu kunda ma'lumot topilmadi");
@@ -148,7 +163,6 @@ const AgentTracker = () => {
       mapInstanceRef.current.geoObjects.add(endPoint);
 
       // Draw Visits
-      const visits = res.data.visits || [];
       visits.forEach(v => {
         const visitMarker = new ymapsRef.current.Placemark(
           [v.lat, v.lng],
@@ -178,13 +192,13 @@ const AgentTracker = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedAgent, selectedDate]);
+  }, [selectedAgent, selectedDate, startTime, endTime]);
 
   useEffect(() => {
     if (selectedAgent && selectedDate) {
       drawTrajectory();
     }
-  }, [selectedAgent, selectedDate, drawTrajectory]);
+  }, [selectedAgent, selectedDate, startTime, endTime, drawTrajectory]);
 
   return (
     <div className="agent-tracker-container">
@@ -218,6 +232,24 @@ const AgentTracker = () => {
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
             />
+          </div>
+
+          <div className="filter-group">
+            <label>Vaqt oralig'i</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                style={{ flex: 1 }}
+              />
+            </div>
           </div>
 
           <div className="tracker-stats">

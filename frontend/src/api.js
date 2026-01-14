@@ -57,11 +57,14 @@ apiClient.interceptors.response.use(
   (error) => {
     const { response } = error || {};
     if (response && [401, 403].includes(response.status)) {
+      const storedToken = localStorage.getItem("authToken");
       setAuthToken(null);
       localStorage.removeItem("refreshToken");
       sessionStorage.removeItem("authToken");
 
-      if (typeof window !== "undefined" && !isAuthRedirectScheduled) {
+      // Faqat avval login bo'lgan (tokeni bor) userlarni redirect qilamiz
+      // Mehmon foydalanuvchilar redirect bo'lmasligi kerak
+      if (typeof window !== "undefined" && !isAuthRedirectScheduled && storedToken) {
         isAuthRedirectScheduled = true;
         const currentPath = window.location.pathname || "";
         const loginPath = "/login";

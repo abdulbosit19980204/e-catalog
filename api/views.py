@@ -483,10 +483,20 @@ class AgentLocationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='unique-agents')
     def unique_agents(self, request):
         """Hamma agentlarning unikal ro'yxatini qaytaradi (dropdown uchun)"""
-        agents = AgentLocation.objects.filter(is_deleted=False).values(
+        # SQLite doesn't support .distinct('field').
+        # We fetch records and handle distinctness in Python or use a simpler query.
+        agents_data = AgentLocation.objects.filter(is_deleted=False).values(
             'agent_code', 'agent_name', 'agent_phone'
-        ).distinct('agent_code').order_by('agent_code')
-        return Response(list(agents))
+        ).order_by('agent_code')
+        
+        seen = set()
+        unique_agents_list = []
+        for agent in agents_data:
+            if agent['agent_code'] not in seen:
+                unique_agents_list.append(agent)
+                seen.add(agent['agent_code'])
+                
+        return Response(unique_agents_list)
 
     @action(detail=False, methods=['get'], url_path='trajectory')
     def trajectory(self, request):

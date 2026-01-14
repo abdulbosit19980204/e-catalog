@@ -121,6 +121,17 @@ const Navigation = () => {
                 Chat
               </Link>
             </li>
+            {isAuthenticated && (
+              <li>
+                <Link
+                  to="/tracker"
+                  className={`nav-link ${isActive("/tracker")}`}
+                  onClick={handleLinkClick}
+                >
+                  Tracker
+                </Link>
+              </li>
+            )}
             <li>
               <Link
                 to={isAuthenticated ? "/admin" : "/login"}
