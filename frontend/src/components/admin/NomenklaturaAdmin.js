@@ -31,6 +31,7 @@ const NomenklaturaAdmin = () => {
 
   const initialFormData = {
     code_1c: "",
+    article_code: "",
     name: "",
     title: "",
     description: "",
@@ -313,6 +314,10 @@ const NomenklaturaAdmin = () => {
               <input type="text" value={formData.code_1c} onChange={(e) => setFormData({ ...formData, code_1c: e.target.value })} required className="form-input" disabled={!!editingNomenklatura} />
             </div>
             <div className="form-group">
+              <label>Artikul</label>
+              <input type="text" value={formData.article_code} onChange={(e) => setFormData({ ...formData, article_code: e.target.value })} className="form-input" />
+            </div>
+            <div className="form-group">
               <label>Name *</label>
               <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required className="form-input" />
             </div>
@@ -525,11 +530,16 @@ const NomenklaturaAdmin = () => {
           {renderPagination()}
           <div className="table-container">
             <table className="data-table">
-              <thead><tr><th>Code</th><th>Nomi</th><th>Loyihalar</th><th>Status</th><th>Amallar</th></tr></thead>
+              <thead><tr><th>Code / Artikul</th><th>Nomi</th><th>Loyihalar</th><th>Status</th><th>Amallar</th></tr></thead>
               <tbody>
                 {nomenklatura.map((item) => (
                   <tr key={item.id}>
-                    <td><span className="code-tag">{item.code_1c}</span></td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span className="code-tag">{item.code_1c}</span>
+                        {item.article_code && <span className="code-tag" style={{ backgroundColor: '#fff8e1', color: '#f57f17' }}>{item.article_code}</span>}
+                      </div>
+                    </td>
                     <td>{item.name}</td>
                     <td>
                       <div className="project-tags">
