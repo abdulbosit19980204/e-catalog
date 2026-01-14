@@ -1,4 +1,5 @@
 import django_filters
+import datetime
 from typing import Optional
 from django.db.models import Q
 from django.utils.decorators import method_decorator
@@ -425,7 +426,11 @@ class AgentLocationFilterSet(django_filters.FilterSet):
 
     class Meta:
         model = AgentLocation
-        fields = ['agent_code', 'region', 'platform', 'device_id', 'date_from', 'date_to']
+        fields = [
+            'agent_code', 'agent_name', 'agent_phone', 'region', 
+            'platform', 'device_id', 'device_manufacturer', 'city',
+            'date_from', 'date_to'
+        ]
 
 
 @extend_schema_view(
@@ -474,6 +479,105 @@ class AgentLocationViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.is_deleted = True
         instance.save(update_fields=['is_deleted', 'updated_at'])
+
+    @action(detail=False, methods=['get'], url_path='unique-agents')
+    def unique_agents(self, request):
+        """Hamma agentlarning unikal ro'yxatini qaytaradi (dropdown uchun)"""
+        agents = AgentLocation.objects.filter(is_deleted=False).values(
+            'agent_code', 'agent_name', 'agent_phone'
+        ).distinct('agent_code').order_by('agent_code')
+        return Response(list(agents))
+
+    @action(detail=False, methods=['get'], url_path='trajectory')
+    def trajectory(self, request):
+        """Berilgan agent va sana uchun harakat trayektoriyasini qaytaradi"""
+        agent_code = request.query_params.get('agent_code')
+        date_str = request.query_params.get('date')  # YYYY-MM-DD
+        
+        if not agent_code or not date_str:
+            return Response(
+                {'error': 'agent_code va date parametrlar talab qilinadi'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Bugungi kundagi recordlarni olish
+            qs = AgentLocation.objects.filter(
+                agent_code=agent_code,
+                is_deleted=False,
+                created_at__date=date_str
+            ).order_by('created_at').only(
+                'latitude', 'longitude', 'speed', 'accuracy', 'created_at', 'battery_level'
+            )
+            
+            points = []
+            for loc in qs:
+                points.append({
+                    'lat': float(loc.latitude),
+                    'lng': float(loc.longitude),
+                    'speed': float(loc.speed) if loc.speed else 0,
+                    'acc': float(loc.accuracy) if loc.accuracy else 0,
+                    'bat': float(loc.battery_level) if loc.battery_level else 0,
+                    'time': loc.created_at.isoformat()
+                })
+            
+            # Shu agent o'sha kuni qilgan visitlarni ham qo'shish (ClientImage)
+            # Bu yerda agent_code orqali bog'lash uchun uploader_name ishlatamiz
+            from client.models import ClientImage
+            
+            visits_qs = ClientImage.objects.filter(
+                is_deleted=False,
+                created_at__date=date_str,
+                # Agent name yoki code uploader_name ichida bo'lishi mumkin deb taxmin qilamiz
+                source__uploader_name__icontains=agent_code
+            ).select_related('client', 'status')
+            
+            visits = []
+            for v in visits_qs:
+                # ClientLocation yo'q bo'lsa, rasmni koordinatasi AgentLocation recordlaridan olinishi kerak
+                # Lekin rasmda koordinata bo'lmasa, uni ko'rsata olmaymiz.
+                # ProjectImage/ClientImage da koordinata maydonlari yo'qligini ko'rdik.
+                # Shuning uchun rasm olingan vaqtga eng yaqin AgentLocation ni topib, 
+                # o'sha koordinatani rasm koordinatasi deb olamiz.
+                
+                # Simple approach: Rasm olingan vaqtga eng yaqin nuqtani topamiz
+                closest_point = None
+                min_diff = float('inf')
+                
+                v_created_at = v.created_at
+                if v_created_at.tzinfo:
+                    v_created_at = v_created_at.replace(tzinfo=None)
+
+                for p in points:
+                    p_time = datetime.datetime.fromisoformat(p['time'])
+                    if p_time.tzinfo:
+                        p_time = p_time.replace(tzinfo=None)
+                        
+                    diff = abs((p_time - v_created_at).total_seconds())
+                    if diff < min_diff and diff < 300: # 5 minut ichida bo'lsa
+                        min_diff = diff
+                        closest_point = p
+                
+                if closest_point:
+                    visits.append({
+                        'id': v.id,
+                        'client_name': v.client.name,
+                        'time': v.created_at.isoformat(),
+                        'lat': closest_point['lat'],
+                        'lng': closest_point['lng'],
+                        'category': v.category,
+                        'status': v.status.name if v.status else ''
+                    })
+
+            return Response({
+                'agent_code': agent_code,
+                'date': date_str,
+                'points_count': len(points),
+                'points': points,
+                'visits': visits
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
 @extend_schema_view(
     list=extend_schema(

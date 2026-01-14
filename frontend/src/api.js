@@ -373,4 +373,22 @@ export const chatAPI = {
   },
 };
 
+// Agent Location API
+export const agentLocationAPI = {
+  getLocations: (params = {}) => {
+    return apiClient.get("/agent-location/", { params });
+  },
+  getUniqueAgents: () => {
+    return apiClient.get("/agent-location/unique-agents/");
+  },
+  getTrajectory: (agentCode, date) => {
+    return apiClient.get("/agent-location/trajectory/", {
+      params: { agent_code: agentCode, date }
+    });
+  },
+  deleteLocation: (id) => {
+    return apiClient.delete(`/agent-location/${id}/`);
+  }
+};
+
 export default apiClient;

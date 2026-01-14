@@ -23,6 +23,7 @@ import ChatSettings from "./components/admin/ChatSettings";
 import UserAdmin from "./components/admin/UserAdmin";
 import ClearDbPage from "./components/admin/ClearDbPage";
 import DuplicatesPage from "./components/admin/DuplicatesPage";
+import AgentTracker from "./components/admin/AgentTracker";
 
 function App() {
   return (
@@ -171,6 +172,17 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout>
                   <DuplicatesPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/agent-tracker"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AgentTracker />
                 </AdminLayout>
               </ProtectedRoute>
             }

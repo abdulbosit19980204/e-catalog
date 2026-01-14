@@ -105,6 +105,14 @@ const AdminLayout = ({ children }) => {
           </Link>
 
           <Link
+            to="/admin/agent-tracker"
+            className={`nav-item ${isActive("/admin/agent-tracker")}`}
+          >
+            <span className="nav-icon">🗺️</span>
+            {sidebarOpen && <span>Agent Tracker</span>}
+          </Link>
+
+          <Link
             to="/admin/clear-db"
             className={`nav-item ${isActive("/admin/clear-db")}`}
           >
