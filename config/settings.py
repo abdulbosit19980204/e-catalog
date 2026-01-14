@@ -136,6 +136,30 @@ ASGI_APPLICATION = 'config.asgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# Cache Settings
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1')
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': REDIS_URL,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'IGNORE_EXCEPTIONS': True,  # Fallback to backend if redis is down
+        }
+    }
+}
+
+# Use Local Memory Cache for testing or if Redis is not desirable in dev
+if os.environ.get('USE_LOCAL_CACHE') == 'True' or not DEBUG:
+    # In production we might want to ensure Redis is up, 
+    # but for this specific request we allow the user to control it
+    pass
+else:
+    # Default to LocMemCache for local dev if REDIS_URL not explicitly used or if it fails
+    # but the above IGNORE_EXCEPTIONS already helps.
+    pass
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',

@@ -589,6 +589,52 @@ class AgentLocationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=500)
 
+    @action(detail=False, methods=['get'], url_path='regional-activity')
+    def regional_activity(self, request):
+        """Regionlar va shaharlar bo'yicha agent aktivligini qaytaradi"""
+        agent_code = request.query_params.get('agent_code')
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+
+        qs = AgentLocation.objects.filter(is_deleted=False)
+        if agent_code:
+            qs = qs.filter(agent_code=agent_code)
+        if date_from:
+            qs = qs.filter(created_at__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(created_at__date__lte=date_to)
+
+        # Region bo'yicha guruhlash
+        region_stats = qs.values('region').annotate(
+            points_count=models.Count('id'),
+        ).order_by('-points_count')
+
+        # Visitlar bo'yicha (ClientImage)
+        from client.models import ClientImage
+        v_qs = ClientImage.objects.filter(is_deleted=False)
+        if date_from:
+            v_qs = v_qs.filter(created_at__date__gte=date_from)
+        if date_to:
+            v_qs = v_qs.filter(created_at__date__lte=date_to)
+        if agent_code:
+            v_qs = v_qs.filter(source__uploader_name__icontains=agent_code)
+        
+        # Note: ClientImage modelida region maydoni yo'q, shuning uchun 
+        # visitlar count'ini asosan AgentLocation'dagi regionlar bilan bog'liq holda 
+        # ko'rsatish qiyin bo'lishi mumkin. 
+        # Biroq, frontend'da visit koordinatalarini region chegaralari bilan solishtirish mumkin.
+        
+        return Response({
+            'period': {
+                'from': date_from,
+                'to': date_to
+            },
+            'agent_code': agent_code,
+            'regions': list(region_stats),
+            'total_points': qs.count(),
+            'total_visits': v_qs.count()
+        })
+
 @extend_schema_view(
     list=extend_schema(
         tags=['Projects'],

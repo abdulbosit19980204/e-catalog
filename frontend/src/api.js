@@ -389,6 +389,9 @@ export const agentLocationAPI = {
       params: { agent_code: agentCode, date }
     });
   },
+  getRegionalActivity: (params) => {
+    return apiClient.get("/agent-location/regional-activity/", { params });
+  },
   deleteLocation: (id) => {
     return apiClient.delete(`/agent-location/${id}/`);
   }

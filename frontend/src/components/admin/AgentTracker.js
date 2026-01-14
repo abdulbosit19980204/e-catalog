@@ -8,10 +8,12 @@ const AgentTracker = () => {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const [viewMode, setViewMode] = useState("day"); // day, month, year
   const [startTime, setStartTime] = useState("00:00");
   const [endTime, setEndTime] = useState("23:59");
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ points: 0, distance: 0, stops: 0 });
+  const [regionalActivity, setRegionalActivity] = useState([]);
   const [error, setError] = useState(null);
 
   const mapRef = useRef(null);
@@ -115,6 +117,23 @@ const AgentTracker = () => {
           stopsCount++;
         }
 
+        // Add stop markers with coordinates
+        if (duration > 5) {
+          const stopMarker = new ymapsRef.current.Placemark(
+            [p1.lat, p1.lng],
+            { 
+              balloonContent: `
+                <strong>To'xtash</strong><br/>
+                Vaqt: ${new Date(p1.time).toLocaleTimeString()}<br/>
+                Davomiyligi: ${Math.round(duration)} min<br/>
+                Kordinata: ${p1.lat}, ${p1.lng}
+              `
+            },
+            { preset: color === "#ef4444" ? "islands#redCircleDotIcon" : "islands#orangeCircleDotIcon" }
+          );
+          mapInstanceRef.current.geoObjects.add(stopMarker);
+        }
+
         segments.push({
           coords: [[p1.lat, p1.lng], [p2.lat, p2.lng]],
           color: color
@@ -131,6 +150,26 @@ const AgentTracker = () => {
         stops: stopsCount,
         visits: visits.length
       });
+
+      // Fetch regional stats for the month if in month/year mode
+      if (viewMode !== 'day') {
+        const dateObj = new Date(selectedDate);
+        let date_from, date_to;
+        if (viewMode === 'month') {
+          date_from = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1).toISOString().split('T')[0];
+          date_to = new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 0).toISOString().split('T')[0];
+        } else {
+          date_from = new Date(dateObj.getFullYear(), 0, 1).toISOString().split('T')[0];
+          date_to = new Date(dateObj.getFullYear(), 11, 31).toISOString().split('T')[0];
+        }
+        
+        const regRes = await agentLocationAPI.getRegionalActivity({
+          agent_code: selectedAgent,
+          date_from,
+          date_to
+        });
+        setRegionalActivity(regRes.data.regions || []);
+      }
 
       // Draw segments
       segments.forEach(seg => {
@@ -149,13 +188,23 @@ const AgentTracker = () => {
       // Add Start (Green) and End (Red) markers
       const startPoint = new ymapsRef.current.Placemark(
         coordinates[0],
-        { balloonContent: `Boshlanish: ${new Date(points[0].time).toLocaleTimeString()}` },
+        { 
+          balloonContent: `
+            <strong>Boshlanish:</strong> ${new Date(points[0].time).toLocaleTimeString()}<br/>
+            <strong>Kordinata:</strong> ${points[0].lat}, ${points[0].lng}
+          ` 
+        },
         { preset: "islands#greenDotIconWithCaption" }
       );
       
       const endPoint = new ymapsRef.current.Placemark(
         coordinates[coordinates.length - 1],
-        { balloonContent: `Oxirgi nuqta: ${new Date(points[points.length - 1].time).toLocaleTimeString()}` },
+        { 
+          balloonContent: `
+            <strong>Oxirgi nuqta:</strong> ${new Date(points[points.length - 1].time).toLocaleTimeString()}<br/>
+            <strong>Kordinata:</strong> ${points[points.length - 1].lat}, ${points[points.length - 1].lng}
+          ` 
+        },
         { preset: "islands#redDotIconWithCaption" }
       );
 
@@ -192,13 +241,77 @@ const AgentTracker = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedAgent, selectedDate, startTime, endTime]);
+  }, [selectedAgent, selectedDate, startTime, endTime, viewMode]);
+
+  const drawRegionalHeatmap = useCallback(async () => {
+    if (!ymapsRef.current || !mapInstanceRef.current || regionalActivity.length === 0) return;
+
+    try {
+      // Load GeoJSON for Uzbekistan Regions
+      // simplified ADM1
+      const geojsonUrl = "https://raw.githubusercontent.com/akbartus/GeoJSON-Uzbekistan/master/uzbekistan_regional.geojson";
+      const response = await fetch(geojsonUrl);
+      const data = await response.json();
+
+      const objectManager = new ymapsRef.current.ObjectManager();
+      
+      // Map regionalActivity to a lookup
+      const activityMap = {};
+      regionalActivity.forEach(ra => {
+        if (ra.region) activityMap[ra.region.toLowerCase()] = ra.points_count;
+      });
+
+      const maxCount = Math.max(...regionalActivity.map(ra => ra.points_count), 1);
+
+      data.features.forEach((feature, idx) => {
+        const regionName = feature.properties.name || feature.properties.name_uz || "";
+        const activity = activityMap[regionName.toLowerCase()] || 0;
+        
+        // Calculate color (from light blue to deep red)
+        let color = "#e2e8f0"; // default greyish for "not at all"
+        if (activity > 0) {
+          const ratio = activity / maxCount;
+          // Interpolate between #bfdbfe (light blue) and #dc2626 (red)
+          if (ratio < 0.3) color = "#93c5fd";
+          else if (ratio < 0.7) color = "#fb923c";
+          else color = "#dc2626";
+        }
+
+        feature.id = idx;
+        feature.options = {
+          fillColor: color,
+          fillOpacity: 0.5,
+          strokeColor: "#ffffff",
+          strokeWidth: 1,
+          labelLayout: '<div>{{properties.name}}</div>'
+        };
+        
+        feature.properties.balloonContent = `
+          <strong>${regionName}</strong><br/>
+          Aktivlik: ${activity} ta nuqta
+        `;
+      });
+
+      objectManager.add(data);
+      mapInstanceRef.current.geoObjects.add(objectManager);
+
+      // Fit map to Uzbekistan
+      mapInstanceRef.current.setCenter([41.3, 64.5], 6);
+
+    } catch (err) {
+      console.error("Heatmap failed", err);
+    }
+  }, [regionalActivity]);
 
   useEffect(() => {
     if (selectedAgent && selectedDate) {
-      drawTrajectory();
+      drawTrajectory().then(() => {
+        if (viewMode !== 'day') {
+          drawRegionalHeatmap();
+        }
+      });
     }
-  }, [selectedAgent, selectedDate, startTime, endTime, drawTrajectory]);
+  }, [selectedAgent, selectedDate, startTime, endTime, viewMode, drawTrajectory, drawRegionalHeatmap]);
 
   return (
     <div className="agent-tracker-container">
@@ -210,6 +323,21 @@ const AgentTracker = () => {
         </div>
 
         <div className="sidebar-content">
+          <div className="view-mode-tabs">
+            <button 
+              className={viewMode === 'day' ? 'active' : ''} 
+              onClick={() => setViewMode('day')}
+            >Kunlik</button>
+            <button 
+              className={viewMode === 'month' ? 'active' : ''} 
+              onClick={() => setViewMode('month')}
+            >Oylik</button>
+            <button 
+              className={viewMode === 'year' ? 'active' : ''} 
+              onClick={() => setViewMode('year')}
+            >Yillik</button>
+          </div>
+
           <div className="filter-group">
             <label>Agent tanlang</label>
             <select
@@ -226,31 +354,40 @@ const AgentTracker = () => {
           </div>
 
           <div className="filter-group">
-            <label>Sana</label>
+            <label>{viewMode === 'day' ? 'Sana' : (viewMode === 'month' ? 'Oy' : 'Yil')}</label>
             <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              type={viewMode === 'day' ? "date" : (viewMode === 'month' ? "month" : "number")}
+              value={viewMode === 'year' ? selectedDate.split('-')[0] : (viewMode === 'month' ? selectedDate.substring(0, 7) : selectedDate)}
+              onChange={(e) => {
+                let val = e.target.value;
+                if (viewMode === 'year') val = `${val}-01-01`;
+                if (viewMode === 'month') val = `${val}-01`;
+                setSelectedDate(val);
+              }}
+              min={viewMode === 'year' ? "2020" : ""}
+              max={viewMode === 'year' ? "2100" : ""}
             />
           </div>
 
-          <div className="filter-group">
-            <label>Vaqt oralig'i</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                style={{ flex: 1 }}
-              />
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                style={{ flex: 1 }}
-              />
+          {viewMode === 'day' && (
+            <div className="filter-group">
+              <label>Vaqt oralig'i</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="tracker-stats">
             <div className="stat-card">
@@ -271,6 +408,20 @@ const AgentTracker = () => {
             </div>
           </div>
 
+          {viewMode !== 'day' && regionalActivity.length > 0 && (
+            <div className="regional-stats">
+              <h3>Regionlar bo'yicha aktivlik</h3>
+              <div className="regional-list">
+                {regionalActivity.map((ra, idx) => (
+                  <div key={idx} className="regional-item">
+                    <span className="region-name">{ra.region || 'Nomalum'}</span>
+                    <span className="region-count">{ra.points_count} ta</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {error && <div className="tracker-error">{error}</div>}
         </div>
       </aside>
@@ -288,18 +439,42 @@ const AgentTracker = () => {
         )}
 
         <div className="map-overlay">
-          <div className="legend-item">
-            <div className="color-dot moving"></div>
-            <span className="legend-text">Harakatlanmoqda</span>
-          </div>
-          <div className="legend-item">
-            <div className="color-dot short-stop"></div>
-            <span className="legend-text">Qisqa to'xtash (&gt;5 min)</span>
-          </div>
-          <div className="legend-item">
-            <div className="color-dot long-stop"></div>
-            <span className="legend-text">Uzoq to'xtash (&gt;15 min)</span>
-          </div>
+          {viewMode === 'day' ? (
+            <>
+              <div className="legend-item">
+                <div className="color-dot moving"></div>
+                <span className="legend-text">Harakatlanmoqda</span>
+              </div>
+              <div className="legend-item">
+                <div className="color-dot short-stop"></div>
+                <span className="legend-text">Qisqa to'xtash (&gt;5 min)</span>
+              </div>
+              <div className="legend-item">
+                <div className="color-dot long-stop"></div>
+                <span className="legend-text">Uzoq to'xtash (&gt;15 min)</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="legend-title">Aktivlik darajasi</div>
+              <div className="legend-item">
+                <div className="color-dot" style={{ background: '#dc2626' }}></div>
+                <span className="legend-text">Yuqori</span>
+              </div>
+              <div className="legend-item">
+                <div className="color-dot" style={{ background: '#fb923c' }}></div>
+                <span className="legend-text">O'rtacha</span>
+              </div>
+              <div className="legend-item">
+                <div className="color-dot" style={{ background: '#93c5fd' }}></div>
+                <span className="legend-text">Past</span>
+              </div>
+              <div className="legend-item">
+                <div className="color-dot" style={{ background: '#e2e8f0' }}></div>
+                <span className="legend-text">Mavjud emas</span>
+              </div>
+            </>
+          )}
         </div>
       </main>
     </div>
