@@ -16,7 +16,9 @@ const ClearDbPage = () => {
     { key: 'project', label: 'Projects' },
     { key: 'project_image', label: 'Project Images' },
     { key: 'agent_location', label: 'Agent Locations' },
-    { key: 'visit_image', label: 'Visit Images (via ClientImage)' },
+    { key: 'visit', label: 'Visits (Tashriflar)' },
+    { key: 'visit_plan', label: 'Visit Plans (Tashrif Rejalari)' },
+    { key: 'visit_image', label: 'Visit Images (Tashrif Rasmlari)' },
     { key: 'image_source', label: 'Image Sources' },
     { key: 'image_status', label: 'Image Statuses' },
   ];

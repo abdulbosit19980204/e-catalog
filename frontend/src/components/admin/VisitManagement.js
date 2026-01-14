@@ -26,13 +26,33 @@ ChartJS.register(
 const VisitManagement = () => {
   const [visits, setVisits] = useState([]);
   const [statistics, setStatistics] = useState(null);
-  const [filters, setFilters] = useState({
-    agent_code: '',
-    client_code: '',
-    visit_status: '',
-    date_from: '',
-    date_to: ''
-  });
+  
+  // Load filters from localStorage
+  const getInitialFilters = () => {
+    const saved = localStorage.getItem('visitFilters');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return {
+          agent_code: '',
+          client_code: '',
+          visit_status: '',
+          date_from: '',
+          date_to: ''
+        };
+      }
+    }
+    return {
+      agent_code: '',
+      client_code: '',
+      visit_status: '',
+      date_from: '',
+      date_to: ''
+    };
+  };
+
+  const [filters, setFilters] = useState(getInitialFilters);
   const [loading, setLoading] = useState(false);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -63,10 +83,13 @@ const VisitManagement = () => {
   }, [loadVisits, loadStatistics]);
 
   const handleFilterChange = (e) => {
-    setFilters({
+    const newFilters = {
       ...filters,
       [e.target.name]: e.target.value
-    });
+    };
+    setFilters(newFilters);
+    // Save to localStorage
+    localStorage.setItem('visitFilters', JSON.stringify(newFilters));
   };
 
   const handleViewDetails = async (visitId) => {
@@ -326,13 +349,17 @@ const VisitManagement = () => {
             value={filters.date_to}
             onChange={handleFilterChange}
           />
-          <button className="btn-reset" onClick={() => setFilters({
-            agent_code: '',
-            client_code: '',
-            visit_status: '',
-            date_from: '',
-            date_to: ''
-          })}>
+          <button className="btn-reset" onClick={() => {
+            const emptyFilters = {
+              agent_code: '',
+              client_code: '',
+              visit_status: '',
+              date_from: '',
+              date_to: ''
+            };
+            setFilters(emptyFilters);
+            localStorage.removeItem('visitFilters');
+          }}>
             Tozalash
           </button>
         </div>

@@ -1520,6 +1520,9 @@ class ClearDatabaseView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def post(self, request):
+        # Import visit models
+        from visits.models import Visit, VisitPlan, VisitImage as VImage
+        
         # Model mapping
         MODELS_MAP = {
             'client': Client,
@@ -1529,6 +1532,9 @@ class ClearDatabaseView(APIView):
             'project': Project,
             'project_image': ProjectImage,
             'agent_location': AgentLocation,
+            'visit': Visit,
+            'visit_plan': VisitPlan,
+            'visit_image': VImage,
             'image_source': ImageSource,
             'image_status': ImageStatus,
         }
