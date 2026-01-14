@@ -96,6 +96,7 @@ INSTALLED_APPS = [
     'users',  # Auth & User management
     'channels',
     'chat',
+    'visits',  # Visit Management System
 ]
 
 MIDDLEWARE = [
