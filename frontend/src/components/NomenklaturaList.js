@@ -101,7 +101,7 @@ const NomenklaturaList = () => {
         <form onSubmit={handleSearch} className="search-form">
           <input
             type="text"
-            placeholder="Mahsulot nomi, kodi yoki tavsifi"
+            placeholder="Nomi, kodi, artikuli yoki tavsifi"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
@@ -206,13 +206,18 @@ const NomenklaturaList = () => {
                       )}
                       <div className="card-favorite">♡</div>
                       <div className="card-badges">
-                        <span className="badge original">ORIGINAL</span>
+                        {item.brand && <span className="badge brand">{item.brand}</span>}
                         <span className="badge stock">{item.images?.length || 0} ta rasm</span>
                       </div>
                     </div>
                     <div className="nomenklatura-body">
                       <h3>{item.name}</h3>
-                      <p className="nomenklatura-code">Code: {item.code_1c}</p>
+                      <div className="nomenklatura-codes">
+                        <p className="nomenklatura-code">Kodi: {item.code_1c}</p>
+                        {item.article_code && (
+                          <p className="nomenklatura-article">Artikul: {item.article_code}</p>
+                        )}
+                      </div>
                       {item.title && <p className="nomenklatura-title">{item.title}</p>}
                       {truncatedText && (
                         <p className="nomenklatura-description">{truncatedText}</p>

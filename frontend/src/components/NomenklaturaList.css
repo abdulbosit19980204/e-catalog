@@ -139,14 +139,15 @@
   letter-spacing: 0.05em;
 }
 
-.badge.original {
-  background: var(--primary-light);
-  color: var(--primary);
+.badge.brand {
+  background: var(--primary);
+  color: white;
 }
 
 .badge.stock {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.9);
   color: var(--text-main);
+  backdrop-filter: blur(4px);
 }
 
 .nomenklatura-body {
@@ -160,10 +161,17 @@
   color: var(--text-main);
 }
 
-.nomenklatura-code {
+.nomenklatura-codes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.nomenklatura-code,
+.nomenklatura-article {
   font-size: 0.85rem;
   color: var(--text-muted);
-  margin-bottom: 12px;
   font-weight: 500;
 }
 

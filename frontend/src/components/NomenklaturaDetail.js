@@ -78,7 +78,10 @@ const NomenklaturaDetail = () => {
         <div className="detail-main-card">
           <div className="detail-header-mobile">
             <h1>{item.name}</h1>
-            <p className="code">Code: {item.code_1c}</p>
+            <div className="mobile-codes">
+              <span className="code">Kodi: {item.code_1c}</span>
+              {item.article_code && <span className="article">Artikul: {item.article_code}</span>}
+            </div>
           </div>
 
           <div className="detail-gallery-section">
@@ -118,7 +121,8 @@ const NomenklaturaDetail = () => {
             <div className="detail-header-desktop">
               <h1>{item.name}</h1>
               <div className="badges-row">
-                <span className="badge-code">Code: {item.code_1c}</span>
+                <span className="badge-code">Kodi: {item.code_1c}</span>
+                {item.article_code && <span className="badge-article">Artikul: {item.article_code}</span>}
                 <span className={`badge-status ${item.is_active ? "active" : "inactive"}`}>
                   {item.is_active ? "Sotuvda" : "Arxiv"}
                 </span>
@@ -128,9 +132,69 @@ const NomenklaturaDetail = () => {
             {item.title && (
               <div className="info-group">
                 <h3>Qisqa nomi</h3>
-                <p>{item.title}</p>
+                <p className="detail-title-text">{item.title}</p>
               </div>
             )}
+
+            <div className="info-group">
+              <h3>Xususiyatlar</h3>
+              <div className="specifications-grid">
+                {item.article_code && (
+                  <div className="spec-item">
+                    <span className="spec-label">Artikul:</span>
+                    <span className="spec-value highlight">{item.article_code}</span>
+                  </div>
+                )}
+                {item.brand && (
+                  <div className="spec-item">
+                    <span className="spec-label">Brend:</span>
+                    <span className="spec-value">{item.brand}</span>
+                  </div>
+                )}
+                {item.roditel && (
+                  <div className="spec-item">
+                    <span className="spec-label">Guruh:</span>
+                    <span className="spec-value">{item.roditel}</span>
+                  </div>
+                )}
+                {item.category && (
+                  <div className="spec-item">
+                    <span className="spec-label">Kategoriya:</span>
+                    <span className="spec-value">{item.category}</span>
+                  </div>
+                )}
+                {item.unit_of_measure && (
+                  <div className="spec-item">
+                    <span className="spec-label">O'lchov birligi:</span>
+                    <span className="spec-value">{item.unit_of_measure}</span>
+                  </div>
+                )}
+                {item.supplier && (
+                  <div className="spec-item">
+                    <span className="spec-label">Yetkazib beruvchi:</span>
+                    <span className="spec-value">{item.supplier}</span>
+                  </div>
+                )}
+                {item.country && (
+                  <div className="spec-item">
+                    <span className="spec-label">Ishlab chiqarilgan davlat:</span>
+                    <span className="spec-value">{item.country}</span>
+                  </div>
+                )}
+                {item.barcode && (
+                  <div className="spec-item">
+                    <span className="spec-label">Barkod:</span>
+                    <span className="spec-value">{item.barcode}</span>
+                  </div>
+                )}
+                {item.series && (
+                  <div className="spec-item">
+                    <span className="spec-label">Seriya:</span>
+                    <span className="spec-value">{item.series}</span>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {item.projects && item.projects.length > 0 && (
               <div className="info-group">

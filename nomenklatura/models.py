@@ -60,6 +60,11 @@ class Nomenklatura(BaseModel):
     production_date = models.DateField(blank=True, null=True, help_text="Ishlab chiqarilgan sana")
     
     # Additional Information
+    roditel = models.CharField(max_length=255, blank=True, null=True, help_text="Roditel (1C)")
+    supplier = models.CharField(max_length=255, blank=True, null=True, help_text="Yetkazib beruvchi")
+    country_code = models.CharField(max_length=10, blank=True, null=True, help_text="Davlat kodi")
+    country = models.CharField(max_length=150, blank=True, null=True, help_text="Ishlab chiqarilgan davlat")
+    
     notes = models.TextField(blank=True, null=True, help_text="Qo'shimcha izohlar")
     rating = models.DecimalField(max_digits=3, decimal_places=2, blank=True, null=True, help_text="Reyting (0-5)")
     popularity_score = models.IntegerField(blank=True, null=True, default=0, help_text="Mashhurligi (0-100)")

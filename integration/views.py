@@ -309,10 +309,107 @@ def parse_client_item(item):
     
 
     
-    # Majburiy fieldlarni tekshirish
-    if not parsed_data.get('client_code_1c') or not parsed_data.get('name'):
-        return None
+    return parsed_data
+
+
+def parse_nomenklatura_item(item):
+    """
+    SOAP response'dan kelgan ProductItem'ni parse qilish
+    Barcha mavjud fieldlarni dinamik tarzda parse qiladi
+    """
+    # Field mapping: SOAP field nomi -> DB field nomi
+    field_mapping = {
+        # Asosiy fieldlar
+        'Code': 'code_1c',
+        'Name': 'name',
+        'Article': 'article_code',
+        'roditel': 'roditel',
+        'Roditel': 'roditel',
+        'Unit': 'unit_of_measure',
+        'Brand': 'brand',
+        'suplier': 'supplier',
+        'Suplier': 'supplier',
+        'Supplier': 'supplier',
+        'category': 'category',
+        'Category': 'category',
+        'CountryCode': 'country_code',
+        'Country_Code': 'country_code',
+        'Country': 'country',
+        'Seria': 'series',
+        'Series': 'series',
+        'Shtrix': 'barcode',
+        'Barcode': 'barcode',
+        'LabelText': 'title',
+        'Title': 'title',
+        'Description': 'description',
+        'is_delete': 'is_deleted',
+        'is_active': 'is_active',
+        
+        # Additional fields from model if they appear in SOAP
+        'Sku': 'sku',
+        'SKU': 'sku',
+        'BasePrice': 'base_price',
+        'Base_Price': 'base_price',
+        'SalePrice': 'sale_price',
+        'Sale_Price': 'sale_price',
+        'CostPrice': 'cost_price',
+        'Cost_Price': 'cost_price',
+        'Currency': 'currency',
+        'DiscountPercent': 'discount_percent',
+        'TaxRate': 'tax_rate',
+        'StockQuantity': 'stock_quantity',
+        'MinStock': 'min_stock',
+        'MaxStock': 'max_stock',
+        'Weight': 'weight',
+        'Dimensions': 'dimensions',
+        'Volume': 'volume',
+        'Subcategory': 'subcategory',
+        'Color': 'color',
+        'Size': 'size',
+        'Material': 'material',
+    }
     
+    # Field type mapping
+    field_types = {
+        'is_deleted': clean_boolean,
+        'is_active': clean_boolean,
+        'base_price': clean_decimal,
+        'sale_price': clean_decimal,
+        'cost_price': clean_decimal,
+        'discount_percent': clean_decimal,
+        'tax_rate': clean_decimal,
+        'stock_quantity': clean_decimal,
+        'min_stock': clean_decimal,
+        'max_stock': clean_decimal,
+        'weight': clean_decimal,
+        'volume': clean_decimal,
+        'expiry_date': clean_date,
+        'production_date': clean_date,
+        'tags': clean_json,
+        'metadata': clean_json,
+    }
+    
+    parsed_data = {}
+    
+    for soap_field, db_field in field_mapping.items():
+        try:
+            raw_value = getattr(item, soap_field, None)
+            if raw_value is not None:
+                if db_field in field_types:
+                    converted_value = field_types[db_field](raw_value)
+                else:
+                    converted_value = clean_value(raw_value)
+                
+                if converted_value is not None:
+                    parsed_data[db_field] = converted_value
+        except Exception as e:
+            logger.warning(f"Error parsing nomenklatura field {soap_field} -> {db_field}: {e}")
+            continue
+            
+    # Majburiy fieldlarni tekshirish
+    if not parsed_data.get('code_1c') or not parsed_data.get('name'):
+        return None
+        
     return parsed_data
 
 
@@ -434,44 +531,34 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
     total_raw = len(items)
     
     try:
-        # Barcha itemlarni parse qilish
         parsed_items = []
         for idx, item in enumerate(items, 1):
             try:
-                code_1c = clean_value(getattr(item, 'Code', None))
-                name = clean_value(getattr(item, 'Name', None))
-                title = clean_value(getattr(item, 'Title', None))
-                description = clean_value(getattr(item, 'Description', None))
+                parsed_data = parse_nomenklatura_item(item)
                 
-                # Status fields
-                is_active_1c = clean_boolean(getattr(item, 'is_active', None))
-                is_deleted_1c = clean_boolean(getattr(item, 'is_delete', None))
-                
-                if not code_1c or not name:
+                if not parsed_data:
                     error_count += 1
                     item_errors.append({
-                        "code": code_1c or "Noma'lum",
-                        "error": "Kod yoki nom topilmadi",
+                        "code": clean_value(getattr(item, 'Code', 'Noma\'lum')),
+                        "error": "Ma'lumotlarni parse qilib bo'lmadi",
                         "timestamp": timezone.now().isoformat()
                     })
                     continue
 
-                
-                # Invert is_active as per user requirement: 1C false -> DB True
-                db_is_active = True
-                if is_active_1c is True: # If 1C says true (meaning disabled), we set as False
-                    db_is_active = False
-                elif is_active_1c is False:
-                    db_is_active = True
+                # Invert is_active logic: 1C True (disabled) -> DB False (inactive)
+                if 'is_active' in parsed_data:
+                    is_active_1c = parsed_data['is_active']
+                    if is_active_1c is True:
+                        parsed_data['is_active'] = False
+                    elif is_active_1c is False:
+                        parsed_data['is_active'] = True
+                else:
+                    parsed_data['is_active'] = True
                     
-                parsed_items.append({
-                    'code_1c': code_1c,
-                    'name': name,
-                    'title': title,
-                    'description': description,
-                    'is_active': db_is_active,
-                    'is_deleted': is_deleted_1c if is_deleted_1c is not None else False,
-                })
+                if 'is_deleted' not in parsed_data:
+                    parsed_data['is_deleted'] = False
+                    
+                parsed_items.append(parsed_data)
 
             except Exception as e:
                 logger.error(f"Error parsing nomenklatura item: {e}")
@@ -508,20 +595,15 @@ def process_nomenklatura_chunk(items, integration, chunk_size=50, log_obj=None):
                         # Har bir item uchun update_or_create
                         for j, item_data in enumerate(chunk, 1):
                             try:
+                                code_1c = item_data.pop('code_1c')
+                                
                                 # update_or_create - atomic operation
-                                # MUHIM: project ham defaults ichida bo'lishi kerak!
+                                item_data['project'] = integration.project
+                                
                                 obj, created = Nomenklatura.objects.update_or_create(
                                     project=integration.project,  # Lookup field 1
-                                    code_1c=item_data['code_1c'],  # Lookup field 2
-                                    defaults={
-                                        'project': integration.project,  # MUHIM: Update uchun kerak!
-                                        'name': item_data['name'],
-                                        'title': item_data['title'],
-                                        'description': item_data['description'],
-                                        'is_active': item_data['is_active'],
-                                        'is_deleted': item_data['is_deleted'],
-                                    }
-
+                                    code_1c=code_1c,  # Lookup field 2
+                                    defaults=item_data
                                 )
                                 if created:
                                     created_count += 1

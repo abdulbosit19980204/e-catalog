@@ -20,6 +20,10 @@ class NomenklaturaImageSerializer(serializers.ModelSerializer):
     project = ProjectNestedSerializer(source='nomenklatura.project', read_only=True)
     code_1c = serializers.CharField(source='nomenklatura.code_1c', read_only=True)
     article_code = serializers.CharField(source='nomenklatura.article_code', read_only=True)
+    roditel = serializers.CharField(source='nomenklatura.roditel', read_only=True)
+    supplier = serializers.CharField(source='nomenklatura.supplier', read_only=True)
+    country_code = serializers.CharField(source='nomenklatura.country_code', read_only=True)
+    country = serializers.CharField(source='nomenklatura.country', read_only=True)
     
     class Meta:
         model = NomenklaturaImage
@@ -29,6 +33,10 @@ class NomenklaturaImageSerializer(serializers.ModelSerializer):
             'project',
             'code_1c',
             'article_code',
+            'roditel',
+            'supplier',
+            'country_code',
+            'country',
             'image',
             'category',
             'note',
@@ -163,7 +171,8 @@ class NomenklaturaSerializer(serializers.ModelSerializer):
             'tax_rate', 'stock_quantity', 'min_stock', 'max_stock', 'unit_of_measure',
             'weight', 'dimensions', 'volume', 'category', 'subcategory', 'tags',
             'color', 'size', 'material', 'warranty_period', 'expiry_date',
-            'production_date', 'notes', 'rating', 'popularity_score', 'seo_keywords',
+            'production_date', 'roditel', 'supplier', 'country_code', 'country',
+            'notes', 'rating', 'popularity_score', 'seo_keywords',
             'source', 'metadata', 'is_active', 'is_deleted', 'created_at', 'updated_at',
             'images',
         ]
