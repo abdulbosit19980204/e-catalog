@@ -72,8 +72,9 @@ class Client(BaseModel):
             models.Index(fields=['project', 'client_code_1c', 'is_deleted']),
             models.Index(fields=['name', 'is_deleted']),
             models.Index(fields=['email', 'is_deleted']),
-            models.Index(fields=['city', 'region']),
-            models.Index(fields=['industry', 'business_type']),
+            models.Index(fields=['city', 'is_deleted']),
+            models.Index(fields=['region', 'is_deleted']),
+            models.Index(fields=['created_at', 'is_deleted']),
             models.Index(fields=['rating', 'priority']),
         ]
 

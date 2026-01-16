@@ -34,7 +34,8 @@ const NomenklaturaList = () => {
       setLoading(true);
       setError(null);
       const params = {
-        page,
+        limit: 20, // Backend pagination opt-in
+        offset: (page - 1) * 20,
         search: search || undefined,
         created_from: createdFrom || undefined,
         created_to: createdTo || undefined,
@@ -44,10 +45,12 @@ const NomenklaturaList = () => {
 
       const response = await nomenklaturaAPI.getNomenklatura(params);
 
-      setNomenklatura(response.data.results || response.data);
-      if (response.data.count) {
-        setTotalPages(Math.ceil(response.data.count / 20));
-      }
+      // Handle both paginated and non-paginated responses
+      const items = response.data.results || response.data;
+      setNomenklatura(items);
+      
+      const count = response.data.count || items.length;
+      setTotalPages(Math.ceil(count / 20));
     } catch (err) {
       setError(err.response?.data?.detail || "Xatolik yuz berdi");
       console.error("Error loading nomenklatura:", err);

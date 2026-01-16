@@ -35,7 +35,7 @@ const IntegrationAdmin = () => {
       const params = {
         status: statusFilter || undefined,
         integration_id: integrationFilter || undefined,
-        page_size: 50
+        limit: 50
       };
       const response = await integrationAPI.getHistory(params);
       setHistories(response.data.results || response.data);

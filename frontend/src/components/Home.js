@@ -43,9 +43,9 @@ const Home = () => {
         setLoading(true);
         setError(null);
         const results = await Promise.allSettled([
-          projectAPI.getProjects({ page_size: 4 }),
-          clientAPI.getClients({ page_size: 6 }),
-          nomenklaturaAPI.getNomenklatura({ page_size: 12 }),
+          projectAPI.getProjects({ limit: 4 }),
+          clientAPI.getClients({ limit: 6 }),
+          nomenklaturaAPI.getNomenklatura({ limit: 12 }),
         ]);
 
         const projectsRes = results[0].status === "fulfilled" ? results[0].value : null;

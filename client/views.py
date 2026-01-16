@@ -23,6 +23,8 @@ from .serializers import ClientImageBulkUploadSerializer, ClientImageSerializer,
 
 
 class ClientFilterSet(django_filters.FilterSet):
+    """Enhanced filtering with backward compatibility"""
+    # EXISTING FILTERS (preserved)
     description_status = django_filters.ChoiceFilter(
         label="Description status",
         method="filter_description",
@@ -39,21 +41,31 @@ class ClientFilterSet(django_filters.FilterSet):
     created_to = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
     updated_from = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__gte')
     updated_to = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__lte')
+    
+    # NEW FILTERS (additive)
+    search = django_filters.CharFilter(method='filter_search', label="Global search")
+    name_contains = django_filters.CharFilter(field_name='name', lookup_expr='icontains')
+    email_contains = django_filters.CharFilter(field_name='email', lookup_expr='icontains')
+    code_contains = django_filters.CharFilter(field_name='client_code_1c', lookup_expr='icontains')
 
     class Meta:
         model = Client
         fields = [
-            'client_code_1c',
-            'name',
-            'email',
-            'project',
-            'project_id',
-            'created_from',
-            'created_to',
-            'updated_from',
-            'updated_to',
-            'is_active',
+            'client_code_1c', 'name', 'email', 'project', 'project_id',
+            'created_from', 'created_to', 'updated_from', 'updated_to', 'is_active'
         ]
+    
+    def filter_search(self, queryset, name, value):
+        """Global search across multiple fields"""
+        if value:
+            return queryset.filter(
+                Q(name__icontains=value) |
+                Q(client_code_1c__icontains=value) |
+                Q(email__icontains=value) |
+                Q(phone__icontains=value) |
+                Q(tax_id__icontains=value)
+            )
+        return queryset
 
     def filter_description(self, queryset, name, value):
         if value == "with":
@@ -188,13 +200,22 @@ class ClientImageFilterSet(django_filters.FilterSet):
     ),
 )
 class ClientViewSet(viewsets.ModelViewSet):
+    """
+    OPTIMIZED Client ViewSet
+    - Optional pagination via ?limit=
+    - Enhanced filtering
+    - Optimized queries
+    """
+    from utils.pagination import OptionalLimitOffsetPagination
+    
     queryset = Client.objects.filter(is_deleted=False)
     serializer_class = ClientSerializer
-    lookup_field = 'client_code_1c'
-    lookup_value_regex = '.+'
+    pagination_class = OptionalLimitOffsetPagination  # Opt-in
+    lookup_field = "client_code_1c"
+    lookup_value_regex = "[^/]+"
     filterset_class = ClientFilterSet
-    search_fields = ['client_code_1c', 'name', 'email']
-    permission_classes = [IsAuthenticated]  # Faqat authenticated user'lar uchun
+    search_fields = ["name", "email", "client_code_1c"]
+    permission_classes = [IsAuthenticated]
     
     def get_object(self):
         """client_code_1c bo'yicha bitta obyektni olish, MultipleObjectsReturned xatosi oldini olish uchun"""
@@ -223,14 +244,20 @@ class ClientViewSet(viewsets.ModelViewSet):
 
     
     def get_queryset(self):
-        """Optimizatsiya: prefetch_related bilan images yuklash - N+1 query muammosini hal qiladi"""
-        return Client.objects.filter(
-            is_deleted=False
-        ).prefetch_related(
-            'images',
-            'images__status',
-            'images__source'
-        ).select_related('project').order_by('-created_at')
+        """Optimized queryset with prefetch_related and caching"""
+        cache_key = f"client_list_{hash(str(self.request.query_params))}"
+        cached_qs = smart_cache_get(cache_key)
+        
+        if cached_qs is None:
+            queryset = Client.objects.filter(is_deleted=False)
+            queryset = queryset.prefetch_related(
+                'images',
+                'images__status',
+                'images__source'
+            ).select_related('project').order_by('-created_at')
+            smart_cache_set(cache_key, queryset, timeout=600)
+            return queryset
+        return cached_qs
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -520,19 +547,28 @@ class ClientImageViewSet(viewsets.ModelViewSet):
     filterset_class = ClientImageFilterSet
     search_fields = ['client__client_code_1c', 'client__name']
     permission_classes = [IsAuthenticated]  # Faqat authenticated user'lar uchun
-
+    
     def perform_create(self, serializer):
         super().perform_create(serializer)
-        cache.clear()
+        try:
+            cache.delete_pattern("client_*")
+        except AttributeError:
+            cache.clear()
 
     def perform_update(self, serializer):
         super().perform_update(serializer)
-        cache.clear()
+        try:
+            cache.delete_pattern("client_*")
+        except AttributeError:
+            cache.clear()
 
     def perform_destroy(self, instance):
         instance.is_deleted = True
         instance.save(update_fields=['is_deleted', 'updated_at'])
-        cache.clear()
+        try:
+            cache.delete_pattern("client_*")
+        except AttributeError:
+            cache.clear()
     
     def get_queryset(self):
         """Optimizatsiya: bog'langan model'larni yuklash va keshdan foydalanish"""

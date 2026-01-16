@@ -13,9 +13,9 @@ const AdminDashboard = () => {
   const loadStats = async () => {
     try {
       const [projectsRes, clientsRes, nomenklaturaRes] = await Promise.all([
-        projectAPI.getProjects({ page_size: 1 }),
-        clientAPI.getClients({ page_size: 1 }),
-        nomenklaturaAPI.getNomenklatura({ page_size: 1 }),
+        projectAPI.getProjects({ limit: 1 }),
+        clientAPI.getClients({ limit: 1 }),
+        nomenklaturaAPI.getNomenklatura({ limit: 1 }),
       ]);
 
       setStats({

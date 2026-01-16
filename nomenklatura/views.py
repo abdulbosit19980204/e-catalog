@@ -27,6 +27,11 @@ from .serializers import (
 
 
 class NomenklaturaFilterSet(django_filters.FilterSet):
+    """
+    Enhanced filtering with backward compatibility
+    All existing filters preserved, new filters added
+    """
+    # EXISTING FILTERS (preserved)
     description_status = django_filters.ChoiceFilter(
         label="Description status",
         method="filter_description",
@@ -43,10 +48,53 @@ class NomenklaturaFilterSet(django_filters.FilterSet):
     created_to = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
     updated_from = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__gte')
     updated_to = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__lte')
+    
+    # NEW FILTERS (additive only - no breaking changes)
+    search = django_filters.CharFilter(method='filter_search', label="Global search")
+    name_contains = django_filters.CharFilter(field_name='name', lookup_expr='icontains', label="Name contains")
+    code_contains = django_filters.CharFilter(field_name='code_1c', lookup_expr='icontains', label="Code contains")
+    
+    # Brand/Manufacturer filters
+    brand = django_filters.CharFilter(field_name='brand', lookup_expr='iexact', label="Brand (exact)")
+    brand_contains = django_filters.CharFilter(field_name='brand', lookup_expr='icontains', label="Brand (contains)")
+    manufacturer = django_filters.CharFilter(field_name='manufacturer', lookup_expr='iexact', label="Manufacturer")
+    
+    # Price range filters
+    price_min = django_filters.NumberFilter(field_name='base_price', lookup_expr='gte', label="Min price")
+    price_max = django_filters.NumberFilter(field_name='base_price', lookup_expr='lte', label="Max price")
+    
+    # Stock filters
+    in_stock = django_filters.BooleanFilter(method='filter_in_stock', label="In stock only")
+    stock_min = django_filters.NumberFilter(field_name='stock_quantity', lookup_expr='gte', label="Min stock")
+    stock_max = django_filters.NumberFilter(field_name='stock_quantity', lookup_expr='lte', label="Max stock")
 
     class Meta:
         model = Nomenklatura
-        fields = ['code_1c', 'name', 'description_status', 'image_status', 'project', 'project_id', 'created_from', 'created_to', 'updated_from', 'updated_to', 'is_active', 'category']
+        fields = [
+            'code_1c', 'name', 'category', 'is_active',
+            'description_status', 'image_status', 
+            'project', 'project_id',
+            'created_from', 'created_to', 
+            'updated_from', 'updated_to'
+        ]
+    
+    def filter_search(self, queryset, name, value):
+        """Global search across multiple fields"""
+        if value:
+            return queryset.filter(
+                Q(name__icontains=value) |
+                Q(code_1c__icontains=value) |
+                Q(article_code__icontains=value) |
+                Q(brand__icontains=value) |
+                Q(category__icontains=value)
+            )
+        return queryset
+    
+    def filter_in_stock(self, queryset, name, value):
+        """Filter items in stock"""
+        if value:
+            return queryset.filter(stock_quantity__gt=0)
+        return queryset
 
     def filter_description(self, queryset, name, value):
         if value == "with":
@@ -209,13 +257,43 @@ class NomenklaturaImageFilterSet(django_filters.FilterSet):
     ),
 )
 class NomenklaturaViewSet(viewsets.ModelViewSet):
+    """
+    OPTIMIZED Nomenklatura ViewSet with optional pagination
+    
+    Performance improvements:
+    - Optional pagination via ?limit= parameter (backward compatible)
+    - Enhanced server-side filtering
+    - Optimized queries with prefetch_related
+    - Smart caching
+    """
+    from utils.pagination import OptionalLimitOffsetPagination
+    
     queryset = Nomenklatura.objects.filter(is_deleted=False)
     serializer_class = NomenklaturaSerializer
+    pagination_class = OptionalLimitOffsetPagination  # Opt-in pagination
     lookup_field = 'code_1c'
     lookup_value_regex = '.+'
     filterset_class = NomenklaturaFilterSet
     search_fields = ['code_1c', 'article_code', 'name']
     permission_classes = [IsAuthenticatedOrReadOnly]
+    
+    def get_queryset(self):
+        """
+        Optimized queryset with prefetch_related and caching
+        """
+        cache_key = f"nomenklatura_list_{hash(str(self.request.query_params))}"
+        cached_qs = smart_cache_get(cache_key)
+        
+        if cached_qs is None:
+            queryset = Nomenklatura.objects.filter(is_deleted=False)
+            queryset = queryset.prefetch_related(
+                'images',
+                'images__status',
+                'images__source'
+            ).select_related('project').order_by('-created_at')
+            smart_cache_set(cache_key, queryset, timeout=600)
+            return queryset
+        return cached_qs
     
     def get_object(self):
         """code_1c bo'yicha bitta obyektni olish, MultipleObjectsReturned xatosi oldini olish uchun"""
@@ -247,22 +325,42 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         super().perform_create(serializer)
-        cache.clear()
+        # Smart cache invalidation - only clear nomenklatura caches
+        try:
+            cache.delete_pattern("nomenklatura_*")
+        except AttributeError:
+            # Fallback if delete_pattern not available
+            cache.clear()
         from django.core.cache import caches
-        caches['fallback'].clear()
+        try:
+            caches['fallback'].clear()
+        except KeyError:
+            pass
 
     def perform_update(self, serializer):
         super().perform_update(serializer)
-        cache.clear()
+        try:
+            cache.delete_pattern("nomenklatura_*")
+        except AttributeError:
+            cache.clear()
         from django.core.cache import caches
-        caches['fallback'].clear()
+        try:
+            caches['fallback'].clear()
+        except KeyError:
+            pass
 
     def perform_destroy(self, instance):
         instance.is_deleted = True
         instance.save(update_fields=['is_deleted', 'updated_at'])
-        cache.clear()
+        try:
+            cache.delete_pattern("nomenklatura_*")
+        except AttributeError:
+            cache.clear()
         from django.core.cache import caches
-        caches['fallback'].clear()
+        try:
+            caches['fallback'].clear()
+        except KeyError:
+            pass
     
     def get_queryset(self):
         """Optimizatsiya: prefetch_related bilan images va projects yuklash - N+1 query muammosini hal qiladi"""

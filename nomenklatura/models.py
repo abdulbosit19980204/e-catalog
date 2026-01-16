@@ -79,8 +79,10 @@ class Nomenklatura(BaseModel):
             models.Index(fields=['project', 'code_1c', 'is_deleted']),
             models.Index(fields=['name', 'is_deleted']),
             models.Index(fields=['sku', 'barcode']),
-            models.Index(fields=['category', 'subcategory']),
-            models.Index(fields=['brand', 'manufacturer']),
+            models.Index(fields=['category', 'is_deleted']),
+            models.Index(fields=['brand', 'is_deleted']),
+            models.Index(fields=['base_price', 'is_deleted']),
+            models.Index(fields=['created_at', 'is_deleted']),
             models.Index(fields=['rating', 'popularity_score']),
         ]
 

@@ -79,7 +79,7 @@ const NomenklaturaAdmin = () => {
 
   const loadProjects = useCallback(async () => {
     try {
-      const resp = await projectAPI.getProjects({ page_size: 1000 });
+      const resp = await projectAPI.getProjects({ limit: 1000 });
       setProjectsList(resp.data.results || resp.data);
     } catch (err) {
       console.error("Error loading projects:", err);
@@ -90,8 +90,8 @@ const NomenklaturaAdmin = () => {
     try {
       setLoading(true);
       const params = {
-        page,
-        page_size: pageSize,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
         search: search || undefined,
         project_id: filterProject || undefined,
         is_active: statusFilter || undefined,
@@ -102,10 +102,16 @@ const NomenklaturaAdmin = () => {
         description_status: descriptionStatusFilter || undefined,
       };
       const response = await nomenklaturaAPI.getNomenklatura(params);
-      setNomenklatura(response.data.results || response.data);
+      
+      const items = response.data.results || response.data;
+      setNomenklatura(items);
+      
       if (response.data.count !== undefined) {
         setTotalCount(response.data.count);
         setTotalPages(Math.ceil(response.data.count / pageSize));
+      } else {
+        setTotalCount(items.length);
+        setTotalPages(1);
       }
     } catch (err) {
       const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";

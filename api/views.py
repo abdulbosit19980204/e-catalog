@@ -45,6 +45,8 @@ from .serializers import (
 
 
 class ProjectFilterSet(django_filters.FilterSet):
+    """Enhanced filtering with backward compatibility"""
+    # EXISTING FILTERS (preserved)
     description_status = django_filters.ChoiceFilter(
         label="Description status",
         method="filter_description",
@@ -59,10 +61,25 @@ class ProjectFilterSet(django_filters.FilterSet):
     created_to = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
     updated_from = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__gte')
     updated_to = django_filters.DateFilter(field_name='updated_at', lookup_expr='date__lte')
+    
+    # NEW FILTERS (additive)
+    search = django_filters.CharFilter(method='filter_search', label="Global search")
+    name_contains = django_filters.CharFilter(field_name='name', lookup_expr='icontains')
+    code_contains = django_filters.CharFilter(field_name='code_1c', lookup_expr='icontains')
 
     class Meta:
         model = Project
         fields = ['code_1c', 'name', 'description_status', 'image_status', 'created_from', 'created_to', 'updated_from', 'updated_to', 'is_active']
+    
+    def filter_search(self, queryset, name, value):
+        """Global search"""
+        if value:
+            return queryset.filter(
+                Q(name__icontains=value) |
+                Q(code_1c__icontains=value) |
+                Q(description__icontains=value)
+            )
+        return queryset
 
     def filter_description(self, queryset, name, value):
         if value == "with":
@@ -198,80 +215,72 @@ class ProjectImageFilterSet(django_filters.FilterSet):
     ),
 )
 class ProjectViewSet(viewsets.ModelViewSet):
+    """
+    OPTIMIZED Project ViewSet
+    - Optional pagination via ?limit=
+    - Enhanced filtering
+    - Optimized queries (prefetch_related)
+    - Pattern-based smart caching
+    """
+    from utils.pagination import OptionalLimitOffsetPagination
+    
     queryset = Project.objects.filter(is_deleted=False)
     serializer_class = ProjectSerializer
+    pagination_class = OptionalLimitOffsetPagination  # Opt-in
     lookup_field = 'code_1c'
     lookup_value_regex = '.+'
     filterset_class = ProjectFilterSet
-    search_fields = ['code_1c', 'name', 'title']
+    search_fields = ['code_1c', 'name']
     permission_classes = [IsAuthenticatedOrReadOnly]
+    
+    def get_queryset(self):
+        """Optimized queryset with prefetch_related"""
+        # Cache key based on filters to avoid database hit for identical requests
+        cache_key = f"project_list_{hash(str(self.request.query_params))}"
+        cached_qs = smart_cache_get(cache_key)
+        
+        if cached_qs is None:
+            queryset = Project.objects.filter(is_deleted=False)
+            queryset = queryset.prefetch_related(
+                'images',
+                'images__status',
+                'images__source'
+            ).order_by('-created_at')
+            smart_cache_set(cache_key, queryset, timeout=600)
+            return queryset
+        return cached_qs
     
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return ProjectDetailSerializer
         return ProjectSerializer
-    
-    def get_queryset(self):
-        """Optimizatsiya: prefetch_related bilan images yuklash - N+1 query muammosini hal qiladi"""
-        # Cache key based on filters
-        cache_key = f"project_queryset_{hash(str(self.request.query_params))}"
-        cached_qs = smart_cache_get(cache_key)
-        if cached_qs is None:
-            qs = Project.objects.filter(
-                is_deleted=False
-            ).prefetch_related(
-                'images',
-                'images__status',
-                'images__source'
-            ).order_by('-created_at')
-            smart_cache_set(cache_key, qs, 300)  # Cache for 5 minutes
-            return qs
-        return cached_qs
-    
-    @method_decorator(cache_page(300))  # Cache list view for 5 minutes
-    @method_decorator(vary_on_headers('Authorization'))
-    def list(self, request, *args, **kwargs):
-        """Cached list view"""
-        return super().list(request, *args, **kwargs)
-    
-    @method_decorator(cache_page(600))  # Cache detail view for 10 minutes
-    def retrieve(self, request, *args, **kwargs):
-        """Cached detail view"""
-        return super().retrieve(request, *args, **kwargs)
-    
-    def perform_create(self, serializer):
-        """Invalidate cache on create"""
-        super().perform_create(serializer)
-        # Barcha keshni tozalash o'rniga smart_cache_delete ishlatish mumkin, 
-        # lekin hozircha cache.clear() osonroq (fallback ni ham tozalash kerak)
-        cache.clear()
-        from django.core.cache import caches
-        caches['fallback'].clear()
-    
-    def perform_update(self, serializer):
-        """Invalidate cache on update"""
-        super().perform_update(serializer)
-        cache.clear()
-        from django.core.cache import caches
-        caches['fallback'].clear()
-    
-    def perform_destroy(self, instance):
-        """Soft delete - projectni o'chirmasdan is_deleted=True qiladi"""
-        instance.is_deleted = True
-        instance.save(update_fields=['is_deleted', 'updated_at'])
-        cache.clear()
-        from django.core.cache import caches
-        caches['fallback'].clear()
-    
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
-    
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        try:
+            cache.delete_pattern("project_*")
+        except AttributeError:
+            cache.clear()
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        try:
+            cache.delete_pattern("project_*")
+        except AttributeError:
+            cache.clear()
+
     def perform_destroy(self, instance):
-        """Soft delete - projectni o'chirmasdan is_deleted=True qiladi"""
         instance.is_deleted = True
         instance.save(update_fields=['is_deleted', 'updated_at'])
+        try:
+            cache.delete_pattern("project_*")
+        except AttributeError:
+            cache.clear()
 
     # Excel helpers ---------------------------------------------------------
     @staticmethod

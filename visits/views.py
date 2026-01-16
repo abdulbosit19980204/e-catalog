@@ -12,6 +12,8 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 from drf_spectacular.types import OpenApiTypes
 import django_filters
 
+from django.core.cache import cache
+from utils.cache import smart_cache_get, smart_cache_set, smart_cache_delete
 from .models import Visit, VisitPlan, VisitImage
 from .serializers import (
     VisitListSerializer, VisitDetailSerializer, VisitCreateSerializer,
@@ -26,10 +28,21 @@ class VisitFilter(django_filters.FilterSet):
     date_to = django_filters.DateFilter(field_name='planned_date', lookup_expr='lte')
     agent = django_filters.CharFilter(field_name='agent_code', lookup_expr='iexact')
     client = django_filters.CharFilter(field_name='client_code', lookup_expr='iexact')
-    
+    search = django_filters.CharFilter(method='filter_search', label="Search")
+
     class Meta:
         model = Visit
         fields = ['visit_type', 'visit_status', 'priority', 'agent_code', 'client_code']
+
+    def filter_search(self, queryset, name, value):
+        if value:
+            return queryset.filter(
+                Q(agent_name__icontains=value) |
+                Q(client_name__icontains=value) |
+                Q(purpose__icontains=value) |
+                Q(notes__icontains=value)
+            )
+        return queryset
 
 
 @extend_schema_view(
@@ -74,19 +87,56 @@ class VisitFilter(django_filters.FilterSet):
 class VisitViewSet(viewsets.ModelViewSet):
     """
     Visit Management ViewSet
-    Full CRUD + custom actions for visit lifecycle management
+    Optimized with optional pagination and prefetch_related
     """
+    from utils.pagination import OptionalLimitOffsetPagination
+    
     permission_classes = [IsAuthenticated]
     filterset_class = VisitFilter
+    pagination_class = OptionalLimitOffsetPagination  # Opt-in
     search_fields = ['agent_name', 'client_name', 'purpose', 'notes']
     ordering_fields = ['planned_date', 'created_at', 'actual_start_time']
     ordering = ['-planned_date', '-planned_time']
     
     def get_queryset(self):
         """Optimized queryset with prefetch"""
-        return Visit.objects.filter(
-            is_deleted=False
-        ).select_related().prefetch_related('images').order_by('-planned_date')
+        cache_key = f"visit_list_{hash(str(self.request.query_params))}"
+        cached_qs = smart_cache_get(cache_key)
+        
+        if cached_qs is None:
+            queryset = Visit.objects.filter(is_deleted=False)
+            queryset = queryset.prefetch_related('images').order_by('-planned_date', '-planned_time')
+            smart_cache_set(cache_key, queryset, timeout=600)
+            return queryset
+        return cached_qs
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        try:
+            from django.core.cache import cache
+            cache.delete_pattern("visit_*")
+        except AttributeError:
+            from django.core.cache import cache
+            cache.clear()
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        try:
+            from django.core.cache import cache
+            cache.delete_pattern("visit_*")
+        except AttributeError:
+            from django.core.cache import cache
+            cache.clear()
+
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.save(update_fields=['is_deleted', 'updated_at'])
+        try:
+            from django.core.cache import cache
+            cache.delete_pattern("visit_*")
+        except AttributeError:
+            from django.core.cache import cache
+            cache.clear()
     
     def get_serializer_class(self):
         """Dynamic serializer selection"""

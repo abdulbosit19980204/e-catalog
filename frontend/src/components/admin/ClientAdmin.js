@@ -71,8 +71,8 @@ const ClientAdmin = () => {
     try {
       setLoading(true);
       const params = {
-        page,
-        page_size: pageSize,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
         search: search || undefined,
         is_active: statusFilter || undefined,
         description_status: descriptionStatus || undefined,
@@ -97,7 +97,7 @@ const ClientAdmin = () => {
 
   const loadAvailableProjects = useCallback(async () => {
     try {
-      const response = await projectAPI.getProjects({ page_size: 100 });
+      const response = await projectAPI.getProjects({ limit: 100 });
       setAvailableProjects(response.data.results || response.data);
     } catch (err) {
       console.error("Error loading projects:", err);

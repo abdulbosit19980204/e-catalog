@@ -45,8 +45,8 @@ const ProjectAdmin = () => {
       setLoading(true);
       setError(null);
       const params = {
-        page,
-        page_size: pageSize,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
         search: search || undefined,
         description_status: descriptionStatus || undefined,
         image_status: imageStatus || undefined,
@@ -57,10 +57,16 @@ const ProjectAdmin = () => {
         updated_to: updatedTo || undefined,
       };
       const response = await projectAPI.getProjects(params);
-      setProjects(response.data.results || response.data);
+      
+      const items = response.data.results || response.data;
+      setProjects(items);
+      
       if (response.data.count !== undefined) {
         setTotalCount(response.data.count);
         setTotalPages(Math.ceil(response.data.count / pageSize));
+      } else {
+        setTotalCount(items.length);
+        setTotalPages(1);
       }
     } catch (err) {
       const errorMsg = err.response?.data?.detail || "Xatolik yuz berdi";
