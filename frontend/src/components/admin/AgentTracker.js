@@ -21,36 +21,54 @@ const AgentTracker = () => {
 
   // Load Yandex Maps Script
   useEffect(() => {
-    const script = document.createElement("script");
-    const apiKey = process.env.REACT_APP_YANDEX_MAPS_KEY || "";
-    if (!apiKey) {
-      console.warn("Yandex Maps API key (REACT_APP_YANDEX_MAPS_KEY) topilmadi. Map ba'zi joylarda ishlamasligi mumkin.");
-    }
-    script.src = `https://api-maps.yandex.ru/2.1/?lang=ru_RU${apiKey ? `&apikey=${apiKey}` : ""}`;
-    script.async = true;
-    script.onload = () => {
+    let isMounted = true;
+    const scriptId = "yandex-maps-api-script";
+    
+    const startInit = () => {
+      if (!window.ymaps) return;
       window.ymaps.ready(() => {
+        if (!isMounted) return;
         ymapsRef.current = window.ymaps;
         initMap();
       });
     };
-    document.body.appendChild(script);
+
+    if (window.ymaps) {
+      startInit();
+    } else {
+      let script = document.getElementById(scriptId);
+      if (!script) {
+        script = document.createElement("script");
+        script.id = scriptId;
+        const apiKey = process.env.REACT_APP_YANDEX_MAPS_KEY || "";
+        script.src = `https://api-maps.yandex.ru/2.1/?lang=ru_RU${apiKey ? `&apikey=${apiKey}` : ""}`;
+        script.async = true;
+        document.body.appendChild(script);
+      }
+      script.addEventListener("load", startInit);
+    }
 
     return () => {
+      isMounted = false;
       if (mapInstanceRef.current) {
         mapInstanceRef.current.destroy();
+        mapInstanceRef.current = null;
       }
     };
   }, []);
 
   const initMap = () => {
-    if (!ymapsRef.current || mapInstanceRef.current) return;
+    if (!ymapsRef.current || mapInstanceRef.current || !document.getElementById("yandex-map")) return;
 
-    mapInstanceRef.current = new ymapsRef.current.Map("yandex-map", {
-      center: [41.311081, 69.240562], // Tashkent
-      zoom: 12,
-      controls: ["zoomControl", "typeSelector", "fullscreenControl"],
-    });
+    try {
+      mapInstanceRef.current = new ymapsRef.current.Map("yandex-map", {
+        center: [41.311081, 69.240562], // Tashkent
+        zoom: 12,
+        controls: ["zoomControl", "typeSelector", "fullscreenControl"],
+      });
+    } catch (err) {
+      console.error("Yandex Map initialization failed:", err);
+    }
   };
 
   // Fetch unique agents

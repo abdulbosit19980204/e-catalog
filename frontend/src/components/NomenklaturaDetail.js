@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { nomenklaturaAPI } from "../api";
-import Navigation from "./Navigation";
 import "./NomenklaturaDetail.css";
 
 const NomenklaturaDetail = () => {
@@ -46,31 +45,23 @@ const NomenklaturaDetail = () => {
   };
 
   if (loading) return (
-    <>
-      <Navigation />
-      <div className="detail-page-loading">
-        <div className="spinner"></div>
-        <p>Yuklanmoqda...</p>
-      </div>
-    </>
+    <div className="detail-page-loading">
+      <div className="spinner"></div>
+      <p>Yuklanmoqda...</p>
+    </div>
   );
 
   if (error || !item) return (
-    <>
-      <Navigation />
-      <div className="detail-page-error">
-        <h2>{error || "Mahsulot topilmadi"}</h2>
-        <button onClick={() => navigate("/nomenklatura")} className="btn-secondary">
-          Ortga qaytish
-        </button>
-      </div>
-    </>
+    <div className="detail-page-error">
+      <h2>{error || "Mahsulot topilmadi"}</h2>
+      <button onClick={() => navigate("/nomenklatura")} className="btn-secondary">
+        Ortga qaytish
+      </button>
+    </div>
   );
 
   return (
-    <>
-      <Navigation />
-      <div className="detail-page-container">
+    <div className="detail-page-container">
         <button className="back-button" onClick={() => navigate("/nomenklatura")}>
           ← Katalogga qaytish
         </button>
@@ -219,9 +210,8 @@ const NomenklaturaDetail = () => {
               </div>
             )}
           </div>
-        </div>
       </div>
-    </>
+    </div>
   );
 };
 

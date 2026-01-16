@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { NotificationProvider } from "./contexts/NotificationContext";
 import Notification from "./components/Notification";
 import "./App.css";
-import Navigation from "./components/Navigation";
 import Home from "./components/Home";
 import ClientList from "./components/ClientList";
 import NomenklaturaList from "./components/NomenklaturaList";
@@ -27,6 +26,8 @@ import AgentTracker from "./components/admin/AgentTracker";
 import AgentTrackerPage from "./components/AgentTrackerPage";
 import VisitManagement from "./components/admin/VisitManagement";
 
+import MainLayout from "./components/MainLayout";
+
 function App() {
   return (
     <NotificationProvider>
@@ -34,59 +35,36 @@ function App() {
         <div className="App">
           <Notification />
           <Routes>
-          {/* Public routes */}
-          <Route path="/" element={
-            <>
-              <Navigation />
-              <main className="App-main">
-                <Home />
-              </main>
-            </>
-          } />
-          <Route path="/clients" element={
-            <>
-              <Navigation />
-              <main className="App-main">
-                <ClientList />
-              </main>
-            </>
-          } />
-          <Route path="/nomenklatura" element={
-            <>
-              <Navigation />
-              <main className="App-main">
-                <NomenklaturaList />
-              </main>
-            </>
-          } />
-          <Route path="/chat" element={
-            <>
-              <Navigation />
-              <main className="App-main">
-                <ChatPage />
-              </main>
-            </>
-          } />
-          <Route path="/tracker" element={
-            <ProtectedRoute>
-              <AgentTrackerPage />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/visits" element={
-            <ProtectedRoute>
-              <div style={{paddingTop: '60px'}}>
-                <VisitManagement />
-              </div>
-            </ProtectedRoute>
-          } />
-          
-          {/* Detail Pages */}
-          <Route path="/clients/:id" element={<ClientDetail />} />
-          <Route path="/nomenklatura/:id" element={<NomenklaturaDetail />} />
-          
-          {/* Login */}
-          <Route path="/login" element={<Login />} />
+            {/* Frontend routes with main navigation */}
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/clients" element={<ClientList />} />
+              <Route path="/nomenklatura" element={<NomenklaturaList />} />
+              <Route path="/chat" element={<ChatPage />} />
+              <Route 
+                path="/tracker" 
+                element={
+                  <ProtectedRoute>
+                    <AgentTrackerPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/visits" 
+                element={
+                  <ProtectedRoute>
+                    <VisitManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Detail Pages */}
+              <Route path="/clients/:id" element={<ClientDetail />} />
+              <Route path="/nomenklatura/:id" element={<NomenklaturaDetail />} />
+              
+              {/* Login */}
+              <Route path="/login" element={<Login />} />
+            </Route>
           
           {/* Admin routes */}
           <Route

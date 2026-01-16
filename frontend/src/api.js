@@ -267,6 +267,9 @@ export const nomenklaturaAPI = {
   exportNomenklatura: (params = {}) => {
     return apiClient.get("/nomenklatura/export-xlsx/", { params, responseType: 'blob' });
   },
+  downloadTemplate: () => {
+    return apiClient.get("/nomenklatura/template-xlsx/", { responseType: 'blob' });
+  },
 
   // Image upload
   uploadImage: (nomenklaturaCode, imageFile, options = {}) => {

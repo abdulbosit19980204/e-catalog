@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { clientAPI } from "../api";
-import Navigation from "./Navigation";
 import "./NomenklaturaDetail.css"; // Reuse styling logic
 
 const ClientDetail = () => {
@@ -38,31 +37,23 @@ const ClientDetail = () => {
   }, [client]);
 
   if (loading) return (
-    <>
-      <Navigation />
-      <div className="detail-page-loading">
-        <div className="spinner"></div>
-        <p>Yuklanmoqda...</p>
-      </div>
-    </>
+    <div className="detail-page-loading">
+      <div className="spinner"></div>
+      <p>Yuklanmoqda...</p>
+    </div>
   );
 
   if (error || !client) return (
-    <>
-      <Navigation />
-      <div className="detail-page-error">
-        <h2>{error || "Mijoz topilmadi"}</h2>
-        <button onClick={() => navigate("/clients")} className="btn-secondary">
-          Ortga qaytish
-        </button>
-      </div>
-    </>
+    <div className="detail-page-error">
+      <h2>{error || "Mijoz topilmadi"}</h2>
+      <button onClick={() => navigate("/clients")} className="btn-secondary">
+        Ortga qaytish
+      </button>
+    </div>
   );
 
   return (
-    <>
-      <Navigation />
-      <div className="detail-page-container">
+    <div className="detail-page-container">
         <button className="back-button" onClick={() => navigate("/clients")}>
           ← Barcha mijozlar
         </button>
@@ -147,9 +138,8 @@ const ClientDetail = () => {
               </div>
             )}
           </div>
-        </div>
       </div>
-    </>
+    </div>
   );
 };
 

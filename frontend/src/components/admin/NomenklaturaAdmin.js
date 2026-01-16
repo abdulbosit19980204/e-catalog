@@ -17,6 +17,12 @@ const NomenklaturaAdmin = () => {
   const [activeTab, setActiveTab] = useState("asosiy");
   const [uploading, setUploading] = useState(false);
   const [editingNomenklatura, setEditingNomenklatura] = useState(null);
+  
+  // Excel Import state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState(null);
 
   // Filters
   const [filterProject, setFilterProject] = useState("");
@@ -257,30 +263,60 @@ const NomenklaturaAdmin = () => {
     }
   };
 
-  const handleImportExcel = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    if (filterProject) {
-        const project = projectsList.find(p => p.id === parseInt(filterProject));
-        if (!window.confirm(`Ma'lumotlar "${project?.name}" loyihasiga import qilinadi. Davom etasizmi?`)) return;
-    } else {
-        if (!window.confirm("Loyiha tanlanmagan. Ma'lumotlar mavjud code_1c bo'yicha yangilanadi yoki yangi yozuvlar loyihasiz yaratiladi. Davom etasizmi?")) return;
+  const handleExport = async () => {
+    try {
+      const params = {
+        search: search || undefined,
+        project_id: filterProject || undefined,
+        is_active: statusFilter || undefined,
+        category: filterCategory || undefined,
+        image_status: imageStatusFilter || undefined,
+        description_status: descriptionStatusFilter || undefined,
+      };
+      const response = await nomenklaturaAPI.exportNomenklatura(params);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'nomenklatura_export.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      showError("Eksport qilishda xatolik yuz berdi");
     }
+  };
+
+  const handleTemplateDownload = async () => {
+    try {
+      const response = await nomenklaturaAPI.downloadTemplate();
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'nomenklatura_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      showError("Shablonni yuklab olishda xatolik yuz berdi");
+    }
+  };
+
+  const handleImport = async (e) => {
+    e.preventDefault();
+    if (!importFile) return;
 
     try {
-      setLoading(true);
-      const response = await nomenklaturaAPI.importNomenklatura(file, filterProject);
-      success(`Import yakunlandi: ${response.data.created} yaratildi, ${response.data.updated} yangilandi`);
-      if (response.data.errors.length > 0) {
-        console.warn("Import errors:", response.data.errors);
-      }
+      setImportLoading(true);
+      setImportResult(null);
+      const response = await nomenklaturaAPI.importNomenklatura(importFile, filterProject);
+      setImportResult(response.data);
+      success("Import muvaffaqiyatli yakunlandi");
       loadNomenklatura();
     } catch (err) {
-      showError("Excel importda xatolik yuz berdi");
+      const msg = err.response?.data?.error || "Import qilishda xatolik yuz berdi";
+      showError(msg);
     } finally {
-      setLoading(false);
-      e.target.value = null;
+      setImportLoading(false);
     }
   };
 
@@ -475,10 +511,15 @@ const NomenklaturaAdmin = () => {
       <div className="crud-header">
         <h2>📦 Nomenklatura</h2>
         <div className="header-actions">
-          <label className="btn-tertiary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
-            📥 Import Excel
-            <input type="file" accept=".xlsx, .xls" onChange={handleImportExcel} style={{ display: 'none' }} />
-          </label>
+          <button onClick={handleExport} className="btn-tertiary">
+            <i className="fas fa-file-export"></i> Eksport
+          </button>
+          <button onClick={() => setShowImportModal(true)} className="btn-tertiary">
+            <i className="fas fa-file-import"></i> Import
+          </button>
+          <button onClick={handleTemplateDownload} className="btn-tertiary" title="Shablon">
+             <i className="fas fa-download"></i>
+          </button>
           <button onClick={handleCreate} className="btn-primary">+ Yangi</button>
         </div>
       </div>
@@ -583,6 +624,89 @@ const NomenklaturaAdmin = () => {
               <button onClick={() => setActiveTab("rasmlar")} className={`tab-btn ${activeTab === "rasmlar" ? "active" : ""}`}>Rasmlar</button>
             </div>
             <form onSubmit={handleSubmit} className="modal-form">{renderTabContent()}<div className="modal-actions"><button type="button" onClick={() => setShowModal(false)} className="btn-secondary">Bekor</button><button type="submit" className="btn-primary">Saqlash</button></div></form>
+          </div>
+        </div>
+      )}
+
+      {/* Import Excel Modal */}
+      {showImportModal && (
+        <div className="modal-overlay">
+          <div className="modal-content import-modal">
+            <div className="modal-header">
+              <h2>Excel orqali import qilish</h2>
+              <button className="close-btn" onClick={() => {
+                setShowImportModal(false);
+                setImportResult(null);
+                setImportFile(null);
+              }}>&times;</button>
+            </div>
+            <div className="modal-body">
+              {!importResult ? (
+                <form onSubmit={handleImport}>
+                  <div className="form-group">
+                    <label>XLSX faylni tanlang:</label>
+                    <input 
+                      type="file" 
+                      accept=".xlsx" 
+                      onChange={(e) => setImportFile(e.target.files[0])} 
+                      required
+                    />
+                  </div>
+                  {filterProject && (
+                    <div className="info-box">
+                      <i className="fas fa-info-circle"></i> Tanlangan loyiha ({projectsList.find(p => p.id === parseInt(filterProject))?.name}) uchun import qilinadi.
+                    </div>
+                  )}
+                  <div className="modal-actions">
+                    <button type="submit" className="save-btn" disabled={importLoading || !importFile}>
+                      {importLoading ? "Yuklanmoqda..." : "Yuklashni boshlash"}
+                    </button>
+                    <button type="button" className="cancel-btn" onClick={() => setShowImportModal(false)}>
+                      Bekor qilish
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="import-results">
+                  <div className="stats-grid">
+                    <div className="stat-card created">
+                      <span className="count">{importResult.created}</span>
+                      <span className="label">Yaratildi</span>
+                    </div>
+                    <div className="stat-card updated">
+                      <span className="count">{importResult.updated}</span>
+                      <span className="label">Yangilandi</span>
+                    </div>
+                    <div className="stat-card errors">
+                      <span className="count">{importResult.errors?.length || 0}</span>
+                      <span className="label">Xatoliklar</span>
+                    </div>
+                  </div>
+
+                  {importResult.errors?.length > 0 && (
+                    <div className="error-list">
+                      <h3>Xatoliklar tafsiloti:</h3>
+                      <ul>
+                        {importResult.errors.slice(0, 10).map((err, i) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                        {importResult.errors.length > 10 && (
+                          <li className="more-errors">...va yana {importResult.errors.length - 10} ta xatolik</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="modal-actions">
+                    <button className="save-btn" onClick={() => {
+                        setShowImportModal(false);
+                        setImportResult(null);
+                        setImportFile(null);
+                    }}>Yopish</button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

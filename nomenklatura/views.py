@@ -19,6 +19,7 @@ from drf_spectacular.utils import (
 )
 from openpyxl import load_workbook
 from utils.excel import build_template_workbook, workbook_to_response, parse_bool_cell, clean_cell
+from core.models import ImportLog
 from .serializers import (
     NomenklaturaImageBulkUploadSerializer,
     NomenklaturaImageSerializer,
@@ -295,89 +296,6 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
             return queryset
         return cached_qs
     
-    def get_object(self):
-        """code_1c bo'yicha bitta obyektni olish, MultipleObjectsReturned xatosi oldini olish uchun"""
-        queryset = self.filter_queryset(self.get_queryset())
-        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
-        lookup_value = self.kwargs[lookup_url_kwarg]
-        
-        # Filter by lookup field
-        filter_kwargs = {self.lookup_field: lookup_value}
-        
-        # Agar URL params da project_id bo'lsa, undan foydalanamiz
-        project_id = self.request.query_params.get('project_id')
-        if project_id:
-            filter_kwargs['project_id'] = project_id
-            
-        try:
-            obj = queryset.get(**filter_kwargs)
-        except Nomenklatura.MultipleObjectsReturned:
-            # Agar bir nechta chiqsa va project_id berilmagan bo'lsa, birinchisini olamiz yoki xatolik
-            # Bu yerda xavfsizlik uchun birinchisini olish yoki xato berishni tanlash kerak
-            # Admin panelda biz project_id ni yuboramiz
-            if not project_id:
-                return queryset.filter(**filter_kwargs).first()
-            raise
-            
-        self.check_object_permissions(self.request, obj)
-        return obj
-
-    
-    def perform_create(self, serializer):
-        super().perform_create(serializer)
-        # Smart cache invalidation - only clear nomenklatura caches
-        try:
-            cache.delete_pattern("nomenklatura_*")
-        except AttributeError:
-            # Fallback if delete_pattern not available
-            cache.clear()
-        from django.core.cache import caches
-        try:
-            caches['fallback'].clear()
-        except KeyError:
-            pass
-
-    def perform_update(self, serializer):
-        super().perform_update(serializer)
-        try:
-            cache.delete_pattern("nomenklatura_*")
-        except AttributeError:
-            cache.clear()
-        from django.core.cache import caches
-        try:
-            caches['fallback'].clear()
-        except KeyError:
-            pass
-
-    def perform_destroy(self, instance):
-        instance.is_deleted = True
-        instance.save(update_fields=['is_deleted', 'updated_at'])
-        try:
-            cache.delete_pattern("nomenklatura_*")
-        except AttributeError:
-            cache.clear()
-        from django.core.cache import caches
-        try:
-            caches['fallback'].clear()
-        except KeyError:
-            pass
-    
-    def get_queryset(self):
-        """Optimizatsiya: prefetch_related bilan images va projects yuklash - N+1 query muammosini hal qiladi"""
-        cache_key = f"nomenklatura_queryset_{hash(str(self.request.query_params))}"
-        cached_qs = smart_cache_get(cache_key)
-        if cached_qs is None:
-            qs = Nomenklatura.objects.filter(
-                is_deleted=False
-            ).prefetch_related(
-                'images',
-                'images__status',
-                'images__source'
-            ).select_related('project').order_by('-created_at')
-            smart_cache_set(cache_key, qs, 300)
-            return qs
-        return cached_qs
-    
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['request'] = self.request
@@ -520,6 +438,7 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
                 name='NomenklaturaImportPayload',
                 fields={
                     'file': serializers.FileField(help_text='XLSX fayl'),
+                    'project_id': serializers.IntegerField(required=False, help_text='Loyiha ID'),
                 },
             )
         },
@@ -560,47 +479,125 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
             except (ValueError, TypeError):
                 project_id = None
         
-        stats = {'created': 0, 'updated': 0, 'errors': []}
-        for idx, row in enumerate(
-            sheet.iter_rows(min_row=2, max_col=len(expected), values_only=True),
-            start=2,
-        ):
+        # Create persistent log
+        import_log = ImportLog.objects.create(
+            entity_type='nomenklatura',
+            filename=uploaded.name,
+            status='processing',
+            performed_by=request.user if request.user.is_authenticated else None
+        )
+
+        stats = {'created': 0, 'updated': 0, 'errors': [], 'errors_json': []}
+        rows = list(sheet.iter_rows(min_row=2, max_col=len(expected), values_only=True))
+        import_log.total_rows = len(rows)
+        import_log.save()
+
+        for idx, row in enumerate(rows, start=2):
             if not row or all(value in (None, '') for value in row):
                 continue
-            code = clean_cell(row[0])
-            if not code:
-                stats['errors'].append(f"Row {idx}: code_1c bo'sh bo'lishi mumkin emas")
-                continue
-            name = clean_cell(row[1]) or code
-            title = clean_cell(row[2]) or None
-            description = row[3] if row[3] is not None else ''
-            is_active = parse_bool_cell(row[4], default=True)
-
-            defaults = {
-                'name': name,
-                'title': title,
-                'description': description,
-                'is_active': is_active,
-                'is_deleted': False,
-            }
             
             try:
+                # Basic fields
+                code = clean_cell(row[0])
+                if not code:
+                    error_msg = f"Row {idx}: code_1c bo'sh bo'lishi mumkin emas"
+                    stats['errors'].append(error_msg)
+                    continue
+                
+                name = clean_cell(row[1]) or code
+                title = clean_cell(row[2])
+                description = row[3] if row[3] is not None else ''
+                is_active = parse_bool_cell(row[4], default=True)
+
+                defaults = {
+                    'name': name,
+                    'title': title,
+                    'description': description,
+                    'is_active': is_active,
+                    'is_deleted': False,
+                    
+                    # Extended fields based on _nomenklatura_excel_headers
+                    'sku': clean_cell(row[5]),
+                    'barcode': clean_cell(row[6]),
+                    'brand': clean_cell(row[7]),
+                    'manufacturer': clean_cell(row[8]),
+                    'model': clean_cell(row[9]),
+                    'series': clean_cell(row[10]),
+                    'vendor_code': clean_cell(row[11]),
+                    'base_price': row[12] if isinstance(row[12], (int, float)) else None,
+                    'sale_price': row[13] if isinstance(row[13], (int, float)) else None,
+                    'cost_price': row[14] if isinstance(row[14], (int, float)) else None,
+                    'currency': clean_cell(row[15]) or 'UZS',
+                    'discount_percent': row[16] if isinstance(row[16], (int, float)) else None,
+                    'tax_rate': row[17] if isinstance(row[17], (int, float)) else None,
+                    'stock_quantity': row[18] if isinstance(row[18], (int, float)) else None,
+                    'min_stock': row[19] if isinstance(row[19], (int, float)) else None,
+                    'max_stock': row[20] if isinstance(row[20], (int, float)) else None,
+                    'unit_of_measure': clean_cell(row[21]),
+                    'weight': row[22] if isinstance(row[22], (int, float)) else None,
+                    'dimensions': clean_cell(row[23]),
+                    'volume': row[24] if isinstance(row[24], (int, float)) else None,
+                    'category': clean_cell(row[25]),
+                    'subcategory': clean_cell(row[26]),
+                    'color': clean_cell(row[27]),
+                    'size': clean_cell(row[28]),
+                    'material': clean_cell(row[29]),
+                    'warranty_period': row[30] if isinstance(row[30], int) else None,
+                    'notes': clean_cell(row[33]),
+                    'rating': row[34] if isinstance(row[34], (int, float)) else None,
+                    'popularity_score': row[35] if isinstance(row[35], int) else 0,
+                    'seo_keywords': clean_cell(row[36]),
+                    'source': clean_cell(row[37]),
+                }
+                
+                # Date fields
+                if row[31]: # expiry_date
+                    defaults['expiry_date'] = row[31]
+                if row[32]: # production_date
+                    defaults['production_date'] = row[32]
+
                 lookup = {'code_1c': code, 'is_deleted': False}
                 if project_id:
                     lookup['project_id'] = project_id
                     defaults['project_id'] = project_id
                 
-                obj, created_flag = Nomenklatura.objects.update_or_create(
-                    **lookup,
-                    defaults=defaults,
-                )
+                # Use filter().first() instead of update_or_create to avoid MultipleObjectsReturned
+                # if there are duplicate codes across different projects or same project.
+                obj = Nomenklatura.objects.filter(**lookup).first()
+                if obj:
+                    for key, value in defaults.items():
+                        setattr(obj, key, value)
+                    obj.save()
+                    created_flag = False
+                else:
+                    obj = Nomenklatura.objects.create(**lookup, **defaults)
+                    created_flag = True
 
                 if created_flag:
                     stats['created'] += 1
                 else:
                     stats['updated'] += 1
-            except Exception as exc:  # noqa: BLE001
-                stats['errors'].append(f"Row {idx}: {exc}")
+                    
+            except Exception as exc:
+                error_item = f"Row {idx} ({code if 'code' in locals() else 'Unknown'}): {str(exc)}"
+                stats['errors'].append(error_item)
+                stats['errors_json'].append({'row': idx, 'code': code if 'code' in locals() else '', 'error': str(exc)})
+
+        # Finalize log
+        import_log.created_count = stats['created']
+        import_log.updated_count = stats['updated']
+        import_log.error_count = len(stats['errors'])
+        import_log.errors_json = stats.get('errors_json', [])
+        import_log.status = 'completed' if not stats['errors'] else 'error'
+        import_log.summary = f"Imported: {stats['created']}, Updated: {stats['updated']}, Errors: {len(stats['errors'])}"
+        import_log.save()
+        
+        # Clear cache
+        try:
+            cache.delete_pattern("nomenklatura_*")
+        except AttributeError:
+            cache.clear()
+
         return Response(stats, status=status.HTTP_200_OK)
 
 @extend_schema_view(
