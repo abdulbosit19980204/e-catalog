@@ -593,7 +593,7 @@ CORS_ALLOWED_ORIGINS = [
 ] or DEFAULT_CORS_ALLOWED_ORIGINS
 
 # Production uchun environment variable orqali
-CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'True' if DEBUG else 'False') == 'True'
+CORS_ALLOW_ALL_ORIGINS = True  # Forced for debugging CORS issues
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [

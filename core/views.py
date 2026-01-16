@@ -6,7 +6,10 @@ from rest_framework.permissions import IsAdminUser
 from django.db import connection as db_connection
 from django.core.cache import cache
 import os
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
 import time
 import requests
 from django.conf import settings
@@ -23,26 +26,40 @@ class HealthViewSet(viewsets.ViewSet):
         """
         Comprehensive system health report
         """
-        data = {
-            "timestamp": time.time(),
-            "services": {
-                "database": self._check_db(),
-                "redis": self._check_redis(),
-                "external": self._check_external_services(),
-            },
-            "system": self._get_system_metrics(),
-            "environment": {
-                "debug": settings.DEBUG,
-                "timezone": settings.TIME_ZONE,
-                "allowed_hosts": settings.ALLOWED_HOSTS,
+        try:
+            data = {
+                "timestamp": time.time(),
+                "services": {
+                    "database": self._check_db(),
+                    "redis": self._check_redis(),
+                    "external": self._check_external_services(),
+                },
+                "system": self._get_system_metrics(),
+                "environment": {
+                    "debug": settings.DEBUG,
+                    "timezone": settings.TIME_ZONE,
+                    "allowed_hosts": settings.ALLOWED_HOSTS,
+                }
             }
-        }
-        
-        # Determine overall status
-        failed_services = [s for s, v in data["services"].items() if v["status"] != "healthy"]
-        data["overall_status"] = "unhealthy" if failed_services else "healthy"
-        
-        return Response(data)
+            
+            # Determine overall status - flatten services to check all
+            all_statuses = []
+            for s_name, s_val in data["services"].items():
+                if s_name == "external":
+                    for ext_s in s_val.values():
+                        if isinstance(ext_s, dict) and "status" in ext_s:
+                            all_statuses.append(ext_s["status"])
+                elif "status" in s_val:
+                    all_statuses.append(s_val["status"])
+            
+            data["overall_status"] = "unhealthy" if any(s != "healthy" and s != "not_configured" for s in all_statuses) else "healthy"
+            
+            return Response(data)
+        except Exception as e:
+            import traceback
+            print(f"ERROR in HealthViewSet.status: {e}")
+            print(traceback.format_exc())
+            return Response({"status": "error", "message": str(e)}, status=500)
 
     def _check_db(self):
         start = time.time()
