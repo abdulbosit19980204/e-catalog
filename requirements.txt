@@ -24,3 +24,6 @@ channels-redis==4.3.0
 
 # AI Description Generation
 openai>=1.0.0
+
+# System Metrics
+psutil==5.9.8

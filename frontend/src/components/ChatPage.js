@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { chatAPI } from "../api";
+import { chatAPI, getWebSocketUrl } from "../api";
 import { useNotification } from "../contexts/NotificationContext";
 import "./ChatPage.css";
 
@@ -63,10 +63,8 @@ const ChatPage = () => {
       loadMessages(activeConversation.id);
       
       // Setup WebSocket
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const host = window.location.hostname === "localhost" ? "localhost:8000" : window.location.host;
-      const token = localStorage.getItem("access");
-      const wsUrl = `${protocol}//${host}/ws/chat/${activeConversation.id}/${token ? `?token=${token}` : ""}`;
+      const token = localStorage.getItem("refresh");
+      const wsUrl = getWebSocketUrl(`/ws/chat/${activeConversation.id}/${token ? `?token=${token}` : ""}`);
       
       const ws = new WebSocket(wsUrl);
       

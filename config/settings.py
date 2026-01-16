@@ -54,7 +54,6 @@ DEFAULT_TRUSTED_ORIGINS = [
     'http://192.168.0.129',
     'http://192.168.0.129:8000',
     'http://192.168.0.129:1563',
-    'http://178.218.200.120:1596',
     'http://178.218.200.120',
     'http://localhost:1563',
     'http://127.0.0.1:1563'
@@ -372,8 +371,8 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/hour',
-        'user': '1000/hour',
+        'anon': '1000/hour',
+        'user': '10000/hour',
     },
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
@@ -594,7 +593,7 @@ CORS_ALLOWED_ORIGINS = [
 ] or DEFAULT_CORS_ALLOWED_ORIGINS
 
 # Production uchun environment variable orqali
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # Development uchun True, Production uchun False
+CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'True' if DEBUG else 'False') == 'True'
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [

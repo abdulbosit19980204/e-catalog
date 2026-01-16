@@ -50,6 +50,9 @@ urlpatterns = [
     
     # Visit Management API
     path('api/v1/', include('visits.urls')),
+    
+    # Core (Health, Monitoring)
+    path('api/v1/core/', include('core.urls')),
 ]
 
 # Serve media files in development

@@ -14,7 +14,13 @@ if (!derivedApiBase && typeof window !== "undefined") {
     }
   }
 }
-const API_BASE_URL = derivedApiBase || "http://178.218.200.120:1596/api/v1/";
+export const API_BASE_URL = derivedApiBase || "http://178.218.200.120:1596/api/v1/";
+
+export const getWebSocketUrl = (path) => {
+  const protocol = API_BASE_URL.startsWith("https") ? "wss:" : "ws:";
+  const host = API_BASE_URL.replace(/^https?:\/\//, "").split("/")[0];
+  return `${protocol}//${host}${path}`;
+};
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -478,6 +484,13 @@ export const visitImageAPI = {
   },
   deleteImage: (imageId) => {
     return apiClient.delete(`visit-image/${imageId}/`);
+  },
+};
+
+// Core API (Monitoring, Health)
+export const coreAPI = {
+  getStatus: () => {
+    return apiClient.get("/core/health/status/");
   },
 };
 
