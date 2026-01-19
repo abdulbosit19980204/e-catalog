@@ -117,17 +117,16 @@ class HealthViewSet(viewsets.ViewSet):
         if soap_url:
             results["main_soap_service"] = self._ping_url(soap_url, "Main 1C Service")
         
-        # 2. Dynamic Project URLs (WSDLs for different divisions/projects)
-        from api.models import Project  # Careful with imports to avoid circular deps
+        # 2. Dynamic Auth Project URLs (WSDLs and Service URLs for agents)
         try:
-            projects = Project.objects.filter(is_active=True).exclude(wsdl_url="")[:10] # Limit to 10 for performance
-            for project in projects:
-                results[f"project_{project.project_code}"] = self._ping_url(project.wsdl_url, f"Project: {project.name}")
+            from users.models import AuthProject
+            auth_projects = AuthProject.objects.filter(is_active=True).exclude(wsdl_url="")[:10]
+            for ap in auth_projects:
+                results[f"auth_{ap.project_code}_wsdl"] = self._ping_url(ap.wsdl_url, f"Auth WSDL: {ap.name}")
+                if ap.service_url:
+                    results[f"auth_{ap.project_code}_service"] = self._ping_url(ap.service_url, f"Auth Service: {ap.name}")
         except Exception as e:
-            results["project_discovery_error"] = {"status": "error", "message": f"Could not fetch project URLs: {str(e)}"}
-
-        if not results:
-            return {"status": "not_configured"}
+            results["auth_project_error"] = {"status": "error", "message": f"Auth projects check failed: {str(e)}"}
             
         return results
 

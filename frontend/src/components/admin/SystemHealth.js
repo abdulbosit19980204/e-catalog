@@ -79,25 +79,43 @@ const SystemHealth = () => {
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { enabled: false }
+      tooltip: {
+        enabled: true,
+        mode: 'index',
+        intersect: false,
+        callbacks: {
+          label: (context) => `${context.dataset.label}: ${context.parsed.y}%`
+        }
+      }
     },
     scales: {
-      y: { min: 0, max: 100, display: false },
+      y: { 
+        min: 0, 
+        max: 100, 
+        display: true,
+        grid: { color: '#f1f5f9' },
+        ticks: { 
+          stepSize: 20,
+          callback: (value) => `${value}%`,
+          font: { size: 10 }
+        }
+      },
       x: { display: false }
     },
     elements: {
-      point: { radius: 0 },
+      point: { radius: 0, hoverRadius: 4 },
       line: { tension: 0.4 }
     }
   };
 
-  const getChartData = (history, color) => ({
+  const getChartData = (label, history, color) => ({
     labels: new Array(MAX_HISTORY).fill(''),
     datasets: [{
+      label: label,
       fill: true,
       data: history,
       borderColor: color,
-      backgroundColor: `${color}22`,
+      backgroundColor: `${color}11`,
       borderWidth: 2,
     }]
   });
@@ -124,49 +142,75 @@ const SystemHealth = () => {
       {error && <div className="health-error-alert">{error}</div>}
 
       <div className="health-grid">
-        {/* Connection Status Cards */}
-        <section className="health-card services">
-          <h2>Ulanishlar</h2>
-          <div className="service-list">
-            <div className={`service-item ${getStatusClass(data?.services?.database?.status)}`}>
-              <div className="service-info">
+        {/* Connection Status Grid */}
+        <section className="health-section">
+          <h2>Ulanishlar va Servislar (Connectivity)</h2>
+          <div className="connectivity-grid">
+            {/* Database Card */}
+            <div className={`connection-card ${getStatusClass(data?.services?.database?.status)}`}>
+              <div className="card-header">
                 <h3>Ma'lumotlar Bazasi (DB)</h3>
-                <span className="sub">{data?.services?.database?.engine} | {data?.services?.database?.host}</span>
-              </div>
-              <div className="service-metrics">
-                <span className="latency">{formatLatency(data?.services?.database?.latency_ms)}</span>
                 <span className="badge">{data?.services?.database?.status?.toUpperCase()}</span>
               </div>
+              <div className="card-body">
+                <div className="info-row">
+                  <span className="label">Engine:</span>
+                  <span className="val">{data?.services?.database?.engine}</span>
+                </div>
+                <div className="info-row">
+                  <span className="label">Host:</span>
+                  <span className="val">{data?.services?.database?.host}</span>
+                </div>
+              </div>
+              <div className="card-footer">
+                <span className="latency">{formatLatency(data?.services?.database?.latency_ms)}</span>
+              </div>
             </div>
 
-            <div className={`service-item ${getStatusClass(data?.services?.redis?.status)}`}>
-              <div className="service-info">
+            {/* Redis Card */}
+            <div className={`connection-card ${getStatusClass(data?.services?.redis?.status)}`}>
+              <div className="card-header">
                 <h3>Redis (Caching)</h3>
-                <span className="sub">{data?.services?.redis?.url}</span>
-              </div>
-              <div className="service-metrics">
-                <span className="latency">{formatLatency(data?.services?.redis?.latency_ms)}</span>
                 <span className="badge">{data?.services?.redis?.status?.toUpperCase()}</span>
               </div>
+              <div className="card-body">
+                 <div className="info-row">
+                  <span className="label">Server:</span>
+                  <span className="val truncate" title={data?.services?.redis?.url}>
+                    {data?.services?.redis?.url?.split('@').pop() || 'Internal'}
+                  </span>
+                </div>
+              </div>
+              <div className="card-footer">
+                <span className="latency">{formatLatency(data?.services?.redis?.latency_ms)}</span>
+              </div>
             </div>
 
-            {/* Dynamic External Services */}
+            {/* Dynamic External Services Grid Items */}
             {data?.services?.external && Object.entries(data.services.external).map(([key, service]) => (
                 service.status !== 'not_configured' && (
-                    <div key={key} className={`service-item ${getStatusClass(service.status)}`}>
-                        <div className="service-info">
+                    <div key={key} className={`connection-card ${getStatusClass(service.status)}`}>
+                        <div className="card-header">
                             <h3>{service.name || key.replace(/_/g, ' ').toUpperCase()}</h3>
-                            <span className="sub">{service.url || 'URL mavjud emas'}</span>
-                        </div>
-                        <div className="service-metrics">
-                            {service.latency_ms !== undefined && (
-                                <span className="latency">{formatLatency(service.latency_ms)}</span>
-                            )}
                             <span className="badge">{service.status?.toUpperCase()}</span>
                         </div>
-                        {service.error && (
-                            <div className="service-error-detail">{service.error}</div>
-                        )}
+                        <div className="card-body">
+                            <div className="info-row">
+                                <span className="label">URL:</span>
+                                <span className="val truncate" title={service.url}>
+                                    {service.url ? new URL(service.url).hostname : 'N/A'}
+                                </span>
+                            </div>
+                            {service.error && (
+                                <div className="card-error" title={service.error}>
+                                    {service.error.substring(0, 50)}...
+                                </div>
+                            )}
+                        </div>
+                        <div className="card-footer">
+                            <span className="latency">{formatLatency(service.latency_ms)}</span>
+                            {service.status_code && <span className="code">HTTP {service.status_code}</span>}
+                        </div>
                     </div>
                 )
             ))}
@@ -175,28 +219,28 @@ const SystemHealth = () => {
 
         {/* System Resource Cards */}
         <section className="health-card system">
-          <h2>Server Resurslari</h2>
+          <h2>Server Resurslari (Real-time Dynamics)</h2>
           <div className="metrics-grid">
-            <div className="metric-box">
+            <div className="metric-box chart-box">
               <div className="metric-header">
-                <label>CPU Yuklanishi</label>
-                <span className="value">{data?.system?.cpu_percent}%</span>
+                <label>CPU Yuklanishi (Performance)</label>
+                <span className="value highlight">{data?.system?.cpu_percent}%</span>
               </div>
-              <div className="mini-chart">
-                <Line data={getChartData(cpuHistory, '#10b981')} options={chartOptions} />
+              <div className="chart-container">
+                <Line data={getChartData('CPU', cpuHistory, '#10b981')} options={chartOptions} />
               </div>
               <div className="progress-bar">
                 <div className="fill" style={{width: `${data?.system?.cpu_percent}%`, background: data?.system?.cpu_percent > 80 ? '#ef4444' : '#10b981'}}></div>
               </div>
             </div>
 
-            <div className="metric-box">
+            <div className="metric-box chart-box">
               <div className="metric-header">
-                <label>Xotira (RAM) - {data?.system?.memory?.used_gb} / {data?.system?.memory?.total_gb} GB</label>
-                <span className="value">{data?.system?.memory?.percent}%</span>
+                <label>Xotira (RAM Usage) - {data?.system?.memory?.used_gb} GB / {data?.system?.memory?.total_gb} GB</label>
+                <span className="value highlight">{data?.system?.memory?.percent}%</span>
               </div>
-              <div className="mini-chart">
-                <Line data={getChartData(memHistory, '#3b82f6')} options={chartOptions} />
+              <div className="chart-container">
+                <Line data={getChartData('RAM', memHistory, '#3b82f6')} options={chartOptions} />
               </div>
               <div className="progress-bar">
                 <div className="fill" style={{width: `${data?.system?.memory?.percent}%`, background: data?.system?.memory?.percent > 90 ? '#ef4444' : '#3b82f6'}}></div>
@@ -205,7 +249,7 @@ const SystemHealth = () => {
 
             <div className="metric-box">
               <div className="metric-header">
-                <label>Disk - {data?.system?.disk?.used_gb} / {data?.system?.disk?.total_gb} GB</label>
+                <label>Disk (Storage) - {data?.system?.disk?.used_gb} GB / {data?.system?.disk?.total_gb} GB</label>
                 <span className="value">{data?.system?.disk?.percent}%</span>
               </div>
               <div className="progress-bar">
@@ -216,7 +260,7 @@ const SystemHealth = () => {
           
           <div className="system-footer">
             <span>Uptime: {Math.floor((data?.system?.uptime_seconds || 0) / 3600)} soat</span>
-            <span>Debug Mode: {data?.environment?.debug ? 'YOQILGAN' : 'OCHIRILGAN'}</span>
+            <span>Oxirgi yangilanish: {new Date().toLocaleTimeString()}</span>
           </div>
         </section>
 
