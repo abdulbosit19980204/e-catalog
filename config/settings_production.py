@@ -36,9 +36,17 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
-# CORS Settings for Production
-CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
+# Production uchun environment variable orqali
+CORS_ALLOW_ALL_ORIGINS = True  # Forced for debugging CORS issues
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:1563',
+    'http://127.0.0.1:1563',
+    'http://178.218.200.120:1563',
+    'http://178.218.200.120:1596',
+] + os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
+CORS_ALLOWED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS if o]
 
 # Logging
 LOGGING = {

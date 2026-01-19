@@ -41,7 +41,8 @@ const AgentTracker = () => {
         script = document.createElement("script");
         script.id = scriptId;
         const apiKey = process.env.REACT_APP_YANDEX_MAPS_KEY || "";
-        script.src = `https://api-maps.yandex.ru/2.1/?lang=ru_RU${apiKey ? `&apikey=${apiKey}` : ""}`;
+        const modules = "package.full"; // Or specific like "package.standard"
+        script.src = `https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=${apiKey}&load=${modules}`;
         script.async = true;
         document.body.appendChild(script);
       }

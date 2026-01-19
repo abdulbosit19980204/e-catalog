@@ -118,7 +118,7 @@ const SystemHealth = () => {
               <div className="progress-bar">
                 <div className="fill" style={{width: `${data?.system?.cpu_percent}%`, background: data?.system?.cpu_percent > 80 ? '#ef4444' : '#10b981'}}></div>
               </div>
-              <span>{data?.system?.cpu_percent}%</span>
+              <span className="value">{data?.system?.cpu_percent}%</span>
             </div>
 
             <div className="metric-box">
@@ -126,7 +126,7 @@ const SystemHealth = () => {
               <div className="progress-bar">
                 <div className="fill" style={{width: `${data?.system?.memory?.percent}%`, background: data?.system?.memory?.percent > 90 ? '#ef4444' : '#3b82f6'}}></div>
               </div>
-              <span>{data?.system?.memory?.percent}%</span>
+              <span className="value">{data?.system?.memory?.percent}%</span>
             </div>
 
             <div className="metric-box">
@@ -134,13 +134,67 @@ const SystemHealth = () => {
               <div className="progress-bar">
                 <div className="fill" style={{width: `${data?.system?.disk?.percent}%`, background: data?.system?.disk?.percent > 85 ? '#ef4444' : '#8b5cf6'}}></div>
               </div>
-              <span>{data?.system?.disk?.percent}%</span>
+              <span className="value">{data?.system?.disk?.percent}%</span>
             </div>
           </div>
           
           <div className="system-footer">
             <span>Uptime: {Math.floor((data?.system?.uptime_seconds || 0) / 3600)} soat</span>
             <span>Debug Mode: {data?.environment?.debug ? 'YOQILGAN' : 'OCHIRILGAN'}</span>
+          </div>
+        </section>
+
+        {/* Top Processes Section */}
+        <section className="health-card processes">
+          <h2>Eng ko'p resurs yeyotgan servislar</h2>
+          <div className="process-tables-grid">
+            <div className="process-group">
+              <h3>CPU bo'yicha TOP</h3>
+              <div className="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Servis</th>
+                      <th>CPU %</th>
+                      <th>RAM</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data?.system?.top_processes_cpu?.map(p => (
+                      <tr key={`cpu-${p.pid}`}>
+                        <td className="proc-name" title={p.name}>{p.name}</td>
+                        <td className="proc-val highlight">{p.cpu}%</td>
+                        <td className="proc-val">{p.memory_mb} MB</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="process-group">
+              <h3>Xotira (RAM) bo'yicha TOP</h3>
+              <div className="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Servis</th>
+                      <th>RAM</th>
+                      <th>CPU %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data?.system?.top_processes_mem?.map(p => (
+                      <tr key={`mem-${p.pid}`}>
+                        <td className="proc-name" title={p.name}>{p.name}</td>
+                        <td className="proc-val highlight">{p.memory_mb} MB</td>
+                        <td className="proc-val">{p.cpu}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </section>
       </div>

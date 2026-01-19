@@ -36,7 +36,7 @@ const AdminLayout = ({ children }) => {
             to="/admin"
             className={`nav-item ${isActive("/admin")}`}
           >
-            <span className="nav-icon">📊</span>
+            <span className="nav-icon">🏠</span>
             {sidebarOpen && <span>Dashboard</span>}
           </Link>
           
@@ -60,7 +60,7 @@ const AdminLayout = ({ children }) => {
             to="/admin/nomenklatura"
             className={`nav-item ${isActive("/admin/nomenklatura")}`}
           >
-            <span className="nav-icon">📦</span>
+            <span className="nav-icon">🛍️</span>
             {sidebarOpen && <span>Nomenklatura</span>}
           </Link>
           
@@ -68,7 +68,7 @@ const AdminLayout = ({ children }) => {
             to="/admin/integration"
             className={`nav-item ${isActive("/admin/integration")}`}
           >
-            <span className="nav-icon">🔗</span>
+            <span className="nav-icon">📡</span>
             {sidebarOpen && <span>Integration</span>}
           </Link>
 
@@ -76,7 +76,7 @@ const AdminLayout = ({ children }) => {
             to="/admin/chat"
             className={`nav-item ${isActive("/admin/chat")}`}
           >
-            <span className="nav-icon">💬</span>
+            <span className="nav-icon">✉️</span>
             {sidebarOpen && <span>Chat</span>}
           </Link>
 
@@ -124,7 +124,7 @@ const AdminLayout = ({ children }) => {
             to="/admin/health"
             className={`nav-item ${isActive("/admin/health")}`}
           >
-            <span className="nav-icon">🏥</span>
+            <span className="nav-icon">🩺</span>
             {sidebarOpen && <span>System Health</span>}
           </Link>
 
@@ -132,7 +132,7 @@ const AdminLayout = ({ children }) => {
             to="/admin/clear-db"
             className={`nav-item ${isActive("/admin/clear-db")}`}
           >
-            <span className="nav-icon">🗑️</span>
+            <span className="nav-icon">🧹</span>
             {sidebarOpen && <span>Clear DB</span>}
           </Link>
         </nav>

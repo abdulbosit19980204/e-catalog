@@ -14,6 +14,8 @@ import time
 import requests
 from django.conf import settings
 
+from drf_spectacular.utils import extend_schema, OpenApiResponse
+
 class HealthViewSet(viewsets.ViewSet):
     """
     ViewSet for monitoring system health and connections.
@@ -21,6 +23,11 @@ class HealthViewSet(viewsets.ViewSet):
     """
     permission_classes = [IsAdminUser]
 
+    @extend_schema(
+        responses={200: OpenApiResponse(description="System health data")},
+        summary="Get system health status",
+        description="Returns real-time status of database, redis, external services and system metrics."
+    )
     @action(detail=False, methods=['get'])
     def status(self, request):
         """
@@ -131,9 +138,33 @@ class HealthViewSet(viewsets.ViewSet):
         return results
 
     def _get_system_metrics(self):
+        if not psutil:
+            return {"status": "unavailable", "reason": "psutil not installed"}
         try:
             mem = psutil.virtual_memory()
             disk = psutil.disk_usage('/')
+            
+            # Get top processes by CPU
+            processes = []
+            for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_info', 'status']):
+                try:
+                    p_info = proc.info
+                    # Skip idle/system processes with 0 usage to keep it clean if we want
+                    processes.append({
+                        "pid": p_info['pid'],
+                        "name": p_info['name'],
+                        "cpu": p_info['cpu_percent'],
+                        "memory_mb": round(p_info['memory_info'].rss / (1024 * 1024), 2),
+                        "status": p_info['status']
+                    })
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
+            
+            # Sort by CPU and take top 10
+            top_cpu = sorted(processes, key=lambda x: x['cpu'], reverse=True)[:10]
+            # Sort by Memory and take top 10
+            top_mem = sorted(processes, key=lambda x: x['memory_mb'], reverse=True)[:10]
+
             return {
                 "cpu_percent": psutil.cpu_percent(interval=None),
                 "memory": {
@@ -146,7 +177,9 @@ class HealthViewSet(viewsets.ViewSet):
                     "used_gb": round(disk.used / (1024**3), 2),
                     "percent": disk.percent
                 },
-                "uptime_seconds": int(time.time() - psutil.boot_time())
+                "uptime_seconds": int(time.time() - psutil.boot_time()),
+                "top_processes_cpu": top_cpu,
+                "top_processes_mem": top_mem
             }
-        except:
-            return {"status": "unavailable"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
