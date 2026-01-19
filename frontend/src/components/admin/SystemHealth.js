@@ -34,6 +34,7 @@ const SystemHealth = () => {
   const [refreshInterval, setRefreshInterval] = useState(5000); // 5 seconds
   const [cpuHistory, setCpuHistory] = useState(new Array(MAX_HISTORY).fill(0));
   const [memHistory, setMemHistory] = useState(new Array(MAX_HISTORY).fill(0));
+  const [selectedService, setSelectedService] = useState(null); // State for modal
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -148,18 +149,20 @@ const SystemHealth = () => {
           <div className="connectivity-grid">
             {/* Database Card */}
             <div className={`connection-card ${getStatusClass(data?.services?.database?.status)}`}>
-              <div className="card-header">
-                <h3>Ma'lumotlar Bazasi (DB)</h3>
-                <span className="badge">{data?.services?.database?.status?.toUpperCase()}</span>
+              <div className="card-header" onClick={() => setSelectedService({ ...data.services.database, typeLabel: 'Core', displayName: "Ma'lumotlar Bazasi (DB)" })}>
+                <div className="header-text">
+                  <span className="type-tag">Core Storage</span>
+                  <h3>Ma'lumotlar Bazasi (DB)</h3>
+                </div>
+                <div className="header-actions">
+                  <span className="badge">{data?.services?.database?.status?.toUpperCase()}</span>
+                  <span className="info-icon">ℹ️</span>
+                </div>
               </div>
               <div className="card-body">
-                <div className="info-row">
-                  <span className="label">Engine:</span>
-                  <span className="val">{data?.services?.database?.engine}</span>
-                </div>
-                <div className="info-row">
-                  <span className="label">Host:</span>
-                  <span className="val">{data?.services?.database?.host}</span>
+                <div className="info-row vertical">
+                  <span className="label">Engine / Connection Host:</span>
+                  <span className="val full-text">{data?.services?.database?.engine} | {data?.services?.database?.host}</span>
                 </div>
               </div>
               <div className="card-footer">
@@ -169,16 +172,20 @@ const SystemHealth = () => {
 
             {/* Redis Card */}
             <div className={`connection-card ${getStatusClass(data?.services?.redis?.status)}`}>
-              <div className="card-header">
-                <h3>Redis (Caching)</h3>
-                <span className="badge">{data?.services?.redis?.status?.toUpperCase()}</span>
+              <div className="card-header" onClick={() => setSelectedService({ ...data.services.redis, typeLabel: 'Caching', displayName: 'Redis (Global Cache)' })}>
+                <div className="header-text">
+                  <span className="type-tag">Real-time Cache</span>
+                  <h3>Redis (Caching)</h3>
+                </div>
+                <div className="header-actions">
+                  <span className="badge">{data?.services?.redis?.status?.toUpperCase()}</span>
+                  <span className="info-icon">ℹ️</span>
+                </div>
               </div>
               <div className="card-body">
-                 <div className="info-row">
-                  <span className="label">Server:</span>
-                  <span className="val truncate" title={data?.services?.redis?.url}>
-                    {data?.services?.redis?.url?.split('@').pop() || 'Internal'}
-                  </span>
+                 <div className="info-row vertical">
+                  <span className="label">Redis Connection URL:</span>
+                  <span className="val full-text break-all">{data?.services?.redis?.url}</span>
                 </div>
               </div>
               <div className="card-footer">
@@ -187,23 +194,35 @@ const SystemHealth = () => {
             </div>
 
             {/* Dynamic External Services Grid Items */}
-            {data?.services?.external && Object.entries(data.services.external).map(([key, service]) => (
-                service.status !== 'not_configured' && (
+            {data?.services?.external && Object.entries(data.services.external).map(([key, service]) => {
+                if (service.status === 'not_configured') return null;
+                
+                // Better name splitting logic to separate Type from Name
+                const nameParts = (service.name || key.replace(/_/g, ' ')).split(':');
+                const typeLabel = nameParts.length > 1 ? nameParts[0].trim() : 'Service';
+                const displayName = nameParts.length > 1 ? nameParts[1].trim() : nameParts[0].trim();
+
+                return (
                     <div key={key} className={`connection-card ${getStatusClass(service.status)}`}>
-                        <div className="card-header">
-                            <h3>{service.name || key.replace(/_/g, ' ').toUpperCase()}</h3>
-                            <span className="badge">{service.status?.toUpperCase()}</span>
+                        <div className="card-header" onClick={() => setSelectedService({ ...service, key, typeLabel, displayName })}>
+                            <div className="header-text">
+                                <span className="type-tag">{typeLabel}</span>
+                                <h3 title={displayName}>{displayName}</h3>
+                            </div>
+                            <div className="header-actions">
+                                <span className="badge">{service.status?.toUpperCase()}</span>
+                                <span className="info-icon">ℹ️</span>
+                            </div>
                         </div>
                         <div className="card-body">
-                            <div className="info-row">
-                                <span className="label">URL:</span>
-                                <span className="val truncate" title={service.url}>
-                                    {service.url ? new URL(service.url).hostname : 'N/A'}
-                                </span>
+                            <div className="info-row vertical">
+                                <span className="label">Endpoint URL:</span>
+                                <span className="val full-text" title={service.url}>{service.url || 'N/A'}</span>
                             </div>
                             {service.error && (
-                                <div className="card-error" title={service.error}>
-                                    {service.error.substring(0, 50)}...
+                                <div className="card-error-mini">
+                                    <span className="error-dot"></span>
+                                    Connection Error (Click for logs)
                                 </div>
                             )}
                         </div>
@@ -212,10 +231,80 @@ const SystemHealth = () => {
                             {service.status_code && <span className="code">HTTP {service.status_code}</span>}
                         </div>
                     </div>
-                )
-            ))}
+                );
+            })}
           </div>
         </section>
+
+        {/* Modal for Details with Improved Design */}
+        {selectedService && (
+            <div className="health-modal-backdrop" onClick={() => setSelectedService(null)}>
+                <div className="health-modal-content" onClick={e => e.stopPropagation()}>
+                    <header className="modal-header-new">
+                        <div className="modal-title-group">
+                            <span className="modal-category">{selectedService.typeLabel || 'System Service'}</span>
+                            <h2>{selectedService.displayName || selectedService.name || selectedService.key}</h2>
+                        </div>
+                        <button className="modal-close-new" onClick={() => setSelectedService(null)} aria-label="Close">&times;</button>
+                    </header>
+                    
+                    <div className="modal-body-new">
+                        <div className="modal-status-strip">
+                            <div className={`status-pill ${getStatusClass(selectedService.status)}`}>
+                                {selectedService.status?.toUpperCase()}
+                            </div>
+                            {selectedService.latency_ms !== undefined && (
+                                <div className="metric-pill">
+                                    <span className="p-label">Latency:</span>
+                                    <span className="p-val">{selectedService.latency_ms.toFixed(2)} ms</span>
+                                </div>
+                            )}
+                            {selectedService.status_code && (
+                                <div className="metric-pill">
+                                    <span className="p-label">HTTP:</span>
+                                    <span className="p-val">{selectedService.status_code}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="modal-detail-section">
+                            <label>Full Network Address</label>
+                            <div className="modal-url-box">
+                                {selectedService.url}
+                            </div>
+                        </div>
+
+                        {selectedService.error && (
+                            <div className="modal-detail-section">
+                                <label className="error-label">Diagnostic Logs & Error Trace</label>
+                                <div className="modal-error-box">
+                                    {selectedService.error}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="modal-grid-info">
+                            <div className="grid-item">
+                                <label>Target Host</label>
+                                <span>{selectedService.url ? new URL(selectedService.url).host : 'N/A'}</span>
+                            </div>
+                            <div className="grid-item">
+                                <label>Protocol</label>
+                                <span>{selectedService.url ? new URL(selectedService.url).protocol.replace(':','') : 'N/A'}</span>
+                            </div>
+                            <div className="grid-item">
+                                <label>Service Key</label>
+                                <span>{selectedService.key || 'Core'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <footer className="modal-footer-new">
+                        <button className="btn-done" onClick={() => setSelectedService(null)}>Yopish (Close)</button>
+                    </footer>
+                </div>
+            </div>
+        )}
 
         {/* System Resource Cards */}
         <section className="health-card system">
