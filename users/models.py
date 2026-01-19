@@ -29,6 +29,7 @@ class AuthProject(BaseModel):
 
 class UserProfile(BaseModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    project = models.ForeignKey('users.AuthProject', on_delete=models.SET_NULL, null=True, blank=True, related_name='user_profiles')
     code_1c = models.CharField(max_length=100, blank=True, null=True, db_index=True, help_text="1C dagi user kodi")
     code_project = models.CharField(max_length=100, blank=True, null=True, help_text="1C CodeProject")
     code_sklad = models.CharField(max_length=100, blank=True, null=True, help_text="1C CodeSklad")

@@ -26,24 +26,30 @@ class VisitFilter(django_filters.FilterSet):
     """Advanced filtering for visits"""
     date_from = django_filters.DateFilter(field_name='planned_date', lookup_expr='gte')
     date_to = django_filters.DateFilter(field_name='planned_date', lookup_expr='lte')
-    agent = django_filters.CharFilter(field_name='agent_code', lookup_expr='iexact')
-    client = django_filters.CharFilter(field_name='client_code', lookup_expr='iexact')
+    agent_code = django_filters.CharFilter(field_name='agent_code', lookup_expr='iexact')
+    client_code = django_filters.CharFilter(field_name='client_code', lookup_expr='iexact')
+    agent = django_filters.NumberFilter(field_name='agent__id')
+    client = django_filters.NumberFilter(field_name='client__id')
     search = django_filters.CharFilter(method='filter_search', label="Search")
 
     class Meta:
         model = Visit
-        fields = ['visit_type', 'visit_status', 'priority', 'agent_code', 'client_code']
+        fields = ['visit_type', 'visit_status', 'priority', 'agent', 'client', 'agent_code', 'client_code']
 
     def filter_search(self, queryset, name, value):
         if value:
             return queryset.filter(
                 Q(agent_name__icontains=value) |
                 Q(client_name__icontains=value) |
+                Q(agent__user__first_name__icontains=value) |
+                Q(client__name__icontains=value) |
                 Q(purpose__icontains=value) |
                 Q(notes__icontains=value)
             )
         return queryset
 
+
+from utils.mixins import ProjectScopedMixin
 
 @extend_schema_view(
     list=extend_schema(
@@ -68,75 +74,69 @@ class VisitFilter(django_filters.FilterSet):
         summary="Yangi tashrif yaratish",
         description="Yangi tashrif rejasini yaratish (admin/supervisor uchun)"
     ),
-    update=extend_schema(
-        tags=['Visits'],
-        summary="Tashrif yangilash",
-        description="Tashrif ma'lumotlarini yangilash"
-    ),
-    partial_update=extend_schema(
-        tags=['Visits'],
-        summary="Qisman yangilash",
-        description="Faqat ba'zi maydonlarni yangilash"
-    ),
-    destroy=extend_schema(
-        tags=['Visits'],
-        summary="Tashrif o'chirish",
-        description="Tashrifni soft-delete qilish"
-    ),
 )
-class VisitViewSet(viewsets.ModelViewSet):
+class VisitViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     """
     Visit Management ViewSet
-    Optimized with optional pagination and prefetch_related
+    Optimized with ProjectScopedMixin for data isolation
     """
     from utils.pagination import OptionalLimitOffsetPagination
     
     permission_classes = [IsAuthenticated]
     filterset_class = VisitFilter
-    pagination_class = OptionalLimitOffsetPagination  # Opt-in
+    pagination_class = OptionalLimitOffsetPagination
     search_fields = ['agent_name', 'client_name', 'purpose', 'notes']
     ordering_fields = ['planned_date', 'created_at', 'actual_start_time']
     ordering = ['-planned_date', '-planned_time']
     
     def get_queryset(self):
-        """Optimized queryset with prefetch"""
-        cache_key = f"visit_list_{hash(str(self.request.query_params))}"
-        cached_qs = smart_cache_get(cache_key)
+        """Optimized queryset with parent-scoped and prefetch"""
+        # Mixin filters by project
+        queryset = super().get_queryset().filter(is_deleted=False)
+        queryset = queryset.prefetch_related('images').order_by('-planned_date', '-planned_time')
+        return queryset
+
+    def _resolve_links(self, instance):
+        """Helper to resolve agent and client links by their codes"""
+        from users.models import UserProfile
+        from client.models import Client
         
-        if cached_qs is None:
-            queryset = Visit.objects.filter(is_deleted=False)
-            queryset = queryset.prefetch_related('images').order_by('-planned_date', '-planned_time')
-            smart_cache_set(cache_key, queryset, timeout=600)
-            return queryset
-        return cached_qs
+        # Link Agent (UserProfile)
+        if instance.agent_code and not instance.agent:
+            agent_profile = UserProfile.objects.filter(code_1c=instance.agent_code, is_deleted=False).first()
+            if agent_profile:
+                instance.agent = agent_profile
+                # Also sync names/phones if they are currently custom/empty
+                if not instance.agent_name:
+                    instance.agent_name = agent_profile.user.get_full_name() or agent_profile.user.username
+                
+        # Link Client
+        if instance.client_code and not instance.client:
+            client_obj = Client.objects.filter(client_code_1c=instance.client_code, is_deleted=False).first()
+            if client_obj:
+                instance.client = client_obj
+                if not instance.client_name:
+                    instance.client_name = client_obj.name
+                if not instance.client_address:
+                    instance.client_address = client_obj.actual_address or ""
+
+        instance.save()
 
     def perform_create(self, serializer):
-        super().perform_create(serializer)
-        try:
-            from django.core.cache import cache
-            cache.delete_pattern("visit_*")
-        except AttributeError:
-            from django.core.cache import cache
-            cache.clear()
+        # Mixin handles project assignment
+        instance = serializer.save()
+        self._resolve_links(instance)
+        cache.clear()
 
     def perform_update(self, serializer):
-        super().perform_update(serializer)
-        try:
-            from django.core.cache import cache
-            cache.delete_pattern("visit_*")
-        except AttributeError:
-            from django.core.cache import cache
-            cache.clear()
+        instance = serializer.save()
+        self._resolve_links(instance)
+        cache.clear()
 
     def perform_destroy(self, instance):
         instance.is_deleted = True
         instance.save(update_fields=['is_deleted', 'updated_at'])
-        try:
-            from django.core.cache import cache
-            cache.delete_pattern("visit_*")
-        except AttributeError:
-            from django.core.cache import cache
-            cache.clear()
+        cache.clear()
     
     def get_serializer_class(self):
         """Dynamic serializer selection"""
@@ -144,12 +144,9 @@ class VisitViewSet(viewsets.ModelViewSet):
             return VisitListSerializer
         elif self.action == 'create':
             return VisitCreateSerializer
+        elif self.action == 'upload_image':
+            return VisitImageSerializer
         return VisitDetailSerializer
-    
-    def perform_destroy(self, instance):
-        """Soft delete"""
-        instance.is_deleted = True
-        instance.save(update_fields=['is_deleted', 'updated_at'])
     
     @extend_schema(
         tags=['Visits'],
@@ -163,7 +160,6 @@ class VisitViewSet(viewsets.ModelViewSet):
         """Check in to visit location"""
         visit = self.get_object()
         
-        # Validate status
         if visit.visit_status not in ['SCHEDULED', 'CONFIRMED']:
             return Response(
                 {'error': 'Faqat rejalashtirilgan tashriflarga check-in qilish mumkin'},
@@ -173,7 +169,6 @@ class VisitViewSet(viewsets.ModelViewSet):
         serializer = VisitCheckInSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        # Perform check-in
         visit.check_in(
             latitude=serializer.validated_data['latitude'],
             longitude=serializer.validated_data['longitude'],
@@ -184,10 +179,11 @@ class VisitViewSet(viewsets.ModelViewSet):
             visit.check_in_address = serializer.validated_data['address']
             visit.save(update_fields=['check_in_address'])
         
-        return Response(
-            VisitDetailSerializer(visit).data,
-            status=status.HTTP_200_OK
-        )
+        # Trigger Sync with 1C
+        from .services import VisitSyncService
+        VisitSyncService.sync_visit(visit, status_type='check_in')
+        
+        return Response(VisitDetailSerializer(visit).data)
     
     @extend_schema(
         tags=['Visits'],
@@ -210,7 +206,6 @@ class VisitViewSet(viewsets.ModelViewSet):
         serializer = VisitCheckOutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        # Update visit details
         data = serializer.validated_data
         visit.check_out(
             latitude=data.get('latitude'),
@@ -218,54 +213,35 @@ class VisitViewSet(viewsets.ModelViewSet):
         )
         
         # Update other fields
-        if 'tasks_completed' in data:
-            visit.tasks_completed = data['tasks_completed']
-        if 'outcome' in data:
-            visit.outcome = data['outcome']
-        if 'notes' in data:
-            visit.notes = data['notes']
-        if 'client_satisfaction' in data:
-            visit.client_satisfaction = data['client_satisfaction']
-        if 'next_visit_date' in data:
-            visit.next_visit_date = data['next_visit_date']
-        if 'next_visit_notes' in data:
-            visit.next_visit_notes = data['next_visit_notes']
+        for field in ['tasks_completed', 'outcome', 'notes', 'client_satisfaction', 'next_visit_date', 'next_visit_notes']:
+            if field in data:
+                setattr(visit, field, data[field])
         
         visit.save()
-        
-        return Response(
-            VisitDetailSerializer(visit).data,
-            status=status.HTTP_200_OK
-        )
+
+        # Trigger Sync with 1C
+        from .services import VisitSyncService
+        VisitSyncService.sync_visit(visit, status_type='check_out')
+
+        return Response(VisitDetailSerializer(visit).data)
     
     @extend_schema(
         tags=['Visits'],
         summary="Rasm yuklash",
         description="Tashrif davomida rasm yuklash",
-        request={
-            'multipart/form-data': {
-                'type': 'object',
-                'properties': {
-                    'image': {'type': 'string', 'format': 'binary'},
-                    'image_type': {'type': 'string'},
-                    'notes': {'type': 'string'},
-                }
-            }
-        },
+        request=VisitImageSerializer,
         responses={201: VisitImageSerializer}
     )
     @action(detail=True, methods=['post'], url_path='upload-image')
     def upload_image(self, request, pk=None):
         """Upload image during visit"""
         visit = self.get_object()
+        serializer = VisitImageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
-        # This is a placeholder - actual image upload logic would go here
-        # You would integrate with your image storage service
-        
-        return Response(
-            {'message': 'Image upload endpoint - integrate with your storage'},
-            status=status.HTTP_501_NOT_IMPLEMENTED
-        )
+        # Save nested image object
+        serializer.save(visit=visit)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     @extend_schema(
         tags=['Visits'],
@@ -374,7 +350,7 @@ class VisitViewSet(viewsets.ModelViewSet):
         description="Takrorlanuvchi tashrif rejasini yaratish"
     ),
 )
-class VisitPlanViewSet(viewsets.ModelViewSet):
+class VisitPlanViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     """Visit Plan Management"""
     queryset = VisitPlan.objects.filter(is_deleted=False)
     serializer_class = VisitPlanSerializer
@@ -382,6 +358,33 @@ class VisitPlanViewSet(viewsets.ModelViewSet):
     filterset_fields = ['agent_code', 'client_code', 'is_active', 'frequency']
     ordering = ['agent_code', 'planned_weekday', 'planned_time']
     
+    def _resolve_links(self, instance):
+        """Helper to resolve agent and client links by their codes"""
+        from users.models import UserProfile
+        from client.models import Client
+        
+        # Link Agent (UserProfile)
+        if instance.agent_code and not instance.agent:
+            agent_profile = UserProfile.objects.filter(code_1c=instance.agent_code, is_deleted=False).first()
+            if agent_profile:
+                instance.agent = agent_profile
+                
+        # Link Client
+        if instance.client_code and not instance.client:
+            client_obj = Client.objects.filter(client_code_1c=instance.client_code, is_deleted=False).first()
+            if client_obj:
+                instance.client = client_obj
+
+        instance.save()
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        self._resolve_links(instance)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        self._resolve_links(instance)
+
     def perform_destroy(self, instance):
         """Soft delete"""
         instance.is_deleted = True
@@ -395,25 +398,61 @@ class VisitPlanViewSet(viewsets.ModelViewSet):
     )
     @action(detail=False, methods=['post'], url_path='generate-weekly')
     def generate_weekly(self, request):
-        """Auto-generate visits from active plans"""
+        """Auto-generate visits from active plans for the upcoming week"""
+        from datetime import date, timedelta
         created_count = 0
         
-        active_plans = VisitPlan.objects.filter(
+        # Define the target week (next week)
+        today = date.today()
+        # Find next Monday
+        next_monday = today + timedelta(days=(7 - today.weekday()))
+        
+        active_plans = self.get_queryset().filter(
             is_active=True,
-            auto_generate=True,
-            is_deleted=False
-        )
+            auto_generate=True
+        ).select_related('agent', 'client', 'agent__user', 'project')
         
         for plan in active_plans:
-            # Logic to generate visits from plan
-            # This would check if visit already exists and create if not
-            # Placeholder for now
-            pass
+            # 0=Monday, ..., 6=Sunday
+            target_date = next_monday + timedelta(days=plan.planned_weekday)
+            
+            # Check if visit already exists
+            exists = Visit.objects.filter(
+                project=plan.project,
+                agent_code=plan.agent_code,
+                client_code=plan.client_code,
+                planned_date=target_date,
+                is_deleted=False
+            ).exists()
+            
+            if not exists:
+                # Use details from linked entities if available
+                agent_name = plan.agent.user.get_full_name() if plan.agent else f"Agent {plan.agent_code}"
+                client_name = plan.client.name if plan.client else f"Client {plan.client_code}"
+                client_address = plan.client.actual_address if plan.client else ""
+                
+                Visit.objects.create(
+                    project=plan.project,
+                    agent=plan.agent,
+                    client=plan.client,
+                    agent_code=plan.agent_code,
+                    client_code=plan.client_code,
+                    agent_name=agent_name,
+                    client_name=client_name,
+                    client_address=client_address,
+                    visit_type='PLANNED',
+                    visit_status='SCHEDULED',
+                    priority=plan.priority,
+                    planned_date=target_date,
+                    planned_time=plan.planned_time,
+                    planned_duration_minutes=plan.duration_minutes
+                )
+                created_count += 1
         
         return Response({'created': created_count})
 
 
-class VisitImageViewSet(viewsets.ModelViewSet):
+class VisitImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     """Visit Images Management"""
     queryset = VisitImage.objects.filter(is_deleted=False)
     serializer_class = VisitImageSerializer
@@ -421,6 +460,16 @@ class VisitImageViewSet(viewsets.ModelViewSet):
     filterset_fields = ['visit', 'image_type']
     ordering = ['-captured_at']
     
+    # Custom get_queryset to ensure image's visit belongs to the project
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = self.request.user
+        if user.is_superuser:
+            return queryset
+        
+        # Verify the visit of this image belongs to user's project
+        return queryset.filter(visit__project=user.profile.project)
+
     def perform_destroy(self, instance):
         """Soft delete"""
         instance.is_deleted = True

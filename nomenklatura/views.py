@@ -128,14 +128,15 @@ class NomenklaturaImageFilterSet(django_filters.FilterSet):
         fields = ['nomenklatura', 'code_1c', 'article_code', 'is_main', 'category', 'project', 'project_id', 'created_from', 'created_to']
 
 
+from utils.mixins import ProjectScopedMixin
+
 @extend_schema_view(
     list=extend_schema(
         tags=['Nomenklatura'],
         summary="Nomenklatura ro'yxatini olish",
         description=(
             "Aktiv va soft-delete qilinmagan (is_deleted=False) nomenklaturalarning ro'yxatini qaytaradi. "
-            "Filtrlash uchun `django-filters` qo'llanilgan, shuningdek `search` parametri `code_1c` va `name` bo'yicha qidirish imkonini beradi. "
-            "Ma'lumotlar prefetch_related orqali optimallashtirilgan va keshlanadi."
+            "Ma'muotlar ProjectScopedMixin orqali foydalanuvchi proyektiga ko'ra filtrlanadi."
         ),
         parameters=[
             OpenApiParameter(
@@ -144,134 +145,23 @@ class NomenklaturaImageFilterSet(django_filters.FilterSet):
                 type=OpenApiTypes.STR,
                 description="Nomenklatura nomi yoki code bo'yicha qidirish",
             ),
-            OpenApiParameter(
-                name='page',
-                required=False,
-                type=OpenApiTypes.INT,
-                description="Sahifa raqami (default: 1)",
-            ),
-            OpenApiParameter(
-                name='page_size',
-                required=False,
-                type=OpenApiTypes.INT,
-                description="Sahifadagi elementlar soni (default: 20, max: 100)",
-            ),
-            OpenApiParameter(
-                name='code_1c',
-                required=False,
-                type=OpenApiTypes.STR,
-                description="Aniq code bo'yicha filter",
-            ),
-            OpenApiParameter(
-                name='name',
-                required=False,
-                type=OpenApiTypes.STR,
-                description="Aniq nom bo'yicha filter",
-            ),
-            OpenApiParameter(
-                name='description_status',
-                required=False,
-                type=OpenApiTypes.STR,
-                description="Description bo'yicha filter (`with` | `without`)",
-            ),
-            OpenApiParameter(
-                name='image_status',
-                required=False,
-                type=OpenApiTypes.STR,
-                description="Rasm holati bo'yicha filter (`with` - rasm bor | `without` - rasm yo'q)",
-            ),
-            OpenApiParameter(
-                name='created_from',
-                required=False,
-                type=OpenApiTypes.DATE,
-                description="Yaratilgan sanadan boshlab (YYYY-MM-DD)",
-            ),
-            OpenApiParameter(
-                name='created_to',
-                required=False,
-                type=OpenApiTypes.DATE,
-                description="Yaratilgan sana chegarasi (YYYY-MM-DD)",
-            ),
-            OpenApiParameter(
-                name='updated_from',
-                required=False,
-                type=OpenApiTypes.DATE,
-                description="Yangilangan sanadan boshlab (YYYY-MM-DD)",
-            ),
-            OpenApiParameter(
-                name='project',
-                required=False,
-                type=OpenApiTypes.STR,
-                description="Project code_1c bo'yicha filter",
-            ),
-            OpenApiParameter(
-                name='project_id',
-                required=False,
-                type=OpenApiTypes.INT,
-                description="Project ID bo'yicha filter",
-            ),
-            OpenApiParameter(
-                name='updated_to',
-                required=False,
-                type=OpenApiTypes.DATE,
-                description="Yangilangan sana chegarasi (YYYY-MM-DD)",
-            ),
-            OpenApiParameter(
-                name='is_active',
-                required=False,
-                type=OpenApiTypes.BOOL,
-                description="Faol/Noaktivlik holati bo'yicha filter",
-            ),
-            OpenApiParameter(
-                name='category',
-                required=False,
-                type=OpenApiTypes.STR,
-                description="Kategoriya bo'yicha filter",
-            ),
         ],
     ),
     retrieve=extend_schema(
         tags=['Nomenklatura'],
         summary="Bitta nomenklatura ma'lumotini olish",
-        description="`code_1c` identifikatoriga ko'ra nomenklatura ma'lumotlarini qaytaradi. Agar bir xil code bir nechta projectda bo'lsa, `project_id` parametridan foydalanish tavsiya etiladi.",
-    ),
-    create=extend_schema(
-        tags=['Nomenklatura'],
-        summary="Yangi nomenklatura yaratish",
-        description="Yangi nomenklatura yozuvini yaratadi. Kesh yaratilgandan so'ng avtomatik tozalanadi.",
-    ),
-    update=extend_schema(
-        tags=['Nomenklatura'],
-        summary="Nomenklatura ma'lumotlarini to'liq yangilash",
-        description="`PUT` so'rovi nomenklatura yozuvini to'liq yangilaydi.",
-    ),
-    partial_update=extend_schema(
-        tags=['Nomenklatura'],
-        summary="Nomenklatura ma'lumotlarini qisman yangilash",
-        description="Faqat yuborilgan maydonlarni yangilaydi. `code_1c` identifikator sifatida qoladi.",
-    ),
-    destroy=extend_schema(
-        tags=['Nomenklatura'],
-        summary="Nomenklaturani soft-delete qilish",
-        description="Nomenklatura yozuvini o'chirmasdan, `is_deleted=True` qilib belgilaydi va keshni yangilaydi.",
-        responses={204: OpenApiResponse(description="Nomenklatura soft-delete qilindi")},
+        description="`code_1c` identifikatoriga ko'ra nomenklatura ma'lumotlarini qaytaradi.",
     ),
 )
-class NomenklaturaViewSet(viewsets.ModelViewSet):
+class NomenklaturaViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     """
-    OPTIMIZED Nomenklatura ViewSet with optional pagination
-    
-    Performance improvements:
-    - Optional pagination via ?limit= parameter (backward compatible)
-    - Enhanced server-side filtering
-    - Optimized queries with prefetch_related
-    - Smart caching
+    OPTIMIZED Nomenklatura ViewSet with Project Isolation
     """
     from utils.pagination import OptionalLimitOffsetPagination
     
     queryset = Nomenklatura.objects.filter(is_deleted=False)
     serializer_class = NomenklaturaSerializer
-    pagination_class = OptionalLimitOffsetPagination  # Opt-in pagination
+    pagination_class = OptionalLimitOffsetPagination
     lookup_field = 'code_1c'
     lookup_value_regex = '.+'
     filterset_class = NomenklaturaFilterSet
@@ -279,22 +169,15 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_queryset(self):
-        """
-        Optimized queryset with prefetch_related and caching
-        """
-        cache_key = f"nomenklatura_list_{hash(str(self.request.query_params))}"
-        cached_qs = smart_cache_get(cache_key)
-        
-        if cached_qs is None:
-            queryset = Nomenklatura.objects.filter(is_deleted=False)
-            queryset = queryset.prefetch_related(
-                'images',
-                'images__status',
-                'images__source'
-            ).select_related('project').order_by('-created_at')
-            smart_cache_set(cache_key, queryset, timeout=600)
-            return queryset
-        return cached_qs
+        """Optimized queryset with multi-tenant isolation"""
+        # Mixin handles project filtering
+        queryset = super().get_queryset()
+        queryset = queryset.prefetch_related(
+            'images',
+            'images__status',
+            'images__source'
+        ).order_by('-created_at')
+        return queryset
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -652,7 +535,7 @@ Nomenklatura rasmlarini `nomenklatura` (ID) va `category` bo'yicha filterlash mu
         description="Rasmni bazadan o'chiradi yoki soft-delete qiladi.",
     ),
 )
-class NomenklaturaImageViewSet(viewsets.ModelViewSet):
+class NomenklaturaImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     queryset = NomenklaturaImage.objects.filter(is_deleted=False)
     serializer_class = NomenklaturaImageSerializer
     filterset_class = NomenklaturaImageFilterSet
@@ -660,10 +543,11 @@ class NomenklaturaImageViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_queryset(self):
-        """Optimizatsiya: bog'langan model'larni yuklash - N+1 query muammosini hal qiladi"""
-        return NomenklaturaImage.objects.filter(
-            is_deleted=False
-        ).select_related('nomenklatura', 'nomenklatura__project', 'status', 'source').order_by('-created_at')
+        """Optimizatsiya: bog'langan model'larni yuklash va multi-tenant isolation"""
+        # Mixin handles project filtering
+        return super().get_queryset().select_related(
+            'nomenklatura', 'nomenklatura__project', 'status', 'source'
+        ).order_by('-created_at')
     
     def get_serializer_context(self):
         context = super().get_serializer_context()

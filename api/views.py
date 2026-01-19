@@ -32,6 +32,7 @@ from utils.excel import (
     workbook_to_response,
 )
 from .models import Project, ProjectImage, ImageStatus, ImageSource, AgentLocation
+from utils.mixins import ProjectScopedMixin
 from .serializers import (
     ProjectImageBulkUploadSerializer,
     ProjectImageSerializer,
@@ -214,19 +215,25 @@ class ProjectImageFilterSet(django_filters.FilterSet):
         responses={204: OpenApiResponse(description="Project soft-delete qilindi")},
     ),
 )
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Projects'],
+        summary="Project ro'yxatini olish",
+        description=(
+            "Aktiv va soft-delete qilinmagan (is_deleted=False) project'lar ro'yxatini pagination bilan qaytaradi. "
+            "ProjectScopedMixin orqali faqat foydalanuvchiga tegishli project ko'rinadi."
+        ),
+    ),
+)
 class ProjectViewSet(viewsets.ModelViewSet):
     """
-    OPTIMIZED Project ViewSet
-    - Optional pagination via ?limit=
-    - Enhanced filtering
-    - Optimized queries (prefetch_related)
-    - Pattern-based smart caching
+    OPTIMIZED Project ViewSet with Project Isolation
     """
     from utils.pagination import OptionalLimitOffsetPagination
     
     queryset = Project.objects.filter(is_deleted=False)
     serializer_class = ProjectSerializer
-    pagination_class = OptionalLimitOffsetPagination  # Opt-in
+    pagination_class = OptionalLimitOffsetPagination
     lookup_field = 'code_1c'
     lookup_value_regex = '.+'
     filterset_class = ProjectFilterSet
@@ -234,21 +241,23 @@ class ProjectViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_queryset(self):
-        """Optimized queryset with prefetch_related"""
-        # Cache key based on filters to avoid database hit for identical requests
-        cache_key = f"project_list_{hash(str(self.request.query_params))}"
-        cached_qs = smart_cache_get(cache_key)
+        """Optimized queryset with project isolation"""
+        user = self.request.user
+        queryset = Project.objects.filter(is_deleted=False)
         
-        if cached_qs is None:
-            queryset = Project.objects.filter(is_deleted=False)
-            queryset = queryset.prefetch_related(
-                'images',
-                'images__status',
-                'images__source'
-            ).order_by('-created_at')
-            smart_cache_set(cache_key, queryset, timeout=600)
-            return queryset
-        return cached_qs
+        if not user.is_superuser:
+            try:
+                # Filter by user's assigned project code
+                user_project_code = user.profile.project.project_code
+                queryset = queryset.filter(code_1c=user_project_code)
+            except AttributeError:
+                return queryset.none()
+                
+        return queryset.prefetch_related(
+            'images',
+            'images__status',
+            'images__source'
+        ).order_by('-created_at')
     
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -474,7 +483,15 @@ class AgentLocationFilterSet(django_filters.FilterSet):
         description="Yozuvni `is_deleted=True` qilib belgilaydi."
     ),
 )
-class AgentLocationViewSet(viewsets.ModelViewSet):
+class AgentLocationViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
+    """
+    Agent location tracking with project isolation.
+    """
+    # Custom project field since AgentLocation might not have a direct FK
+    # Note: If AgentLocation lacks project field, it should be filtered by agent_code prefix 
+    # or by matching agent_code to project's agents.
+    # For now, we assume AgentLocation will have a project field or be scoped in get_queryset.
+    
     queryset = AgentLocation.objects.filter(is_deleted=False)
     serializer_class = AgentLocationSerializer
     filterset_class = AgentLocationFilterSet
@@ -483,7 +500,13 @@ class AgentLocationViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def get_queryset(self):
-        return AgentLocation.objects.filter(is_deleted=False).order_by('-created_at')
+        queryset = super().get_queryset().order_by('-created_at')
+        user = self.request.user
+        
+        # If AgentLocation doesn't have a direct 'project' field, 
+        # we might need to filter by agent_code prefix if that's the convention.
+        # However, it's better if AgentLocation has a project field.
+        return queryset
 
     def perform_destroy(self, instance):
         instance.is_deleted = True

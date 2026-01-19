@@ -71,11 +71,29 @@ class Visit(BaseModel):
     )
     
     # Agent information
+    agent = models.ForeignKey(
+        'users.UserProfile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='visits',
+        db_index=True,
+        help_text="Tashrifni amalga oshiradigan agent"
+    )
     agent_code = models.CharField(max_length=50, db_index=True)
     agent_name = models.CharField(max_length=255)
     agent_phone = models.CharField(max_length=20, blank=True)
     
-    # Client reference (flexible - can be from any client app)
+    # Client reference
+    client = models.ForeignKey(
+        'client.Client',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='visits',
+        db_index=True,
+        help_text="Tashrif buyuriladigan mijoz"
+    )
     client_code = models.CharField(max_length=100, db_index=True)
     client_name = models.CharField(max_length=255)
     client_address = models.TextField(blank=True)
@@ -183,8 +201,8 @@ class Visit(BaseModel):
         db_table = 'visits'
         ordering = ['-planned_date', '-planned_time']
         indexes = [
-            models.Index(fields=['project', 'agent_code', 'planned_date', 'visit_status']),
-            models.Index(fields=['client_code', 'actual_start_time']),
+            models.Index(fields=['project', 'agent', 'planned_date', 'visit_status']),
+            models.Index(fields=['client', 'actual_start_time']),
             models.Index(fields=['visit_type', 'created_at']),
             models.Index(fields=['visit_status', 'planned_date']),
         ]
@@ -263,7 +281,24 @@ class VisitPlan(BaseModel):
     )
     
     # Agent and client
+    agent = models.ForeignKey(
+        'users.UserProfile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='visit_plans',
+        db_index=True
+    )
     agent_code = models.CharField(max_length=50, db_index=True)
+    
+    client = models.ForeignKey(
+        'client.Client',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='visit_plans',
+        db_index=True
+    )
     client_code = models.CharField(max_length=100, db_index=True)
     
     # Schedule pattern
@@ -309,8 +344,8 @@ class VisitPlan(BaseModel):
         db_table = 'visit_plans'
         ordering = ['agent_code', 'planned_weekday', 'planned_time']
         indexes = [
-            models.Index(fields=['project', 'agent_code', 'is_active']),
-            models.Index(fields=['client_code', 'is_active']),
+            models.Index(fields=['project', 'agent', 'is_active']),
+            models.Index(fields=['client', 'is_active']),
         ]
         unique_together = [['project', 'agent_code', 'client_code', 'planned_weekday', 'planned_time']]
     

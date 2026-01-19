@@ -94,6 +94,8 @@ class ClientImageFilterSet(django_filters.FilterSet):
         fields = ['client', 'client_code_1c', 'status', 'is_main', 'category', 'created_from', 'created_to']
 
 
+from utils.mixins import ProjectScopedMixin
+
 @extend_schema_view(
     list=extend_schema(
         tags=['Clients'],
@@ -101,7 +103,7 @@ class ClientImageFilterSet(django_filters.FilterSet):
         description=(
             "Authentication talab qilinadi. Aktiv va soft-delete qilinmagan (is_deleted=False) client'lar ro'yxatini pagination bilan qaytaradi. "
             " `search` parametri orqali `name`, `email` va `client_code_1c` bo'yicha qidirish mumkin. "
-            "Ma'lumotlar prefetch_related orqali optimallashtirilgan bo'lib, images, status va source ma'lumotlarini ham o'z ichiga oladi."
+            "Ma'muotlar ProjectScopedMixin orqali foydalanuvchi proyektiga ko'ra filtrlanadi."
         ),
         parameters=[
             OpenApiParameter(
@@ -110,154 +112,39 @@ class ClientImageFilterSet(django_filters.FilterSet):
                 type=OpenApiTypes.STR,
                 description="Client nomi, email yoki code bo'yicha qidirish",
             ),
-            OpenApiParameter(
-                name='page',
-                required=False,
-                type=OpenApiTypes.INT,
-                description="Sahifa raqami (default: 1)",
-            ),
-            OpenApiParameter(
-                name='page_size',
-                required=False,
-                type=OpenApiTypes.INT,
-                description="Sahifadagi elementlar soni (default: 20, max: 100)",
-            ),
-            OpenApiParameter(
-                name='client_code_1c',
-                required=False,
-                type=OpenApiTypes.STR,
-                description="Aniq code bo'yicha filter",
-            ),
-            OpenApiParameter(
-                name='name',
-                required=False,
-                type=OpenApiTypes.STR,
-                description="Aniq nom bo'yicha filter",
-            ),
-            OpenApiParameter(
-                name='description_status',
-                required=False,
-                type=OpenApiTypes.STR,
-                description="Description bo'yicha filter (`with` | `without`)",
-            ),
-            OpenApiParameter(
-                name='image_status',
-                required=False,
-                type=OpenApiTypes.STR,
-                description="Rasm holati bo'yicha filter (`with` - rasm bor | `without` - rasm yo'q)",
-            ),
-            OpenApiParameter(
-                name='created_from',
-                required=False,
-                type=OpenApiTypes.DATE,
-                description="Yaratilgan sanadan boshlab (YYYY-MM-DD)",
-            ),
-            OpenApiParameter(
-                name='created_to',
-                required=False,
-                type=OpenApiTypes.DATE,
-                description="Yaratilgan sana chegarasi (YYYY-MM-DD)",
-            ),
-            OpenApiParameter(
-                name='updated_from',
-                required=False,
-                type=OpenApiTypes.DATE,
-                description="Yangilangan sanadan boshlab (YYYY-MM-DD)",
-            ),
-            OpenApiParameter(
-                name='updated_to',
-                required=False,
-                type=OpenApiTypes.DATE,
-                description="Yangilangan sana chegarasi (YYYY-MM-DD)",
-            ),
         ],
     ),
     retrieve=extend_schema(
         tags=['Clients'],
         summary="Bitta client ma'lumotini olish",
-        description="`client_code_1c` identifikatoriga ko'ra client ma'lumotlarini qaytaradi. Bitta code bir nechta projectda bo'lishi mumkinligi sababli `project_id` yuborish tavsiya etiladi.",
-    ),
-    create=extend_schema(
-        tags=['Clients'],
-        summary="Yangi client yaratish",
-        description="Ilova ichida yangi client qo'shish. Yarashilganidan so'ng kesh avtomatik tozalanadi.",
-    ),
-    update=extend_schema(
-        tags=['Clients'],
-        summary="Client ma'lumotlarini to'liq yangilash",
-        description="`PUT` so'rovi client yozuvini to'liq yangilaydi.",
-    ),
-    partial_update=extend_schema(
-        tags=['Clients'],
-        summary="Client ma'lumotlarini qisman yangilash",
-        description="Faqat yuborilgan maydonlarni yangilaydi. `client_code_1c` identifikator sifatida qoladi.",
-    ),
-    destroy=extend_schema(
-        tags=['Clients'],
-        summary="Client'ni soft-delete qilish",
-        description="Client yozuvini o'chirmasdan, `is_deleted=True` qilib belgilaydi va keshni tozalaydi.",
-        responses={204: OpenApiResponse(description="Client soft-delete qilindi")},
+        description="`client_code_1c` identifikatoriga ko'ra client ma'lumotlarini qaytaradi.",
     ),
 )
-class ClientViewSet(viewsets.ModelViewSet):
+class ClientViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     """
-    OPTIMIZED Client ViewSet
-    - Optional pagination via ?limit=
-    - Enhanced filtering
-    - Optimized queries
+    OPTIMIZED Client ViewSet with Project Isolation
     """
     from utils.pagination import OptionalLimitOffsetPagination
     
     queryset = Client.objects.filter(is_deleted=False)
     serializer_class = ClientSerializer
-    pagination_class = OptionalLimitOffsetPagination  # Opt-in
+    pagination_class = OptionalLimitOffsetPagination
     lookup_field = "client_code_1c"
     lookup_value_regex = "[^/]+"
     filterset_class = ClientFilterSet
     search_fields = ["name", "email", "client_code_1c"]
     permission_classes = [IsAuthenticated]
     
-    def get_object(self):
-        """client_code_1c bo'yicha bitta obyektni olish, MultipleObjectsReturned xatosi oldini olish uchun"""
-        queryset = self.filter_queryset(self.get_queryset())
-        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
-        lookup_value = self.kwargs[lookup_url_kwarg]
-        
-        # Filter by lookup field
-        filter_kwargs = {self.lookup_field: lookup_value}
-        
-        # Agar URL params da project_id bo'lsa, undan foydalanamiz
-        project_id = self.request.query_params.get('project_id')
-        if project_id:
-            filter_kwargs['project_id'] = project_id
-            
-        try:
-            obj = queryset.get(**filter_kwargs)
-        except Client.MultipleObjectsReturned:
-            # Agar bir nechta chiqsa va project_id berilmagan bo'lsa, birinchisini olamiz
-            if not project_id:
-                return queryset.filter(**filter_kwargs).first()
-            raise
-            
-        self.check_object_permissions(self.request, obj)
-        return obj
-
-    
     def get_queryset(self):
-        """Optimized queryset with prefetch_related and caching"""
-        cache_key = f"client_list_{hash(str(self.request.query_params))}"
-        cached_qs = smart_cache_get(cache_key)
-        
-        if cached_qs is None:
-            queryset = Client.objects.filter(is_deleted=False)
-            queryset = queryset.prefetch_related(
-                'images',
-                'images__status',
-                'images__source'
-            ).select_related('project').order_by('-created_at')
-            smart_cache_set(cache_key, queryset, timeout=600)
-            return queryset
-        return cached_qs
+        """Optimized queryset with multi-tenant isolation"""
+        # Mixin filters by project
+        queryset = super().get_queryset()
+        queryset = queryset.prefetch_related(
+            'images',
+            'images__status',
+            'images__source'
+        ).order_by('-created_at')
+        return queryset
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -541,7 +428,7 @@ Client rasmlarini `client` (ID) va `client_code_1c` bo'yicha filterlash mumkin.
         description="Rasmni bazadan o'chiradi yoki soft-delete qiladi.",
     ),
 )
-class ClientImageViewSet(viewsets.ModelViewSet):
+class ClientImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     queryset = ClientImage.objects.filter(is_deleted=False)
     serializer_class = ClientImageSerializer
     filterset_class = ClientImageFilterSet
@@ -550,152 +437,38 @@ class ClientImageViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         super().perform_create(serializer)
-        try:
-            cache.delete_pattern("client_*")
-        except AttributeError:
-            cache.clear()
+        cache.clear()
 
     def perform_update(self, serializer):
         super().perform_update(serializer)
-        try:
-            cache.delete_pattern("client_*")
-        except AttributeError:
-            cache.clear()
+        cache.clear()
 
     def perform_destroy(self, instance):
         instance.is_deleted = True
         instance.save(update_fields=['is_deleted', 'updated_at'])
-        try:
-            cache.delete_pattern("client_*")
-        except AttributeError:
-            cache.clear()
+        cache.clear()
     
     def get_queryset(self):
-        """Optimizatsiya: bog'langan model'larni yuklash va keshdan foydalanish"""
-        cache_key = f"client_image_queryset_{hash(str(self.request.query_params))}"
-        cached_qs = smart_cache_get(cache_key)
-        if cached_qs is None:
-            qs = ClientImage.objects.filter(
-                is_deleted=False
-            ).select_related('client', 'client__project', 'status', 'source').order_by('-created_at')
-            smart_cache_set(cache_key, qs, 300)
-            return qs
-        return cached_qs
-    
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
-    
-    @extend_schema(
-        tags=['Clients'],
-        summary="Client uchun bir nechta rasm yuklash",
-        description=(
-            "Multipart form-data formatida bir nechta rasm faylini birdaniga yuklaydi. "
-            "`client` maydoniga `client_code_1c` qiymati yuboriladi. Ixtiyoriy ravishda "
-            "`category` va `note` maydonlari orqali rasmlarga umumiy teg yoki izoh berish mumkin."
-        ),
-        request=ClientImageBulkUploadSerializer,
-        responses={
-            201: OpenApiResponse(
-                response=ClientImageSerializer(many=True),
-                description="Yangi yuklangan rasmlar ro'yxati",
-            ),
-            400: OpenApiResponse(description="Kerakli maydonlar yetishmaydi"),
-            404: OpenApiResponse(description="Client topilmadi"),
-        },
-        examples=[
-            OpenApiExample(
-                name="Multipart sample",
-                description="HTTPie yordamida bir nechta client rasmini yuborish",
-                value="http --form POST /api/v1/client-images/bulk-upload/ client=C-001 "
-                "category=report note='Ishchi jarayon fotosi' "
-                "images@/path/img1.jpg images@/path/img2.jpg",
-            )
-        ],
-    )
-    @action(detail=False, methods=['post'], url_path='bulk-upload')
-    def bulk_upload(self, request):
-        """Bir vaqtda bir nechta rasm yuklash"""
-        client_code = request.data.get('client')
-        if not client_code:
-            return Response(
-                {'error': 'client client_code_1c talab qilinadi'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # project_id ni ham hisobga olamiz
-        project_id = request.data.get('project_id')
-        query = Q(client_code_1c=client_code, is_deleted=False)
-        if project_id:
-            try:
-                project_id = int(str(project_id).strip())
-                query &= Q(project_id=project_id)
-            except (ValueError, TypeError):
-                # Agar project_id noto'g'ri kelsa, uni ignor qilamiz yoki xato berishimiz mumkin
-                pass
-            
-        client = Client.objects.filter(query).first()
+        """Optimizatsiya: bog'langan model'larni yuklash va multi-tenant isolation"""
+        # Mixin filters by project
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('client', 'client__project', 'status', 'source').order_by('-created_at')
+        return queryset
 
-        
-        if not client:
-            return Response(
-                {'error': 'Client topilmadi'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        images = request.FILES.getlist('images')
-        if not images:
-            return Response(
-                {'error': 'Rasmlar talab qilinadi'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        category = request.data.get('category', '')
-        note = request.data.get('note', '')
-        
-        created_images = []
-        for image in images:
-            image_obj = ClientImage.objects.create(
-                client=client,
-                image=image,
-                is_main=False,
-                is_active=True,
-                is_deleted=False,
-                category=category,
-                note=note,
-            )
-            serializer = ClientImageSerializer(image_obj, context={'request': request})
-            created_images.append(serializer.data)
-        
-        cache.clear()
-        return Response({
-            'message': f'{len(created_images)} ta rasm muvaffaqiyatli yuklandi',
-            'images': created_images
-        }, status=status.HTTP_201_CREATED)
 @extend_schema_view(
     list=extend_schema(
-        tags=['Agent Visits'],
+        tags=['Agent Visits (Legacy)'],
         summary="Agent tashrifi rasmlari ro'yxatini olish",
         description=(
             "Agentlar tomonidan magazinlarga tashrif buyurilgan (visit) vaqtida olingan barcha rasmlarni qaytaradi. "
-            "Ushbu endpoint rekordlar soni juda ko'p bo'lishini (millonlab) hisobga olib, "
-            "maxsus optimallashtirilgan (`select_related`, `only`). "
-            "Ma'lumotlar faqat o'qish uchun mo'ljallangan va keshlanishi tavsiya etiladi."
+            "Ma'muotlar ProjectScopedMixin orqali foydalanuvchi proyektiga ko'ra filtrlanadi."
         ),
     ),
-    create=extend_schema(
-        tags=['Agent Visits'],
-        summary="Yangi tashrif rasmini yuklash",
-        description="Agent tashrifi davomida olingan rasmni tizimga yuklash. Fayl hajmi va formati tekshiriladi.",
-    ),
-    retrieve=extend_schema(tags=['Agent Visits'], summary="Bitta tashrif rasmi tafsiloti"),
-    destroy=extend_schema(tags=['Agent Visits'], summary="Tashrif rasmini o'chirish (soft-delete)"),
+    retrieve=extend_schema(tags=['Agent Visits (Legacy)'], summary="Bitta tashrif rasmi tafsiloti"),
 )
-class VisitImageViewSet(viewsets.ModelViewSet):
+class VisitImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     """
-    Agent tashriflari (visit) davomida olingan rasmlar uchun maxsus API.
-    Millionlab recordlar uchun optimallashtirilgan.
+    Legacy Agent visits viewset with project isolation
     """
     queryset = ClientImage.objects.filter(is_deleted=False)
     serializer_class = ClientImageSerializer
@@ -704,12 +477,8 @@ class VisitImageViewSet(viewsets.ModelViewSet):
     search_fields = ['client__name', 'client__client_code_1c', 'note']
 
     def get_queryset(self):
-        # Faqat kerakli maydonlarni yuklash orqali memory va I/O ni tejaymiz
-        return ClientImage.objects.filter(
-            is_deleted=False,
-            # Faqat tashrifga aloqador statusdagi rasmlarni qaytaramiz (agar buni xoxlashsa)
-            # status__code__in=['store_before', 'store_after'] 
-        ).select_related(
+        # Mixin filters by project
+        return super().get_queryset().select_related(
             'client', 'client__project', 'status', 'source'
         ).only(
             'id', 'client__id', 'client__name', 'client__client_code_1c', 'client__project',

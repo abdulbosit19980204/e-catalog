@@ -180,6 +180,7 @@ class OneCAuthService:
         UserProfile.objects.update_or_create(
             user=user,
             defaults={
+                'project': project,
                 'code_1c': data.get('code'),
                 'code_project': data.get('code_project'),
                 'code_sklad': data.get('code_sklad'),

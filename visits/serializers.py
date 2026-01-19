@@ -19,16 +19,38 @@ class VisitImageSerializer(serializers.ModelSerializer):
         read_only_fields = ['image_id', 'captured_at']
 
 
+class UserProfileTinySerializer(serializers.ModelSerializer):
+    """Minimal user profile information"""
+    username = serializers.CharField(source='user.username', read_only=True)
+    full_name = serializers.CharField(source='user.first_name', read_only=True)
+    
+    class Meta:
+        from users.models import UserProfile
+        model = UserProfile
+        fields = ['id', 'username', 'full_name', 'code_1c']
+
+
+class ClientTinySerializer(serializers.ModelSerializer):
+    """Minimal client information"""
+    class Meta:
+        from client.models import Client
+        model = Client
+        fields = ['id', 'name', 'client_code_1c', 'actual_address']
+
+
 class VisitListSerializer(serializers.ModelSerializer):
     """Optimized serializer for list views"""
     image_count = serializers.SerializerMethodField()
     is_overdue = serializers.BooleanField(read_only=True)
+    agent_details = UserProfileTinySerializer(source='agent', read_only=True)
+    client_details = ClientTinySerializer(source='client', read_only=True)
     
     class Meta:
         model = Visit
         fields = [
-            'visit_id', 'agent_code', 'agent_name', 'client_code',
-            'client_name', 'visit_type', 'visit_status', 'priority',
+            'visit_id', 'agent', 'agent_details', 'agent_code', 'agent_name', 
+            'client', 'client_details', 'client_code', 'client_name', 
+            'visit_type', 'visit_status', 'priority',
             'planned_date', 'planned_time', 'actual_start_time',
             'actual_end_time', 'duration_minutes', 'image_count',
             'is_overdue', 'created_at'
@@ -45,6 +67,8 @@ class VisitDetailSerializer(serializers.ModelSerializer):
     images = VisitImageSerializer(many=True, read_only=True)
     is_overdue = serializers.BooleanField(read_only=True)
     is_in_progress = serializers.BooleanField(read_only=True)
+    agent_details = UserProfileTinySerializer(source='agent', read_only=True)
+    client_details = ClientTinySerializer(source='client', read_only=True)
     
     class Meta:
         model = Visit
