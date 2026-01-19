@@ -109,33 +109,55 @@ class HealthViewSet(viewsets.ViewSet):
             }
 
     def _check_external_services(self):
-        """Check 1C SOAP and other external dependencies"""
+        """Check 1C SOAP and other external dependencies, including Project-specific URLs"""
         results = {}
         
-        # 1C Integration check (if URL available)
+        # 1. Base SOAP URL check
         soap_url = os.environ.get('SOAP_URL', '')
         if soap_url:
-            try:
-                # Basic ping/head request
-                start = time.time()
-                res = requests.head(soap_url, timeout=5)
-                duration = (time.time() - start) * 1000
-                results["1c_integration"] = {
-                    "status": "healthy" if res.status_code < 500 else "unhealthy",
-                    "status_code": res.status_code,
-                    "url": soap_url,
-                    "latency_ms": round(duration, 2)
-                }
-            except Exception as e:
-                results["1c_integration"] = {
-                    "status": "unhealthy",
-                    "error": str(e),
-                    "url": soap_url
-                }
-        else:
-            results["1c_integration"] = {"status": "not_configured"}
+            results["main_soap_service"] = self._ping_url(soap_url, "Main 1C Service")
+        
+        # 2. Dynamic Project URLs (WSDLs for different divisions/projects)
+        from api.models import Project  # Careful with imports to avoid circular deps
+        try:
+            projects = Project.objects.filter(is_active=True).exclude(wsdl_url="")[:10] # Limit to 10 for performance
+            for project in projects:
+                results[f"project_{project.project_code}"] = self._ping_url(project.wsdl_url, f"Project: {project.name}")
+        except Exception as e:
+            results["project_discovery_error"] = {"status": "error", "message": f"Could not fetch project URLs: {str(e)}"}
 
+        if not results:
+            return {"status": "not_configured"}
+            
         return results
+
+    def _ping_url(self, url, name):
+        """Helper to ping an external URL and return status"""
+        try:
+            start = time.time()
+            # Try HEAD first, then GET if HEAD fails (some servers block HEAD)
+            try:
+                res = requests.head(url, timeout=5)
+                if res.status_code >= 400:
+                   res = requests.get(url, timeout=5, stream=True)
+            except:
+                res = requests.get(url, timeout=5, stream=True)
+                
+            duration = (time.time() - start) * 1000
+            return {
+                "name": name,
+                "status": "healthy" if res.status_code < 500 else "unhealthy",
+                "status_code": res.status_code,
+                "url": url,
+                "latency_ms": round(duration, 2)
+            }
+        except Exception as e:
+            return {
+                "name": name,
+                "status": "unhealthy",
+                "error": str(e),
+                "url": url
+            }
 
     def _get_system_metrics(self):
         if not psutil:
@@ -166,7 +188,7 @@ class HealthViewSet(viewsets.ViewSet):
             top_mem = sorted(processes, key=lambda x: x['memory_mb'], reverse=True)[:10]
 
             return {
-                "cpu_percent": psutil.cpu_percent(interval=None),
+                "cpu_percent": psutil.cpu_percent(interval=0.1),
                 "memory": {
                     "total_gb": round(mem.total / (1024**3), 2),
                     "used_gb": round(mem.used / (1024**3), 2),

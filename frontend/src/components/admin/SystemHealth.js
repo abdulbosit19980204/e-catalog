@@ -1,18 +1,51 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { coreAPI } from '../../api';
 import './SystemHealth.css';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Filler,
+  Legend,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Filler,
+  Legend
+);
+
+const MAX_HISTORY = 20;
 
 const SystemHealth = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
+  const [refreshInterval, setRefreshInterval] = useState(5000); // 5 seconds
+  const [cpuHistory, setCpuHistory] = useState(new Array(MAX_HISTORY).fill(0));
+  const [memHistory, setMemHistory] = useState(new Array(MAX_HISTORY).fill(0));
 
   const fetchStatus = useCallback(async () => {
     try {
-      setLoading(true);
       const res = await coreAPI.getStatus();
-      setData(res.data);
+      const newData = res.data;
+      setData(newData);
+      
+      if (newData?.system) {
+        setCpuHistory(prev => [...prev.slice(1), newData.system.cpu_percent]);
+        setMemHistory(prev => [...prev.slice(1), newData.system.memory.percent]);
+      }
+      
       setError(null);
     } catch (err) {
       console.error("Health check failed", err);
@@ -40,6 +73,34 @@ const SystemHealth = () => {
     if (ms === undefined) return 'N/A';
     return `${ms.toFixed(0)} ms`;
   };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: false }
+    },
+    scales: {
+      y: { min: 0, max: 100, display: false },
+      x: { display: false }
+    },
+    elements: {
+      point: { radius: 0 },
+      line: { tension: 0.4 }
+    }
+  };
+
+  const getChartData = (history, color) => ({
+    labels: new Array(MAX_HISTORY).fill(''),
+    datasets: [{
+      fill: true,
+      data: history,
+      borderColor: color,
+      backgroundColor: `${color}22`,
+      borderWidth: 2,
+    }]
+  });
 
   if (!data && loading) return <div className="health-loading">Monitoring yuklanmoqda...</div>;
 
@@ -74,7 +135,7 @@ const SystemHealth = () => {
               </div>
               <div className="service-metrics">
                 <span className="latency">{formatLatency(data?.services?.database?.latency_ms)}</span>
-                <span className="badge">{data?.services?.database?.status.toUpperCase()}</span>
+                <span className="badge">{data?.services?.database?.status?.toUpperCase()}</span>
               </div>
             </div>
 
@@ -85,27 +146,30 @@ const SystemHealth = () => {
               </div>
               <div className="service-metrics">
                 <span className="latency">{formatLatency(data?.services?.redis?.latency_ms)}</span>
-                <span className="badge">{data?.services?.redis?.status.toUpperCase()}</span>
+                <span className="badge">{data?.services?.redis?.status?.toUpperCase()}</span>
               </div>
             </div>
 
-            <div className={`service-item ${getStatusClass(data?.services?.external?.['1c_integration']?.status)}`}>
-              <div className="service-info">
-                <h3>1C Integratsiya (SOAP)</h3>
-                <span className="sub">{data?.services?.external?.['1c_integration']?.url || 'Sozlanmagan'}</span>
-              </div>
-              <div className="service-metrics">
-                 {data?.services?.external?.['1c_integration']?.latency_ms && (
-                    <span className="latency">{formatLatency(data.services.external['1c_integration'].latency_ms)}</span>
-                 )}
-                <span className="badge">
-                    {data?.services?.external?.['1c_integration']?.status.toUpperCase()}
-                </span>
-              </div>
-              {data?.services?.external?.['1c_integration']?.error && (
-                  <div className="service-error-detail">{data.services.external['1c_integration'].error}</div>
-              )}
-            </div>
+            {/* Dynamic External Services */}
+            {data?.services?.external && Object.entries(data.services.external).map(([key, service]) => (
+                service.status !== 'not_configured' && (
+                    <div key={key} className={`service-item ${getStatusClass(service.status)}`}>
+                        <div className="service-info">
+                            <h3>{service.name || key.replace(/_/g, ' ').toUpperCase()}</h3>
+                            <span className="sub">{service.url || 'URL mavjud emas'}</span>
+                        </div>
+                        <div className="service-metrics">
+                            {service.latency_ms !== undefined && (
+                                <span className="latency">{formatLatency(service.latency_ms)}</span>
+                            )}
+                            <span className="badge">{service.status?.toUpperCase()}</span>
+                        </div>
+                        {service.error && (
+                            <div className="service-error-detail">{service.error}</div>
+                        )}
+                    </div>
+                )
+            ))}
           </div>
         </section>
 
@@ -114,27 +178,39 @@ const SystemHealth = () => {
           <h2>Server Resurslari</h2>
           <div className="metrics-grid">
             <div className="metric-box">
-              <label>CPU Yuklanishi</label>
+              <div className="metric-header">
+                <label>CPU Yuklanishi</label>
+                <span className="value">{data?.system?.cpu_percent}%</span>
+              </div>
+              <div className="mini-chart">
+                <Line data={getChartData(cpuHistory, '#10b981')} options={chartOptions} />
+              </div>
               <div className="progress-bar">
                 <div className="fill" style={{width: `${data?.system?.cpu_percent}%`, background: data?.system?.cpu_percent > 80 ? '#ef4444' : '#10b981'}}></div>
               </div>
-              <span className="value">{data?.system?.cpu_percent}%</span>
             </div>
 
             <div className="metric-box">
-              <label>Xotira (RAM) - {data?.system?.memory?.used_gb} / {data?.system?.memory?.total_gb} GB</label>
+              <div className="metric-header">
+                <label>Xotira (RAM) - {data?.system?.memory?.used_gb} / {data?.system?.memory?.total_gb} GB</label>
+                <span className="value">{data?.system?.memory?.percent}%</span>
+              </div>
+              <div className="mini-chart">
+                <Line data={getChartData(memHistory, '#3b82f6')} options={chartOptions} />
+              </div>
               <div className="progress-bar">
                 <div className="fill" style={{width: `${data?.system?.memory?.percent}%`, background: data?.system?.memory?.percent > 90 ? '#ef4444' : '#3b82f6'}}></div>
               </div>
-              <span className="value">{data?.system?.memory?.percent}%</span>
             </div>
 
             <div className="metric-box">
-              <label>Disk - {data?.system?.disk?.used_gb} / {data?.system?.disk?.total_gb} GB</label>
+              <div className="metric-header">
+                <label>Disk - {data?.system?.disk?.used_gb} / {data?.system?.disk?.total_gb} GB</label>
+                <span className="value">{data?.system?.disk?.percent}%</span>
+              </div>
               <div className="progress-bar">
                 <div className="fill" style={{width: `${data?.system?.disk?.percent}%`, background: data?.system?.disk?.percent > 85 ? '#ef4444' : '#8b5cf6'}}></div>
               </div>
-              <span className="value">{data?.system?.disk?.percent}%</span>
             </div>
           </div>
           
