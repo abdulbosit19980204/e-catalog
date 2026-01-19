@@ -14,8 +14,19 @@ from .views import (
     AgentLocationViewSet,
     ClearDatabaseView,
 )
+from references.views import (
+    VisitTypeViewSet, 
+    VisitStatusViewSet, 
+    VisitPriorityViewSet, 
+    VisitStepViewSet
+)
 
 router = DefaultRouter()
+router.register('visit-types', VisitTypeViewSet)
+router.register('visit-statuses', VisitStatusViewSet)
+router.register('visit-priorities', VisitPriorityViewSet)
+router.register('visit-steps', VisitStepViewSet)
+
 router.register('nomenklatura', NomenklaturaViewSet)
 router.register('nomenklatura-image', NomenklaturaImageViewSet)
 router.register('client', ClientViewSet)

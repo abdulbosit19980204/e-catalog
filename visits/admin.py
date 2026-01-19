@@ -1,15 +1,24 @@
 from django.contrib import admin
-from .models import Visit, VisitPlan, VisitImage
+from .models import Visit, VisitPlan, VisitImage, VisitStepResult
+
+
+class VisitStepResultInline(admin.TabularInline):
+    model = VisitStepResult
+    extra = 0
+    fields = ['step', 'is_completed', 'value_text', 'value_number', 'value_boolean', 'value_photo']
+    readonly_fields = ['step']
+    can_delete = False
 
 
 @admin.register(Visit)
 class VisitAdmin(admin.ModelAdmin):
+    inlines = [VisitStepResultInline]
     list_display = [
         'visit_id', 'agent_name', 'client_name', 'planned_date',
-        'visit_type', 'visit_status', 'priority', 'duration_minutes'
+        'visit_type', 'status', 'priority', 'duration'
     ]
     list_filter = [
-        'visit_status', 'visit_type', 'priority', 'planned_date',
+        'status', 'visit_type', 'priority', 'planned_date',
         'created_at', 'is_deleted'
     ]
     search_fields = [
@@ -17,12 +26,12 @@ class VisitAdmin(admin.ModelAdmin):
         'purpose', 'notes'
     ]
     readonly_fields = [
-        'visit_id', 'created_at', 'updated_at', 'duration_minutes',
+        'visit_id', 'created_at', 'updated_at', 'duration',
         'cancelled_at'
     ]
     fieldsets = (
         ('Asosiy ma\'lumotlar', {
-            'fields': ('visit_id', 'visit_type', 'visit_status', 'priority')
+            'fields': ('visit_id', 'visit_type', 'status', 'priority')
         }),
         ('Agent', {
             'fields': ('agent_code', 'agent_name', 'agent_phone')
@@ -38,7 +47,7 @@ class VisitAdmin(admin.ModelAdmin):
         }),
         ('Haqiqiy vaqt', {
             'fields': (
-                'actual_start_time', 'actual_end_time', 'duration_minutes'
+                'actual_start_time', 'actual_end_time', 'duration'
             )
         }),
         ('Joylashuv', {

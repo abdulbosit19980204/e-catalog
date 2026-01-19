@@ -92,6 +92,7 @@ INSTALLED_APPS = [
     'channels',
     'chat',
     'visits',  # Visit Management System
+    'references', # Dynamic References (Types, Statuses, Steps)
     'core',    # System-wide logs and utilities
 ]
 

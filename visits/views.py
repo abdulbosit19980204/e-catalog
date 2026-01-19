@@ -31,10 +31,15 @@ class VisitFilter(django_filters.FilterSet):
     agent = django_filters.NumberFilter(field_name='agent__id')
     client = django_filters.NumberFilter(field_name='client__id')
     search = django_filters.CharFilter(method='filter_search', label="Search")
+    
+    # Dynamic field filters (filter by CODE)
+    visit_status = django_filters.CharFilter(field_name='status__code', lookup_expr='iexact')
+    visit_type = django_filters.CharFilter(field_name='visit_type__code', lookup_expr='iexact')
+    priority = django_filters.CharFilter(field_name='priority__code', lookup_expr='iexact')
 
     class Meta:
         model = Visit
-        fields = ['visit_type', 'visit_status', 'priority', 'agent', 'client', 'agent_code', 'client_code']
+        fields = ['agent', 'client', 'agent_code', 'client_code']
 
     def filter_search(self, queryset, name, value):
         if value:
