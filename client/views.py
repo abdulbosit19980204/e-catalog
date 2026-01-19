@@ -468,7 +468,6 @@ class ClientImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
         for img_file in images:
             image_obj = ClientImage.objects.create(
                 client=client_obj,
-                project=client_obj.project,
                 image=img_file,
                 category=category,
                 note=note

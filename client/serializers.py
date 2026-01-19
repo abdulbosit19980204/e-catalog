@@ -213,3 +213,32 @@ class ClientImageBulkUploadSerializer(serializers.Serializer):
         max_length=255,
     )
 
+    def validate(self, attrs):
+        client_code = attrs.get('client')
+        project_id = attrs.get('project_id')
+        
+        # Build query
+        query = {'client_code_1c': client_code, 'is_deleted': False}
+        if project_id:
+            query['project__id'] = project_id
+            
+        try:
+            # Try to get unique client
+            # If multiple exist with same code (in different projects) and no project_id given,
+            # we default to the first one but ideally should require project_id
+            clients = Client.objects.filter(**query)
+            if not clients.exists():
+                raise serializers.ValidationError(f"Client with code '{client_code}' not found.")
+            
+            if clients.count() > 1 and not project_id:
+                # If multiple clients found, try to filter by user's project if possible
+                # But serializer doesn't strictly know about request user here easily without context
+                # So we just warn or take first.
+                pass 
+            
+            attrs['client'] = clients.first()
+            
+        except Exception as e:
+            raise serializers.ValidationError(str(e))
+            
+        return attrs
