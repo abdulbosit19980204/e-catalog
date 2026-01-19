@@ -576,24 +576,26 @@ SIMPLE_JWT = {
 DEFAULT_CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:8000",
+    "http://localhost:1563",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8000",
+    "http://127.0.0.1:1563",
     "http://178.218.200.120:1596",
     "http://178.218.200.120:1563",
+    "http://178.218.200.120",
     "http://192.168.0.129",
     "http://192.168.0.129:8000",
     "http://192.168.0.129:1563",
-    'http://178.218.200.120',
-    "http://localhost:1563",
-    "http://127.0.0.1:1563",
 ]
+
 CORS_ALLOWED_ORIGINS = [
     origin.strip() for origin in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
     if origin.strip()
 ] or DEFAULT_CORS_ALLOWED_ORIGINS
 
-# Production uchun environment variable orqali
-CORS_ALLOW_ALL_ORIGINS = True  # Forced for debugging CORS issues
+# Production uchun environment variable orqali yoki doimiy True (agar API ochiq bo'lsa)
+CORS_ALLOW_ALL_ORIGINS = True  
+CORS_ORIGIN_ALLOW_ALL = True  # Backward compatibility
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [

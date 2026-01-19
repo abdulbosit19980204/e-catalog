@@ -26,18 +26,18 @@ DATABASES = {
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-
-# Security settings
-SECURE_SSL_REDIRECT = not DEBUG
+# SECURITY WARNING: SECURE_SSL_REDIRECT should ONLY be True if HTTPS is configured.
+# Many CORS issues are caused by unexpected redirects to HTTPS.
+SECURE_SSL_REDIRECT = False 
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
-# Production uchun environment variable orqali
-CORS_ALLOW_ALL_ORIGINS = True  # Forced for debugging CORS issues
+# CORS Settings
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
@@ -45,8 +45,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:1563',
     'http://178.218.200.120:1563',
     'http://178.218.200.120:1596',
-] + os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
-CORS_ALLOWED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS if o]
+]
 
 # Logging
 LOGGING = {
