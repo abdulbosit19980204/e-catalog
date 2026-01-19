@@ -99,53 +99,64 @@ class OneCAuthService:
         except Exception as e:
             return None, f"Project lookup error: {str(e)}"
 
-        url = project.service_url or project.wsdl_url
-        # Clean URL: remove ?wsdl or ?WSDL if present
-        if url.lower().endswith('?wsdl'):
-            url = url[:-5]
-            
-        print(f"DEBUG: Sending POST to 1C URL: {url}") # Debug log
+        urls_to_try = []
+        primary_url = project.service_url or project.wsdl_url
+        if primary_url:
+            urls_to_try.append(primary_url)
+        if project.wsdl_url_alt:
+            urls_to_try.append(project.wsdl_url_alt)
 
+        last_error = "No URLs configured for project"
         payload = cls.get_soap_body(login, password)
         headers = {
-            'Content-Type': 'application/soap+xml; charset=utf-8', # SOAP 1.2 content type
-            # 'SOAPAction': 'http://www.sample-package.org/GetUser' # May be needed if 1C requires it
+            'Content-Type': 'application/soap+xml; charset=utf-8', 
         }
 
-        try:
-            response = requests.post(url, data=payload.encode('utf-8'), headers=headers, timeout=10)
-            
-            if response.status_code != 200:
-                print(f"1C Error Status: {response.status_code}, Body: {response.text}")
-                return None, f"1C Service Error: {response.status_code}"
+        for url in urls_to_try:
+            # Clean URL: remove ?wsdl or ?WSDL if present
+            if url.lower().endswith('?wsdl'):
+                url = url[:-5]
                 
-            data = cls.parse_response(response.content)
-            
-            if not data:
-                print(f"DEBUG: Parse failed. Status: {response.status_code}")
-                # Return raw content in error message for debugging (truncated)
-                raw_preview = response.text[:1000] if response.text else "Empty response"
-                return None, f"Invalid XML response from 1C. Raw content: {raw_preview}"
-                
-            if data.get('code_error') != '1': # Assuming 1 is success based on example "Авторизация прошла успешно!!!"
-                return None, data.get('message', 'Authorization failed')
-                
-            # Success - Create or Update User
-            user = cls.update_or_create_user(project, login, data)
-            tokens = cls.get_tokens_for_user(user)
-            
-            return {
-                'user': {
-                    'username': user.username,
-                    'full_name': user.first_name,
-                    'code_1c': data['code'],
-                },
-                'tokens': tokens,
-                'message': data['message']
-            }, None
+            print(f"DEBUG: Attempting 1C Auth at: {url}")
 
-        except requests.RequestException as e:
-            return None, f"Connection Error: {str(e)}"
+            try:
+                response = requests.post(url, data=payload.encode('utf-8'), headers=headers, timeout=10)
+                
+                if response.status_code != 200:
+                    last_error = f"1C Service Error at {url}: {response.status_code}"
+                    print(f"ERROR: {last_error}")
+                    continue # Try next URL
+                    
+                data = cls.parse_response(response.content)
+                
+                if not data:
+                    last_error = f"Invalid XML from {url}"
+                    print(f"ERROR: {last_error}")
+                    continue
+                    
+                if data.get('code_error') != '1': 
+                    return None, data.get('message', 'Authorization failed')
+                    
+                # Success - Create or Update User
+                user = cls.update_or_create_user(project, login, data)
+                tokens = cls.get_tokens_for_user(user)
+                
+                return {
+                    'user': {
+                        'username': user.username,
+                        'full_name': user.first_name,
+                        'code_1c': data['code'],
+                    },
+                    'tokens': tokens,
+                    'message': data['message']
+                }, None
+
+            except requests.RequestException as e:
+                last_error = f"Connection Error at {url}: {str(e)}"
+                print(f"ERROR: {last_error}")
+                continue # Try next URL
+
+        return None, last_error
 
     @staticmethod
     def update_or_create_user(project, login, data):

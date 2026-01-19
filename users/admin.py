@@ -3,7 +3,7 @@ from .models import AuthProject, UserProfile
 
 @admin.register(AuthProject)
 class AuthProjectAdmin(admin.ModelAdmin):
-    list_display = ['name', 'project_code', 'wsdl_url', 'is_active', 'created_at']
+    list_display = ['name', 'project_code', 'wsdl_url', 'wsdl_url_alt', 'is_active', 'created_at']
     search_fields = ['name', 'project_code']
     list_filter = ['is_active']
 

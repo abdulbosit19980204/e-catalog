@@ -15,7 +15,8 @@ class BaseModel(models.Model):
 class AuthProject(BaseModel):
     name = models.CharField(max_length=255, help_text="Project nomi (masalan: Evyap)")
     project_code = models.CharField(max_length=100, unique=True, db_index=True, help_text="Unikal project kodi (clientdan keladi)")
-    wsdl_url = models.URLField(help_text="1C WSDL URL manzili")
+    wsdl_url = models.URLField(help_text="Asosiy 1C WSDL URL manzili")
+    wsdl_url_alt = models.URLField(blank=True, null=True, help_text="Muqobil (alternative) 1C WSDL URL manzili")
     service_url = models.URLField(blank=True, null=True, help_text="Service URL (agar WSDL dan farq qilsa)")
     
     def __str__(self):

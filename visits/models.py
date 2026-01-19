@@ -52,6 +52,16 @@ class Visit(BaseModel):
     Core visit tracking model
     Tracks agent visits to client locations with full lifecycle management
     """
+    # Project scoping
+    project = models.ForeignKey(
+        'users.AuthProject',
+        on_delete=models.CASCADE,
+        related_name='visits',
+        null=True,
+        blank=True,
+        db_index=True
+    )
+    
     # Primary identification
     visit_id = models.UUIDField(
         primary_key=True,
@@ -151,6 +161,19 @@ class Visit(BaseModel):
     agent_notes = models.TextField(blank=True)
     supervisor_notes = models.TextField(blank=True)
     
+    # Synchronization status
+    sync_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('PENDING', 'Kutilmoqda'),
+            ('SYNCED', 'Sinxronlangan'),
+            ('FAILED', 'Xatolik'),
+        ],
+        default='PENDING',
+        db_index=True
+    )
+    sync_error = models.TextField(blank=True)
+    
     # Metadata
     cancelled_reason = models.TextField(blank=True)
     cancelled_by = models.CharField(max_length=100, blank=True)
@@ -160,7 +183,7 @@ class Visit(BaseModel):
         db_table = 'visits'
         ordering = ['-planned_date', '-planned_time']
         indexes = [
-            models.Index(fields=['agent_code', 'planned_date', 'visit_status']),
+            models.Index(fields=['project', 'agent_code', 'planned_date', 'visit_status']),
             models.Index(fields=['client_code', 'actual_start_time']),
             models.Index(fields=['visit_type', 'created_at']),
             models.Index(fields=['visit_status', 'planned_date']),
@@ -178,6 +201,7 @@ class Visit(BaseModel):
         self.check_in_longitude = Decimal(str(longitude))
         self.check_in_accuracy = accuracy
         self.visit_status = VisitStatus.IN_PROGRESS
+        self.sync_status = 'PENDING'
         self.save()
     
     def check_out(self, latitude=None, longitude=None):
@@ -192,6 +216,7 @@ class Visit(BaseModel):
             self.duration_minutes = int(delta.total_seconds() / 60)
         
         self.visit_status = VisitStatus.COMPLETED
+        self.sync_status = 'PENDING'
         self.save()
     
     def cancel(self, reason, cancelled_by):
@@ -200,6 +225,7 @@ class Visit(BaseModel):
         self.cancelled_reason = reason
         self.cancelled_by = cancelled_by
         self.cancelled_at = timezone.now()
+        self.sync_status = 'PENDING'
         self.save()
     
     @property
@@ -224,6 +250,16 @@ class VisitPlan(BaseModel):
         primary_key=True,
         default=uuid.uuid4,
         editable=False
+    )
+    
+    # Project scoping
+    project = models.ForeignKey(
+        'users.AuthProject',
+        on_delete=models.CASCADE,
+        related_name='visit_plans',
+        null=True,
+        blank=True,
+        db_index=True
     )
     
     # Agent and client
@@ -273,10 +309,10 @@ class VisitPlan(BaseModel):
         db_table = 'visit_plans'
         ordering = ['agent_code', 'planned_weekday', 'planned_time']
         indexes = [
-            models.Index(fields=['agent_code', 'is_active']),
+            models.Index(fields=['project', 'agent_code', 'is_active']),
             models.Index(fields=['client_code', 'is_active']),
         ]
-        unique_together = [['agent_code', 'client_code', 'planned_weekday', 'planned_time']]
+        unique_together = [['project', 'agent_code', 'client_code', 'planned_weekday', 'planned_time']]
     
     def __str__(self):
         return f"{self.agent_code} → {self.client_code} ({self.get_frequency_display()})"

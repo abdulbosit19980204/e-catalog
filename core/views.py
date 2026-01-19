@@ -122,7 +122,9 @@ class HealthViewSet(viewsets.ViewSet):
             from users.models import AuthProject
             auth_projects = AuthProject.objects.filter(is_active=True).exclude(wsdl_url="")[:10]
             for ap in auth_projects:
-                results[f"auth_{ap.project_code}_wsdl"] = self._ping_url(ap.wsdl_url, f"Auth WSDL: {ap.name}")
+                results[f"auth_{ap.project_code}_wsdl"] = self._ping_url(ap.wsdl_url, f"Auth WSDL (Main): {ap.name}")
+                if ap.wsdl_url_alt:
+                    results[f"auth_{ap.project_code}_wsdl_alt"] = self._ping_url(ap.wsdl_url_alt, f"Auth WSDL (Alt): {ap.name}")
                 if ap.service_url:
                     results[f"auth_{ap.project_code}_service"] = self._ping_url(ap.service_url, f"Auth Service: {ap.name}")
         except Exception as e:
