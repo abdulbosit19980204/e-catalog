@@ -16,12 +16,17 @@ from django.conf import settings
 
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
+from rest_framework.permissions import IsAdminUser, AllowAny
+
 class HealthViewSet(viewsets.ViewSet):
     """
     ViewSet for monitoring system health and connections.
     Includes DB, Redis, and external service checks.
     """
-    permission_classes = [IsAdminUser]
+    def get_permissions(self):
+        if self.action == 'status':
+            return [AllowAny()]
+        return [IsAdminUser()]
 
     @extend_schema(
         responses={200: OpenApiResponse(description="System health data")},

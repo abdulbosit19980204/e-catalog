@@ -448,6 +448,39 @@ class ClientImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
         instance.save(update_fields=['is_deleted', 'updated_at'])
         cache.clear()
     
+    @extend_schema(
+        tags=['Clients'],
+        summary="Client uchun ko'plab rasm yuklash",
+        request=ClientImageBulkUploadSerializer,
+        responses={201: ClientImageSerializer(many=True)},
+    )
+    @action(detail=False, methods=['post'], url_path='bulk-upload', parser_classes=[MultiPartParser])
+    def bulk_upload(self, request):
+        serializer = ClientImageBulkUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        client_obj = serializer.validated_data['client']
+        images = serializer.validated_data['images']
+        category = serializer.validated_data.get('category', 'other')
+        note = serializer.validated_data.get('note', '')
+        
+        created_images = []
+        for img_file in images:
+            image_obj = ClientImage.objects.create(
+                client=client_obj,
+                project=client_obj.project,
+                image=img_file,
+                category=category,
+                note=note
+            )
+            created_images.append(image_obj)
+            
+        cache.clear()
+        return Response(
+            ClientImageSerializer(created_images, many=True, context={'request': request}).data,
+            status=status.HTTP_201_CREATED
+        )
+    
     def get_queryset(self):
         """Optimizatsiya: bog'langan model'larni yuklash va multi-tenant isolation"""
         # Mixin filters by project
