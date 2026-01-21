@@ -13,14 +13,23 @@ class VisitSyncService:
         status_type: 'check_in' or 'check_out'
         """
         agent_code = visit.agent_code or ""
-        client_code = visit.client_code_1c or ""
+        client_code = visit.client_code or ""
         date_str = visit.planned_date.strftime('%Y-%m-%d') if visit.planned_date else ""
         time_str = ""
         
-        if status_type == 'check_in' and visit.check_in_time:
-            time_str = visit.check_in_time.strftime('%H:%M:%S')
-        elif status_type == 'check_out' and visit.check_out_time:
-            time_str = visit.check_out_time.strftime('%H:%M:%S')
+        if status_type == 'check_in':
+            if visit.actual_start_time:
+                time_str = visit.actual_start_time.strftime('%H:%M:%S')
+            lat = visit.check_in_latitude or 0
+            lon = visit.check_in_longitude or 0
+        elif status_type == 'check_out':
+            if visit.actual_end_time:
+                time_str = visit.actual_end_time.strftime('%H:%M:%S')
+            lat = visit.check_out_latitude or 0
+            lon = visit.check_out_longitude or 0
+        else:
+            lat = 0
+            lon = 0
 
         return f"""<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sam="http://www.sample-package.org">
@@ -32,8 +41,8 @@ class VisitSyncService:
          <sam:Type>{status_type}</sam:Type>
          <sam:Date>{date_str}</sam:Date>
          <sam:Time>{time_str}</sam:Time>
-         <sam:Lat>{visit.latitude or 0}</sam:Lat>
-         <sam:Lon>{visit.longitude or 0}</sam:Lon>
+         <sam:Lat>{lat}</sam:Lat>
+         <sam:Lon>{lon}</sam:Lon>
       </sam:SyncVisit>
    </soap:Body>
 </soap:Envelope>"""

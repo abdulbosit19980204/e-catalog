@@ -53,6 +53,7 @@ class VisitPriority(BaseModel):
 class VisitStep(BaseModel):
     """Dynamic Visit Steps (Tasks to be done during a visit)"""
     project = models.ForeignKey('users.AuthProject', on_delete=models.CASCADE, related_name='visit_steps', null=True, blank=True)
+    visit_type = models.ForeignKey('VisitType', on_delete=models.SET_NULL, related_name='steps', null=True, blank=True, help_text="Specific visit type (optional)")
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     input_type = models.CharField(

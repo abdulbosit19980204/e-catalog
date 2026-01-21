@@ -21,8 +21,14 @@ def create_visit_steps(sender, instance, created, **kwargs):
         query = Q(project__isnull=True)
         if instance.project:
             query |= Q(project=instance.project)
+        
+        # Add Visit Type filter:
+        # Step Applies IF: step.visit_type IS NULL OR step.visit_type == instance.visit_type
+        type_query = Q(visit_type__isnull=True)
+        if instance.visit_type:
+            type_query |= Q(visit_type=instance.visit_type)
             
-        steps = VisitStep.objects.filter(query)
+        steps = VisitStep.objects.filter(query).filter(type_query)
         
         # Prepare bulk creation
         results_to_create = []
