@@ -122,8 +122,20 @@ class VisitViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
         from client.models import Client
         
         # Link Agent (UserProfile)
+        # Agent code is unique per project, or at least we should prioritize the one in the same project
         if instance.agent_code and not instance.agent:
-            agent_profile = UserProfile.objects.filter(code_1c=instance.agent_code, is_deleted=False).first()
+            # Filter by code_1c AND project (via AuthProject linkage)
+            # instance.project (api.Project) -> code_1c matches AuthProject.project_code
+            if instance.project:
+                agent_profile = UserProfile.objects.filter(
+                    code_1c=instance.agent_code,
+                    project__project_code=instance.project.code_1c,
+                    is_deleted=False
+                ).first()
+            else:
+                 # Fallback if no project assigned yet (rare)
+                agent_profile = UserProfile.objects.filter(code_1c=instance.agent_code, is_deleted=False).first()
+
             if agent_profile:
                 instance.agent = agent_profile
                 # Also sync names/phones if they are currently custom/empty
@@ -132,7 +144,13 @@ class VisitViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
                 
         # Link Client
         if instance.client_code and not instance.client:
-            client_obj = Client.objects.filter(client_code_1c=instance.client_code, is_deleted=False).first()
+            # Client IS project-scoped
+            client_qs = Client.objects.filter(client_code_1c=instance.client_code, is_deleted=False)
+            if instance.project:
+                client_qs = client_qs.filter(project=instance.project)
+            
+            client_obj = client_qs.first()
+            
             if client_obj:
                 instance.client = client_obj
                 if not instance.client_name:
@@ -386,11 +404,16 @@ class VisitViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
         in_progress = queryset.filter(status__code='IN_PROGRESS').count()
         cancelled = queryset.filter(status__code='CANCELLED').count()
         
-        # Calculate averages
-        avg_duration = queryset.filter(
+        # Calculate averages: duration is a DurationField (timedelta)
+        avg_duration_td = queryset.filter(
             status__code='COMPLETED',
-            duration_minutes__isnull=False
-        ).aggregate(avg=Avg('duration_minutes'))['avg'] or 0
+            duration__isnull=False
+        ).aggregate(avg=Avg('duration'))['avg']
+        
+        # Convert timedelta to minutes
+        avg_duration_minutes = 0
+        if avg_duration_td:
+            avg_duration_minutes = avg_duration_td.total_seconds() / 60
         
         # Image count
         total_images = VisitImage.objects.filter(
@@ -404,7 +427,7 @@ class VisitViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
             'in_progress_visits': in_progress,
             'cancelled_visits': cancelled,
             'completion_rate': round((completed / total * 100) if total > 0 else 0, 2),
-            'average_duration': round(avg_duration, 2),
+            'average_duration': round(avg_duration_minutes, 2),
             'total_images': total_images
         }
         
