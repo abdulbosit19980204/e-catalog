@@ -8,8 +8,10 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Count, Avg, Q
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample, OpenApiResponse
+# ... (omitted lines)
 from drf_spectacular.types import OpenApiTypes
+from utils.mixins import ProjectScopedMixin
 import django_filters
 
 from django.core.cache import cache
@@ -53,9 +55,6 @@ class VisitFilter(django_filters.FilterSet):
             )
         return queryset
 
-
-from utils.mixins import ProjectScopedMixin
-
 @extend_schema_view(
     list=extend_schema(
         tags=['Visits'],
@@ -77,7 +76,22 @@ from utils.mixins import ProjectScopedMixin
     create=extend_schema(
         tags=['Visits'],
         summary="Yangi tashrif yaratish",
-        description="Yangi tashrif rejasini yaratish (admin/supervisor uchun)"
+        description="Yangi tashrif rejasini yaratish (admin/supervisor uchun)",
+        examples=[
+            OpenApiExample(
+                "Visit Create Example",
+                value={
+                    "agent_code": "TP-003",
+                    "client_code_1c": "CLI-2024-001",
+                    "planned_date": "2024-12-25",
+                    "planned_time": "10:00:00",
+                    "visit_type_code": "PLANNED",
+                    "priority_code": "HIGH",
+                    "purpose": "Oylik buyurtma olish"
+                },
+                request_only=True
+            )
+        ]
     ),
 )
 class VisitViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
@@ -87,6 +101,7 @@ class VisitViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     """
     from utils.pagination import OptionalLimitOffsetPagination
     
+    queryset = Visit.objects.all()
     permission_classes = [IsAuthenticated]
     filterset_class = VisitFilter
     pagination_class = OptionalLimitOffsetPagination
@@ -158,14 +173,25 @@ class VisitViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
         summary="Check-in (Tashrif boshlash)",
         description="Tashrif joyiga yetib check-in qilish. GPS koordinatalar kerak.",
         request=VisitCheckInSerializer,
-        responses={200: VisitDetailSerializer}
+        responses={200: VisitDetailSerializer},
+        examples=[
+            OpenApiExample(
+                "Check-in Example",
+                value={
+                    "latitude": 41.2995,
+                    "longitude": 69.2401,
+                    "accuracy": 15.5
+                },
+                request_only=True
+            )
+        ]
     )
     @action(detail=True, methods=['post'], url_path='check-in')
     def check_in(self, request, pk=None):
         """Check in to visit location"""
         visit = self.get_object()
         
-        if visit.visit_status not in ['SCHEDULED', 'CONFIRMED']:
+        if not visit.status or visit.status.code not in ['SCHEDULED', 'CONFIRMED']:
             return Response(
                 {'error': 'Faqat rejalashtirilgan tashriflarga check-in qilish mumkin'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -195,14 +221,35 @@ class VisitViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
         summary="Check-out (Tashrif yakunlash)",
         description="Tashrifni yakunlash va natijalarni saqlash",
         request=VisitCheckOutSerializer,
-        responses={200: VisitDetailSerializer}
+        responses={200: VisitDetailSerializer},
+        examples=[
+            OpenApiExample(
+                "Check-out Example",
+                value={
+                    "latitude": 41.2995,
+                    "longitude": 69.2401,
+                    "completed_at": "2024-12-25T11:00:00Z",
+                    "outcome": "Buyurtma olindi",
+                    "tasks_completed": {
+                        "steps": [
+                            {"id": 1, "completed": True, "comment": "Dokon ochiq"},
+                            {"id": 2, "completed": True, "comment": "Mahsulotlar joylandi"}
+                        ]
+                    },
+                    "client_satisfaction": 5,
+                    "notes": "Mijoz mamnun",
+                    "next_visit_date": "2025-01-01"
+                },
+                request_only=True
+            )
+        ]
     )
     @action(detail=True, methods=['post'], url_path='check-out')
     def check_out(self, request, pk=None):
         """Complete visit and save outcomes"""
         visit = self.get_object()
         
-        if visit.visit_status != 'IN_PROGRESS':
+        if not visit.status or visit.status.code != 'IN_PROGRESS':
             return Response(
                 {'error': 'Faqat jarayondagi tashriflarga check-out qilish mumkin'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -235,7 +282,19 @@ class VisitViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
         summary="Rasm yuklash",
         description="Tashrif davomida rasm yuklash",
         request=VisitImageSerializer,
-        responses={201: VisitImageSerializer}
+        responses={201: VisitImageSerializer},
+        examples=[
+            OpenApiExample(
+                "Upload Image Example",
+                value={ # Note: Value here is illustrative, real upload uses multipart
+                    "image": "(binary file)",
+                    "image_type": "BEFORE_MERCHANDISING",
+                    "captured_at": "2024-12-25T10:30:00Z"
+                },
+                request_only=True,
+                media_type='multipart/form-data' 
+            )
+        ]
     )
     @action(detail=True, methods=['post'], url_path='upload-image')
     def upload_image(self, request, pk=None):
@@ -253,14 +312,24 @@ class VisitViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
         summary="Tashrif bekor qilish",
         description="Rejalashtirilgan tashrifni bekor qilish",
         request=VisitCancelSerializer,
-        responses={200: VisitDetailSerializer}
+        responses={200: VisitDetailSerializer},
+        examples=[
+            OpenApiExample(
+                "Cancel Visit Example",
+                value={
+                    "reason": "Mijoz do'konda yo'q",
+                    "cancelled_by": "Agent request"
+                },
+                request_only=True
+            )
+        ]
     )
     @action(detail=True, methods=['post'], url_path='cancel')
     def cancel_visit(self, request, pk=None):
         """Cancel scheduled visit"""
         visit = self.get_object()
         
-        if visit.visit_status == 'COMPLETED':
+        if visit.status and visit.status.code == 'COMPLETED':
             return Response(
                 {'error': 'Yakunlangan tashrifni bekor qilib bo\'lmaydi'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -313,13 +382,13 @@ class VisitViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
         
         # Calculate statistics
         total = queryset.count()
-        completed = queryset.filter(visit_status='COMPLETED').count()
-        in_progress = queryset.filter(visit_status='IN_PROGRESS').count()
-        cancelled = queryset.filter(visit_status='CANCELLED').count()
+        completed = queryset.filter(status__code='COMPLETED').count()
+        in_progress = queryset.filter(status__code='IN_PROGRESS').count()
+        cancelled = queryset.filter(status__code='CANCELLED').count()
         
         # Calculate averages
         avg_duration = queryset.filter(
-            visit_status='COMPLETED',
+            status__code='COMPLETED',
             duration_minutes__isnull=False
         ).aggregate(avg=Avg('duration_minutes'))['avg'] or 0
         
@@ -405,12 +474,25 @@ class VisitPlanViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     def generate_weekly(self, request):
         """Auto-generate visits from active plans for the upcoming week"""
         from datetime import date, timedelta
+        from references.models import VisitType, VisitStatus
+        
         created_count = 0
         
         # Define the target week (next week)
         today = date.today()
         # Find next Monday
         next_monday = today + timedelta(days=(7 - today.weekday()))
+        
+        # Fetch default types and statuses dynamically
+        # We assume these are seeded. If not, we might fallback or fail gracefully.
+        try:
+            planned_type = VisitType.objects.get(code='PLANNED')
+            scheduled_status = VisitStatus.objects.get(code='SCHEDULED')
+        except (VisitType.DoesNotExist, VisitStatus.DoesNotExist):
+            return Response(
+                {'error': 'Default VisitType (PLANNED) or VisitStatus (SCHEDULED) not found in database.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
         active_plans = self.get_queryset().filter(
             is_active=True,
@@ -445,8 +527,8 @@ class VisitPlanViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
                     agent_name=agent_name,
                     client_name=client_name,
                     client_address=client_address,
-                    visit_type='PLANNED',
-                    visit_status='SCHEDULED',
+                    visit_type=planned_type,
+                    status=scheduled_status,
                     priority=plan.priority,
                     planned_date=target_date,
                     planned_time=plan.planned_time,
@@ -457,6 +539,7 @@ class VisitPlanViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
         return Response({'created': created_count})
 
 
+@extend_schema(tags=['Visits'])
 class VisitImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     """Visit Images Management"""
     queryset = VisitImage.objects.filter(is_deleted=False)

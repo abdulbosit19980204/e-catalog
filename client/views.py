@@ -119,6 +119,52 @@ from utils.mixins import ProjectScopedMixin
         summary="Bitta client ma'lumotini olish",
         description="`client_code_1c` identifikatoriga ko'ra client ma'lumotlarini qaytaradi.",
     ),
+    create=extend_schema(
+        tags=['Clients'],
+        summary="Client yaratish",
+        description="Yangi client qo'shish. `client_code_1c` unikal bo'lishi shart.",
+        examples=[
+            OpenApiExample(
+                "Client Create Example",
+                value={
+                    "client_code_1c": "CLI-2024-001",
+                    "name": "Super Market LLC",
+                    "email": "info@supermarket.uz",
+                    "phone": "+998901234567",
+                    "description": "Markaziy filial",
+                    "is_active": True,
+                    "city": "Tashkent",
+                    "region": "Chilanzar",
+                    "latitude": 41.2995,
+                    "longitude": 69.2401
+                },
+                request_only=True
+            )
+        ]
+    ),
+    update=extend_schema(
+        tags=['Clients'],
+        summary="Client ma'lumotlarini to'liq yangilash",
+        examples=[
+             OpenApiExample(
+                "Client Update Example",
+                value={
+                    "client_code_1c": "CLI-2024-001",
+                    "name": "Super Market (Rebranded)",
+                    "email": "new-info@supermarket.uz",
+                    "phone": "+998901234567",
+                    "description": "Yangilangan ma'lumotlar",
+                    "is_active": True
+                },
+                request_only=True
+            )
+        ]
+    ),
+    destroy=extend_schema(
+        tags=['Clients'],
+        summary="Clientni soft-delete qilish",
+        description="Clientni o'chirmasdan, `is_deleted=True` qilib belgilaydi.",
+    ),
 )
 class ClientViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     """

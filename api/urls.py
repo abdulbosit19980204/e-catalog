@@ -38,6 +38,11 @@ router.register('image-source', ImageSourceViewSet)
 router.register('agent-location', AgentLocationViewSet)
 router.register('visit-image', VisitImageViewSet, basename='visit-image')
 
+from visits.views import VisitViewSet, VisitPlanViewSet
+router.register('visits', VisitViewSet, basename='visit')
+router.register('visit-plans', VisitPlanViewSet, basename='visit-plan')
+
+
 urlpatterns = [
     path('thumbnails/', ThumbnailFeedView.as_view(), name='thumbnail-feed'),
     path('thumbnails/projects/', ProjectThumbnailView.as_view(), name='project-thumbnail-feed'),

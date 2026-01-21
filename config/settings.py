@@ -509,7 +509,7 @@ Deyarli barcha ro'yxat (List) endpointlarida quyidagi imkoniyatlar bor:
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
-    'SCHEMA_PATH_PREFIX': '/api/v1/',
+    'SCHEMA_PATH_PREFIX': '/api/',
     'TAGS': [
         {
             'name': 'Authentication',
@@ -534,6 +534,18 @@ Deyarli barcha ro'yxat (List) endpointlarida quyidagi imkoniyatlar bor:
         {
             'name': 'Agent Locations',
             'description': 'Mobil agentlar tomonidan yuborilgan geolokatsiya yozuvlari. Qurilma, lokatsiya, tarmoq, sensor va boshqa ma\'lumotlar bilan birga saqlanadi. Barcha maydonlar ixtiyoriy (faqat agent_code, latitude, longitude majburiy).',
+        },
+        {
+            'name': 'Visits',
+            'description': 'Tashriflarni boshqarish (Visit Management). Rejalashtirilgan va haqiqiy tashriflar, check-in/check-out, rasmlar va natijalarni kiritish.',
+        },
+        {
+            'name': 'Visit Plans',
+            'description': 'Doimiy takrorlanuvchi tashriflar rejasi (Weekly Routes). Haftalik marshrutlarni avtomatik generatsiya qilish uchun.',
+        },
+        {
+            'name': 'References',
+            'description': 'Dinamik ma\'lumotnomalar: Tashrif turlari, Statuslar, Prioritetlar va Qadamlar (Steps). Frontend ushbu ma\'lumotlarni keshlab olishi kerak.',
         },
     ],
     'SECURITY_DEFINITIONS': {

@@ -197,6 +197,19 @@ class ProjectImageFilterSet(django_filters.FilterSet):
         tags=['Projects'],
         summary="Project yaratish",
         description="Yangi project yozuvini yaratadi. `code_1c` unikal bo'lishi kerak. Yaratilgandan so'ng kesh avtomatik tozalanadi.",
+        examples=[
+            OpenApiExample(
+                "Project Create Example",
+                value={
+                    "code_1c": "EVYAP",
+                    "name": "Evyap Manufacturing",
+                    "title": "Evyap O'zbekiston Filiali",
+                    "description": "Kosmetika va gigiena mahsulotlari",
+                    "is_active": True
+                },
+                request_only=True
+            )
+        ]
     ),
     update=extend_schema(
         tags=['Projects'],

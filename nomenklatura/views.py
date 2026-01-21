@@ -152,6 +152,50 @@ from utils.mixins import ProjectScopedMixin
         summary="Bitta nomenklatura ma'lumotini olish",
         description="`code_1c` identifikatoriga ko'ra nomenklatura ma'lumotlarini qaytaradi.",
     ),
+    create=extend_schema(
+        tags=['Nomenklatura'],
+        summary="Nomenklatura yaratish",
+        description="Yangi mahsulot qo'shish.",
+        examples=[
+            OpenApiExample(
+                "Nomenklatura Create Example",
+                value={
+                    "code_1c": "NOM-001",
+                    "name": "Coca-Cola 1.5L",
+                    "category": "Drinks",
+                    "base_price": 12000.00,
+                    "sale_price": 13500.00,
+                    "stock_quantity": 100,
+                    "unit_of_measure": "dona",
+                    "barcode": "478000000001",
+                    "is_active": True
+                },
+                request_only=True
+            )
+        ]
+    ),
+    update=extend_schema(
+        tags=['Nomenklatura'],
+        summary="Nomenklatura ma'lumotlarini to'liq yangilash",
+        examples=[
+            OpenApiExample(
+                "Nomenklatura Update Example",
+                value={
+                    "code_1c": "NOM-001",
+                    "name": "Coca-Cola 1.5L (New Pack)",
+                    "base_price": 12500.00,
+                    "stock_quantity": 150,
+                    "is_active": True
+                },
+                request_only=True
+            )
+        ]
+    ),
+    destroy=extend_schema(
+        tags=['Nomenklatura'],
+        summary="Nomenklatura soft-delete qilish",
+        description="Mahsulotni o'chirmasdan, `is_deleted=True` qilib belgilaydi.",
+    ),
 )
 class NomenklaturaViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     """
