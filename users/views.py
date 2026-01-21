@@ -1,4 +1,5 @@
 from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
 from django.contrib.auth import get_user_model
 from .serializers import UserSerializer
 
@@ -10,6 +11,47 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAdminUser]
     search_fields = ['username', 'first_name', 'last_name', 'email', 'profile__code_1c']
     filterset_fields = ['is_staff', 'is_active', 'profile__code_1c']
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='me/project')
+    def my_project(self, request):
+        """
+        Diagnostic endpoint to check the current user's project mapping.
+        """
+        user = request.user
+        try:
+            profile = user.profile
+            auth_project = profile.project
+            
+            data = {
+                "username": user.username,
+                "profile_code_1c": profile.code_1c,
+                "auth_project": {
+                    "id": auth_project.id if auth_project else None,
+                    "name": auth_project.name if auth_project else None,
+                    "code": auth_project.project_code if auth_project else None,
+                },
+                "api_project_mapping": None
+            }
+            
+            if auth_project and auth_project.project_code:
+                from api.models import Project
+                api_project = Project.objects.filter(
+                    code_1c__iexact=auth_project.project_code, 
+                    is_deleted=False
+                ).first()
+                
+                if api_project:
+                    data["api_project_mapping"] = {
+                        "id": api_project.id,
+                        "name": api_project.name,
+                        "code_1c": api_project.code_1c
+                    }
+                else:
+                    data["api_project_mapping"] = "NOT_FOUND"
+            
+            return Response(data)
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
 
 from rest_framework.views import APIView
 from rest_framework.response import Response

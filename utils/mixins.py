@@ -29,17 +29,23 @@ class ProjectScopedMixin:
             if model_class.__name__ == 'AuthProject':
                 return queryset.filter(id=user_auth_project.id)
             elif model_class.__name__ == 'Project':
-                return queryset.filter(code_1c=user_auth_project.project_code, is_deleted=False)
+                if not user_auth_project.project_code:
+                    return queryset.none()
+                return queryset.filter(code_1c__iexact=user_auth_project.project_code, is_deleted=False)
 
             # Resolve the target model of the project field
             current_model = model_class
             target_model = None
             for i, part in enumerate(parts):
-                field = current_model._meta.get_field(part)
-                if i < len(parts) - 1:
-                    current_model = field.related_model
-                else:
-                    target_model = field.related_model
+                try:
+                    field = current_model._meta.get_field(part)
+                    if i < len(parts) - 1:
+                        current_model = field.related_model
+                    else:
+                        target_model = field.related_model
+                except Exception:
+                    # Field not found or other meta error
+                    return queryset.none()
             
             # Case 1: Model uses users.AuthProject
             if target_model and target_model.__name__ == 'AuthProject':
@@ -47,21 +53,36 @@ class ProjectScopedMixin:
             
             # Case 2: Model uses api.Project
             elif target_model and target_model.__name__ == 'Project':
+                if not user_auth_project.project_code:
+                    return queryset.none()
+
                 # Map AuthProject (project_code) to Project (code_1c)
                 from api.models import Project
                 try:
-                    target_project = Project.objects.get(code_1c=user_auth_project.project_code, is_deleted=False)
+                    # Use iexact to handle case-sensitivity in Postgres vs SQLite
+                    target_project = Project.objects.filter(
+                        code_1c__iexact=user_auth_project.project_code, 
+                        is_deleted=False
+                    ).first()
+                    
+                    if not target_project:
+                        import logging
+                        logging.warning(f"ProjectScopedMixin: Project with code '{user_auth_project.project_code}' not found in api.Project.")
+                        return queryset.none()
+                        
                     return queryset.filter(**{self.project_field_name: target_project})
-                except Project.DoesNotExist:
+                except Exception as e:
                     import logging
-                    logging.warning(f"ProjectScopedMixin: Project with code {user_auth_project.project_code} not found.")
+                    logging.error(f"ProjectScopedMixin Error: {str(e)}")
                     return queryset.none()
             
             # Fallback (exact Match)
             return queryset.filter(**{self.project_field_name: user_auth_project})
             
-        except (AttributeError, Exception):
+        except (AttributeError, Exception) as e:
             # Fallback if profile doesn't exist or other error
+            import logging
+            logging.error(f"ProjectScopedMixin unexpected error: {str(e)}")
             return queryset.none()
 
     def perform_create(self, serializer):
