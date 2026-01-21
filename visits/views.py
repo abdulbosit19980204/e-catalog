@@ -61,11 +61,11 @@ class VisitFilter(django_filters.FilterSet):
         summary="Tashrif ro'yxati",
         description="Barcha tashriflarni filtrlash va qidirish imkoniyati bilan",
         parameters=[
-            OpenApiParameter('agent_code', OpenApiTypes.STR, description="Agent kodi"),
-            OpenApiParameter('client_code', OpenApiTypes.STR, description="Klient kodi"),
-            OpenApiParameter('visit_status', OpenApiTypes.STR, description="Status"),
-            OpenApiParameter('date_from', OpenApiTypes.DATE, description="Boshlanish sanasi"),
-            OpenApiParameter('date_to', OpenApiTypes.DATE, description="Tugash sanasi"),
+            OpenApiParameter('agent_code', OpenApiTypes.STR, description="Agent kodi", required=False),
+            OpenApiParameter('client_code', OpenApiTypes.STR, description="Klient kodi", required=False),
+            OpenApiParameter('visit_status', OpenApiTypes.STR, description="Status", required=False),
+            OpenApiParameter('date_from', OpenApiTypes.DATE, description="Boshlanish sanasi", required=False),
+            OpenApiParameter('date_to', OpenApiTypes.DATE, description="Tugash sanasi", required=False),
         ]
     ),
     retrieve=extend_schema(
@@ -371,10 +371,10 @@ class VisitViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
         summary="Tashrif statistikasi",
         description="Agent yoki klient uchun tashrif statistikasi",
         parameters=[
-            OpenApiParameter('agent_code', OpenApiTypes.STR),
-            OpenApiParameter('client_code', OpenApiTypes.STR),
-            OpenApiParameter('date_from', OpenApiTypes.DATE),
-            OpenApiParameter('date_to', OpenApiTypes.DATE),
+            OpenApiParameter('agent_code', OpenApiTypes.STR, required=False),
+            OpenApiParameter('client_code', OpenApiTypes.STR, required=False),
+            OpenApiParameter('date_from', OpenApiTypes.DATE, required=False),
+            OpenApiParameter('date_to', OpenApiTypes.DATE, required=False),
         ],
         responses={200: VisitStatisticsSerializer}
     )
@@ -439,7 +439,12 @@ class VisitViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     list=extend_schema(
         tags=['Visit Plans'],
         summary="Tashrif rejalari ro'yxati",
-        description="Barcha takrorlanuvchi tashrif rejalarini ko'rish"
+        description="Barcha takrorlanuvchi tashrif rejalarini ko'rish",
+        parameters=[
+            OpenApiParameter('agent', OpenApiTypes.INT, description="Agent ID", required=False),
+            OpenApiParameter('client', OpenApiTypes.INT, description="Client ID", required=False),
+            OpenApiParameter('is_active', OpenApiTypes.BOOL, description="Aktivlik holati", required=False),
+        ]
     ),
     create=extend_schema(
         tags=['Visit Plans'],
@@ -567,7 +572,11 @@ class VisitPlanViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     list=extend_schema(
         tags=['Visit Images'],
         summary="Tashrif rasmlari ro'yxati",
-        description="Barcha tashriflarda olingan rasmlar"
+        description="Barcha tashriflarda olingan rasmlar",
+        parameters=[
+            OpenApiParameter('visit', OpenApiTypes.INT, description="Visit ID", required=False),
+            OpenApiParameter('image_type', OpenApiTypes.STR, description="Rasm turi", required=False),
+        ]
     ),
 )
 class VisitImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):

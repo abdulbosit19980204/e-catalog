@@ -55,10 +55,18 @@ class VisitPriorityViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
 
+from utils.mixins import ProjectScopedMixin
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
+
 @extend_schema(
     tags=['References'],
     summary="Tashrif qadamlari (Checklist)",
     description="Tashrif davomida bajarilishi kerak bo'lgan vazifalar shablonlari",
+    parameters=[
+        OpenApiParameter('project_id', OpenApiTypes.INT, description="Loyiha ID bo'yicha filtrlash", required=False),
+        OpenApiParameter('visit_type', OpenApiTypes.STR, description="Tashrif turi kodi bo'yicha filtrlash", required=False),
+    ],
     examples=[
          OpenApiExample(
             "Step Create (Checkbox)",
@@ -84,7 +92,7 @@ class VisitPriorityViewSet(viewsets.ReadOnlyModelViewSet):
         )
     ]
 )
-class VisitStepViewSet(viewsets.ModelViewSet):
+class VisitStepViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     """
     Manage visit steps (Tasks)
     """
@@ -95,7 +103,4 @@ class VisitStepViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter steps by project if needed"""
         queryset = super().get_queryset()
-        project_id = self.request.query_params.get('project_id')
-        if project_id:
-            queryset = queryset.filter(models.Q(project_id=project_id) | models.Q(project__isnull=True))
         return queryset

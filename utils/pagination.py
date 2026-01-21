@@ -14,26 +14,17 @@ from rest_framework.pagination import LimitOffsetPagination
 
 class OptionalLimitOffsetPagination(LimitOffsetPagination):
     """
-    Opt-in pagination that preserves backward compatibility
+    Standard LimitOffsetPagination with safety limits.
     
-    - Only paginates when ?limit= or ?offset= is in query params
-    - Returns full queryset otherwise
+    - Default limit: 20 items
     - Max limit: 100 items
+    - Prevents SQLite 'too many SQL variables' crashes on large datasets.
     """
-    default_limit = None  # No default - returns full dataset
+    default_limit = 20
     max_limit = 100
     limit_query_param = 'limit'
     offset_query_param = 'offset'
     
     def paginate_queryset(self, queryset, request, view=None):
-        """
-        Only paginate if 'limit' or 'offset' in query params
-        Otherwise return None to skip pagination
-        """
-        # Check if pagination is requested
-        if self.limit_query_param not in request.query_params and \
-           self.offset_query_param not in request.query_params:
-            return None  # No pagination - return full queryset
-        
-        # Pagination requested - use parent logic
+        """Always paginate to prevent resource exhaustion"""
         return super().paginate_queryset(queryset, request, view)

@@ -35,6 +35,7 @@ DEFAULT_ALLOWED_HOSTS = [
     '192.168.0.110',
     '192.168.0.111',
     '192.168.0.129',
+    'testserver',
 ]
 ALLOWED_HOSTS = [
     host.strip() for host in os.environ.get('ALLOWED_HOSTS', '').split(',')

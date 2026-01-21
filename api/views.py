@@ -466,8 +466,15 @@ class AgentLocationFilterSet(django_filters.FilterSet):
         description=(
             "Mobil agentlar tomonidan yuborilgan barcha geolokatsiya va qurilma ma'lumotlarini qaytaradi. "
             "Filtrlash uchun `agent_code`, `region`, `platform` va sana orqali foydalanish mumkin. "
-            "Ma'lumotlar prefetch qilinmasdan, to'g'ridan-to'g'ri bazadan olinadi (high-frequency data)."
+            "Ma'muotlar ProjectScopedMixin orqali foydalanuvchi proyektiga ko'ra filtrlanadi."
         ),
+        parameters=[
+            OpenApiParameter('agent_code', OpenApiTypes.STR, description="Agent kodi", required=False),
+            OpenApiParameter('region', OpenApiTypes.STR, description="Region", required=False),
+            OpenApiParameter('platform', OpenApiTypes.STR, description="Platforma", required=False),
+            OpenApiParameter('date_from', OpenApiTypes.DATE, description="Boshlanish sanasi", required=False),
+            OpenApiParameter('date_to', OpenApiTypes.DATE, description="Tugash sanasi", required=False),
+        ]
     ),
     create=extend_schema(
         tags=['Agent Locations'],

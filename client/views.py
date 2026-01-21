@@ -337,6 +337,23 @@ class ClientViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
             400: OpenApiResponse(description="Yaroqsiz fayl yoki header mos emas"),
         },
     )
+    @extend_schema(
+        tags=['Clients'],
+        summary="Client ma'lumotlarini Excel fayldan import qilish",
+        request={
+            'multipart/form-data': inline_serializer(
+                name='ClientImportPayload',
+                fields={
+                    'file': serializers.FileField(help_text='XLSX fayl'),
+                    'project_id': serializers.IntegerField(required=False, help_text='Optionally assign to this project ID'),
+                },
+            )
+        },
+        responses={
+            200: OpenApiResponse(description="Import natijalari (created/updated/errors)"),
+            400: OpenApiResponse(description="Yaroqsiz fayl yoki header mos emas"),
+        },
+    )
     @action(
         detail=False,
         methods=['post'],
