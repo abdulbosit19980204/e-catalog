@@ -238,9 +238,9 @@ class ProjectImageFilterSet(django_filters.FilterSet):
         ),
     ),
 )
-class ProjectViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
+class ProjectViewSet(viewsets.ModelViewSet):
     """
-    OPTIMIZED Project ViewSet with Project Isolation
+    OPTIMIZED Project ViewSet with Global Visibility
     """
     from utils.pagination import OptionalLimitOffsetPagination
     
@@ -259,7 +259,7 @@ class ProjectViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_queryset(self):
-        """Optimized queryset with project isolation"""
+        """Optimized queryset with global visibility"""
         queryset = super().get_queryset()
         return queryset.prefetch_related(
             'images',
@@ -753,7 +753,7 @@ class AgentLocationViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
         description="Rasmni soft-delete qiladi yoki bazadan o'chiradi.",
     ),
 )
-class ProjectImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
+class ProjectImageViewSet(viewsets.ModelViewSet):
     queryset = ProjectImage.objects.filter(is_deleted=False)
     serializer_class = ProjectImageSerializer
     filterset_class = ProjectImageFilterSet
@@ -761,7 +761,7 @@ class ProjectImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_queryset(self):
-        """Optimizatsiya: select_related bilan project yuklash - N+1 query muammosini hal qiladi"""
+        """Optimizatsiya: select_related bilan project yuklash va global ko'rinish"""
         queryset = super().get_queryset()
         return queryset.select_related('project').order_by('-created_at')
     
