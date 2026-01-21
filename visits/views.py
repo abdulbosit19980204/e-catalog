@@ -563,8 +563,18 @@ class VisitPlanViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
 
 
 @extend_schema(tags=['Visits'])
+@extend_schema_view(
+    list=extend_schema(
+        tags=['Visit Images'],
+        summary="Tashrif rasmlari ro'yxati",
+        description="Barcha tashriflarda olingan rasmlar"
+    ),
+)
 class VisitImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
-    """Visit Images Management"""
+    """
+    Visit Images Management
+    """
+    project_field_name = 'visit__project'
     queryset = VisitImage.objects.filter(is_deleted=False)
     serializer_class = VisitImageSerializer
     permission_classes = [IsAuthenticated]

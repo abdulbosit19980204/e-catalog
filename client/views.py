@@ -475,6 +475,7 @@ Client rasmlarini `client` (ID) va `client_code_1c` bo'yicha filterlash mumkin.
     ),
 )
 class ClientImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
+    project_field_name = 'client__project'
     queryset = ClientImage.objects.filter(is_deleted=False)
     serializer_class = ClientImageSerializer
     filterset_class = ClientImageFilterSet
@@ -548,6 +549,7 @@ class VisitImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     """
     Legacy Agent visits viewset with project isolation
     """
+    project_field_name = 'client__project'
     queryset = ClientImage.objects.filter(is_deleted=False)
     serializer_class = ClientImageSerializer
     permission_classes = [IsAuthenticated]

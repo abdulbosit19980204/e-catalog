@@ -238,11 +238,16 @@ class ProjectImageFilterSet(django_filters.FilterSet):
         ),
     ),
 )
-class ProjectViewSet(viewsets.ModelViewSet):
+class ProjectViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     """
     OPTIMIZED Project ViewSet with Project Isolation
     """
     from utils.pagination import OptionalLimitOffsetPagination
+    
+    project_field_name = 'id' # Project model identifies by its own ID or code_1c
+    # Wait, ProjectScopedMixin expects project_field_name to be a field on the model.
+    # For Project model, we should filter by code_1c if we match AuthProject.project_code.
+    # Let's adjust ProjectScopedMixin to handle the model being Project itself.
     
     queryset = Project.objects.filter(is_deleted=False)
     serializer_class = ProjectSerializer
@@ -255,17 +260,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Optimized queryset with project isolation"""
-        user = self.request.user
-        queryset = Project.objects.filter(is_deleted=False)
-        
-        if not user.is_superuser:
-            try:
-                # Filter by user's assigned project code
-                user_project_code = user.profile.project.project_code
-                queryset = queryset.filter(code_1c=user_project_code)
-            except AttributeError:
-                return queryset.none()
-                
+        queryset = super().get_queryset()
         return queryset.prefetch_related(
             'images',
             'images__status',
@@ -513,12 +508,8 @@ class AgentLocationViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def get_queryset(self):
+        # Mixin handles project filtering
         queryset = super().get_queryset().order_by('-created_at')
-        user = self.request.user
-        
-        # If AgentLocation doesn't have a direct 'project' field, 
-        # we might need to filter by agent_code prefix if that's the convention.
-        # However, it's better if AgentLocation has a project field.
         return queryset
 
     def perform_destroy(self, instance):
@@ -755,7 +746,7 @@ class AgentLocationViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
         description="Rasmni soft-delete qiladi yoki bazadan o'chiradi.",
     ),
 )
-class ProjectImageViewSet(viewsets.ModelViewSet):
+class ProjectImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     queryset = ProjectImage.objects.filter(is_deleted=False)
     serializer_class = ProjectImageSerializer
     filterset_class = ProjectImageFilterSet
@@ -764,9 +755,8 @@ class ProjectImageViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Optimizatsiya: select_related bilan project yuklash - N+1 query muammosini hal qiladi"""
-        return ProjectImage.objects.filter(
-            is_deleted=False
-        ).select_related('project').order_by('-created_at')
+        queryset = super().get_queryset()
+        return queryset.select_related('project').order_by('-created_at')
     
     def get_serializer_context(self):
         context = super().get_serializer_context()

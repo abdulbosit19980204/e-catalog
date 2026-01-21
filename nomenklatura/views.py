@@ -580,6 +580,7 @@ Nomenklatura rasmlarini `nomenklatura` (ID) va `category` bo'yicha filterlash mu
     ),
 )
 class NomenklaturaImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
+    project_field_name = 'nomenklatura__project'
     queryset = NomenklaturaImage.objects.filter(is_deleted=False)
     serializer_class = NomenklaturaImageSerializer
     filterset_class = NomenklaturaImageFilterSet
