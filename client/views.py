@@ -3,7 +3,7 @@ from django.db.models import Q
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from drf_spectacular.types import OpenApiTypes
 from django.core.cache import cache
@@ -99,12 +99,8 @@ from utils.mixins import ProjectScopedMixin
 @extend_schema_view(
     list=extend_schema(
         tags=['Clients'],
-        summary="Client ro'yxatini olish",
-        description=(
-            "Authentication talab qilinadi. Aktiv va soft-delete qilinmagan (is_deleted=False) client'lar ro'yxatini pagination bilan qaytaradi. "
-            " `search` parametri orqali `name`, `email` va `client_code_1c` bo'yicha qidirish mumkin. "
-            "Ma'muotlar ProjectScopedMixin orqali foydalanuvchi proyektiga ko'ra filtrlanadi."
-        ),
+        summary="Barcha clientlar ro'yxatini olish (Global)",
+        description="Loyiha cheklovlarisiz barcha mavjud clientlar ro'yxati.",
         parameters=[
             OpenApiParameter(
                 name='search',
@@ -121,17 +117,17 @@ from utils.mixins import ProjectScopedMixin
     ),
     create=extend_schema(
         tags=['Clients'],
-        summary="Client yaratish",
-        description="Yangi client qo'shish. `client_code_1c` unikal bo'lishi shart.",
+        summary="Yangi client yaratish",
+        description="Yangi client qo'shish.",
         examples=[
             OpenApiExample(
                 "Client Create Example",
                 value={
                     "client_code_1c": "CLI-2024-001",
-                    "name": "Super Market LLC",
+                    "name": "Super Market",
                     "email": "info@supermarket.uz",
                     "phone": "+998901234567",
-                    "description": "Markaziy filial",
+                    "description": "Asosiy mijoz",
                     "is_active": True,
                     "city": "Tashkent",
                     "region": "Chilanzar",
@@ -166,9 +162,9 @@ from utils.mixins import ProjectScopedMixin
         description="Clientni o'chirmasdan, `is_deleted=True` qilib belgilaydi.",
     ),
 )
-class ClientViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
+class ClientViewSet(viewsets.ModelViewSet):
     """
-    OPTIMIZED Client ViewSet with Project Isolation
+    OPTIMIZED Client ViewSet with Global Visibility
     """
     from utils.pagination import OptionalLimitOffsetPagination
     
@@ -179,11 +175,10 @@ class ClientViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     lookup_value_regex = "[^/]+"
     filterset_class = ClientFilterSet
     search_fields = ["name", "email", "client_code_1c"]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_queryset(self):
-        """Optimized queryset with multi-tenant isolation"""
-        # Mixin filters by project
+        """Optimized queryset with global visibility"""
         queryset = super().get_queryset()
         queryset = queryset.prefetch_related(
             'images',
@@ -191,6 +186,21 @@ class ClientViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
             'images__source'
         ).order_by('-created_at')
         return queryset
+
+    def perform_create(self, serializer):
+        """Assign project if user has one, otherwise standard save"""
+        user = self.request.user
+        if not user.is_anonymous and hasattr(user, 'profile') and user.profile.project:
+            # We use AuthProject -> api.Project mapping logic here
+            from api.models import Project
+            auth_project = user.profile.project
+            api_project = Project.objects.filter(code_1c__iexact=auth_project.project_code, is_deleted=False).first()
+            if api_project:
+                serializer.save(project=api_project)
+            else:
+                serializer.save()
+        else:
+            serializer.save()
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -491,13 +501,12 @@ Client rasmlarini `client` (ID) va `client_code_1c` bo'yicha filterlash mumkin.
         description="Rasmni bazadan o'chiradi yoki soft-delete qiladi.",
     ),
 )
-class ClientImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
-    project_field_name = 'client__project'
+class ClientImageViewSet(viewsets.ModelViewSet):
     queryset = ClientImage.objects.filter(is_deleted=False)
     serializer_class = ClientImageSerializer
     filterset_class = ClientImageFilterSet
     search_fields = ['client__client_code_1c', 'client__name']
-    permission_classes = [IsAuthenticated]  # Faqat authenticated user'lar uchun
+    permission_classes = [IsAuthenticatedOrReadOnly]
     
     def perform_create(self, serializer):
         super().perform_create(serializer)
@@ -545,8 +554,7 @@ class ClientImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
         )
     
     def get_queryset(self):
-        """Optimizatsiya: bog'langan model'larni yuklash va multi-tenant isolation"""
-        # Mixin filters by project
+        """Optimizatsiya: bog'langan model'larni yuklash va global ko'rinish"""
         queryset = super().get_queryset()
         queryset = queryset.select_related('client', 'client__project', 'status', 'source').order_by('-created_at')
         return queryset
@@ -562,19 +570,17 @@ class ClientImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     ),
     retrieve=extend_schema(tags=['Agent Visits (Legacy)'], summary="Bitta tashrif rasmi tafsiloti"),
 )
-class VisitImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
+class VisitImageViewSet(viewsets.ModelViewSet):
     """
-    Legacy Agent visits viewset with project isolation
+    Legacy Agent visits viewset with global visibility
     """
-    project_field_name = 'client__project'
     queryset = ClientImage.objects.filter(is_deleted=False)
     serializer_class = ClientImageSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
     filterset_class = ClientImageFilterSet
     search_fields = ['client__name', 'client__client_code_1c', 'note']
 
     def get_queryset(self):
-        # Mixin filters by project
         return super().get_queryset().select_related(
             'client', 'client__project', 'status', 'source'
         ).only(

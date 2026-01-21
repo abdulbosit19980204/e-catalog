@@ -133,19 +133,8 @@ from utils.mixins import ProjectScopedMixin
 @extend_schema_view(
     list=extend_schema(
         tags=['Nomenklatura'],
-        summary="Nomenklatura ro'yxatini olish",
-        description=(
-            "Aktiv va soft-delete qilinmagan (is_deleted=False) nomenklaturalarning ro'yxatini qaytaradi. "
-            "Ma'muotlar ProjectScopedMixin orqali foydalanuvchi proyektiga ko'ra filtrlanadi."
-        ),
-        parameters=[
-            OpenApiParameter(
-                name='search',
-                required=False,
-                type=OpenApiTypes.STR,
-                description="Nomenklatura nomi yoki code bo'yicha qidirish",
-            ),
-        ],
+        summary="Barcha nomenklatura ro'yxatini olish (Global)",
+        description="Loyiha cheklovlarisiz barcha mavjud nomenklatura ro'yxati.",
     ),
     retrieve=extend_schema(
         tags=['Nomenklatura'],
@@ -197,9 +186,9 @@ from utils.mixins import ProjectScopedMixin
         description="Mahsulotni o'chirmasdan, `is_deleted=True` qilib belgilaydi.",
     ),
 )
-class NomenklaturaViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
+class NomenklaturaViewSet(viewsets.ModelViewSet):
     """
-    OPTIMIZED Nomenklatura ViewSet with Project Isolation
+    OPTIMIZED Nomenklatura ViewSet with Global Visibility
     """
     from utils.pagination import OptionalLimitOffsetPagination
     
@@ -213,8 +202,7 @@ class NomenklaturaViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_queryset(self):
-        """Optimized queryset with multi-tenant isolation"""
-        # Mixin handles project filtering
+        """Optimized queryset with global visibility"""
         queryset = super().get_queryset()
         queryset = queryset.prefetch_related(
             'images',
@@ -222,6 +210,20 @@ class NomenklaturaViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
             'images__source'
         ).order_by('-created_at')
         return queryset
+
+    def perform_create(self, serializer):
+        """Assign project if user has one, otherwise standard save"""
+        user = self.request.user
+        if not user.is_anonymous and hasattr(user, 'profile') and user.profile.project:
+            from api.models import Project
+            auth_project = user.profile.project
+            api_project = Project.objects.filter(code_1c__iexact=auth_project.project_code, is_deleted=False).first()
+            if api_project:
+                serializer.save(project=api_project)
+            else:
+                serializer.save()
+        else:
+            serializer.save()
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -579,8 +581,7 @@ Nomenklatura rasmlarini `nomenklatura` (ID) va `category` bo'yicha filterlash mu
         description="Rasmni bazadan o'chiradi yoki soft-delete qiladi.",
     ),
 )
-class NomenklaturaImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
-    project_field_name = 'nomenklatura__project'
+class NomenklaturaImageViewSet(viewsets.ModelViewSet):
     queryset = NomenklaturaImage.objects.filter(is_deleted=False)
     serializer_class = NomenklaturaImageSerializer
     filterset_class = NomenklaturaImageFilterSet
@@ -588,8 +589,7 @@ class NomenklaturaImageViewSet(ProjectScopedMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_queryset(self):
-        """Optimizatsiya: bog'langan model'larni yuklash va multi-tenant isolation"""
-        # Mixin handles project filtering
+        """Optimizatsiya: bog'langan model'larni yuklash va global ko'rinish"""
         return super().get_queryset().select_related(
             'nomenklatura', 'nomenklatura__project', 'status', 'source'
         ).order_by('-created_at')
