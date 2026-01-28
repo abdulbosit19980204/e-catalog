@@ -180,8 +180,20 @@ class ClientViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_queryset(self):
-        """Optimized queryset with global visibility"""
+        """Optimized queryset with regional filtering for non-staff users"""
         queryset = super().get_queryset()
+        user = self.request.user
+        
+        # Region-based filtering for agents
+        if not user.is_anonymous and not user.is_staff:
+            from users.models import AgentBusinessRegion
+            region_codes = AgentBusinessRegion.objects.filter(profile__user=user).values_list('code', flat=True)
+            if region_codes:
+                queryset = queryset.filter(business_region_code__in=list(region_codes))
+            else:
+                # If agent has no regions, they see nothing (safe default)
+                queryset = queryset.none()
+
         queryset = queryset.prefetch_related(
             'images',
             'images__status',
@@ -561,8 +573,19 @@ class ClientImageViewSet(viewsets.ModelViewSet):
         )
     
     def get_queryset(self):
-        """Optimizatsiya: bog'langan model'larni yuklash va global ko'rinish"""
+        """Optimizatsiya: bog'langan model'larni yuklash va regional ko'rinish"""
         queryset = super().get_queryset()
+        user = self.request.user
+
+        # Region-based filtering for agents
+        if not user.is_anonymous and not user.is_staff:
+            from users.models import AgentBusinessRegion
+            region_codes = AgentBusinessRegion.objects.filter(profile__user=user).values_list('code', flat=True)
+            if region_codes:
+                queryset = queryset.filter(client__business_region_code__in=list(region_codes))
+            else:
+                queryset = queryset.none()
+
         queryset = queryset.select_related('client', 'client__project', 'status', 'source').order_by('-created_at')
         return queryset
 

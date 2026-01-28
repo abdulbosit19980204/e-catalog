@@ -1003,6 +1003,16 @@ class ThumbnailFeedMixin:
             is_active=True,
             client__is_deleted=False,
         ).select_related('client', 'status', 'source').order_by('-created_at')
+        
+        # Region-based filtering for agents
+        user = request.user
+        if not user.is_anonymous and not user.is_staff:
+            from users.models import AgentBusinessRegion
+            region_codes = AgentBusinessRegion.objects.filter(profile__user=user).values_list('code', flat=True)
+            if region_codes:
+                qs = qs.filter(client__business_region_code__in=list(region_codes))
+            else:
+                return []
         if is_main is not None:
             qs = qs.filter(is_main=is_main)
         if status_code:
@@ -1266,8 +1276,9 @@ class ThumbnailFeedView(ThumbnailFeedMixin, APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        # Cache key based on query parameters
-        cache_key = f"thumbnail_feed_{hash(str(request.query_params))}"
+        # Cache key based on query parameters AND user to respect regional filtering
+        user_id = request.user.id if request.user.is_authenticated else 'anonymous'
+        cache_key = f"thumbnail_feed_{user_id}_{hash(str(request.query_params))}"
         cached_data = cache.get(cache_key)
         if cached_data is not None:
             return Response(cached_data, status=status.HTTP_200_OK)
