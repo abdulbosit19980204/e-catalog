@@ -85,13 +85,15 @@ class ClientFilterSet(django_filters.FilterSet):
 
 
 class ClientImageFilterSet(django_filters.FilterSet):
+    project = django_filters.CharFilter(field_name='client__project__code_1c', label="Project code_1c")
+    project_id = django_filters.NumberFilter(field_name='client__project__id', label="Project ID")
     client_code_1c = django_filters.CharFilter(field_name='client__client_code_1c')
     created_from = django_filters.DateFilter(field_name='created_at', lookup_expr='date__gte')
     created_to = django_filters.DateFilter(field_name='created_at', lookup_expr='date__lte')
 
     class Meta:
         model = ClientImage
-        fields = ['client', 'client_code_1c', 'status', 'is_main', 'category', 'created_from', 'created_to']
+        fields = ['client', 'client_code_1c', 'project', 'project_id', 'status', 'is_main', 'category', 'created_from', 'created_to']
 
 
 from utils.mixins import ProjectScopedMixin
@@ -502,7 +504,12 @@ Client rasmlarini `client` (ID) va `client_code_1c` bo'yicha filterlash mumkin.
     ),
 )
 class ClientImageViewSet(viewsets.ModelViewSet):
-    queryset = ClientImage.objects.filter(is_deleted=False)
+    queryset = ClientImage.objects.filter(is_deleted=False).select_related(
+        'client', 
+        'client__project',
+        'status',
+        'source'
+    )
     serializer_class = ClientImageSerializer
     filterset_class = ClientImageFilterSet
     search_fields = ['client__client_code_1c', 'client__name']

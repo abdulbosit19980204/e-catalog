@@ -3,6 +3,8 @@ Visit Management Serializers
 High-performance serializers with optimized queries
 """
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 from .models import Visit, VisitPlan, VisitImage
 
 
@@ -67,6 +69,7 @@ class VisitListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['visit_id', 'duration', 'created_at']
     
+    @extend_schema_field(OpenApiTypes.INT)
     def get_image_count(self, obj):
         """Get number of images for this visit"""
         return obj.images.filter(is_deleted=False).count()
