@@ -34,6 +34,8 @@ const NomenklaturaAdmin = () => {
   const [descriptionStatusFilter, setDescriptionStatusFilter] = useState("");
 
   const [projectsList, setProjectsList] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkLoading, setBulkLoading] = useState(null);
 
   const initialFormData = {
     code_1c: "",
@@ -320,6 +322,71 @@ const NomenklaturaAdmin = () => {
     }
   };
 
+  // AI Bulk Actions
+  const handleBulkEnrich = async (allInProject = false) => {
+    if (!allInProject && selectedIds.length === 0) {
+      showError("Mahsulotlarni tanlang");
+      return;
+    }
+    if (allInProject && !filterProject) {
+      showError("Loyiha tanlanmagan");
+      return;
+    }
+
+    const confirmMsg = allInProject 
+      ? "Loyiha bo'yicha barcha mahsulotlarni boyitish? (Katta hajm vaqt olishi mumkin)"
+      : `${selectedIds.length} ta mahsulotni boyitishni tasdiqlaysizmi?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setBulkLoading('enrich');
+      const data = allInProject ? { project_id: filterProject } : { code_1cs: selectedIds };
+      const res = await nomenklaturaAPI.bulkEnrich(data);
+      success(res.data.message);
+      setSelectedIds([]);
+      loadNomenklatura();
+    } catch (err) {
+      showError("Boyitishda xatolik: " + (err.response?.data?.message || err.message));
+    } finally {
+      setBulkLoading(null);
+    }
+  };
+
+  const handleBulkClear = async () => {
+    if (selectedIds.length === 0) {
+      showError("Mahsulotlarni tanlang");
+      return;
+    }
+    if (!window.confirm(`${selectedIds.length} ta mahsulot AI ma'lumotlarini tozalashni tasdiqlaysizmi?`)) return;
+
+    try {
+      setBulkLoading('clear');
+      const res = await nomenklaturaAPI.bulkClear({ code_1cs: selectedIds });
+      success(res.data.message);
+      setSelectedIds([]);
+      loadNomenklatura();
+    } catch (err) {
+      showError("Tozalashda xatolik: " + (err.response?.data?.message || err.message));
+    } finally {
+      setBulkLoading(null);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === nomenklatura.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(nomenklatura.map(i => i.code_1c));
+    }
+  };
+
+  const toggleSelectOne = (code) => {
+    setSelectedIds(prev => 
+      prev.includes(code) ? prev.filter(id => id !== code) : [...prev, code]
+    );
+  };
+
 
   const handleDeleteImage = async (imageId) => {
     if (!window.confirm("Rasmni o'chirish?")) return;
@@ -511,6 +578,34 @@ const NomenklaturaAdmin = () => {
       <div className="crud-header">
         <h2>📦 Nomenklatura</h2>
         <div className="header-actions">
+          {selectedIds.length > 0 && (
+            <div className="bulk-actions-group">
+              <button 
+                onClick={() => handleBulkEnrich(false)} 
+                className="btn-ai enrich" 
+                disabled={bulkLoading}
+              >
+                {bulkLoading === 'enrich' ? '...' : `🤖 Selected (${selectedIds.length})`}
+              </button>
+              <button 
+                onClick={handleBulkClear} 
+                className="btn-ai clear" 
+                disabled={bulkLoading}
+              >
+                {bulkLoading === 'clear' ? '...' : '↺ Clear'}
+              </button>
+            </div>
+          )}
+          {filterProject && (
+            <button 
+              onClick={() => handleBulkEnrich(true)} 
+              className="btn-ai project-enrich" 
+              disabled={bulkLoading}
+              title="Loyiha bo'yicha hammasini boyitish"
+            >
+              🚀 Project AI
+            </button>
+          )}
           <button onClick={handleExport} className="btn-tertiary">
             <i className="fas fa-file-export"></i> Eksport
           </button>
@@ -577,14 +672,39 @@ const NomenklaturaAdmin = () => {
           {renderPagination()}
           <div className="table-container">
             <table className="data-table">
-              <thead><tr><th>Code / Artikul</th><th>Nomi</th><th>Loyihalar</th><th>Status</th><th>Amallar</th></tr></thead>
+              <thead>
+                <tr>
+                  <th style={{ width: '40px' }}>
+                    <input 
+                      type="checkbox" 
+                      onChange={toggleSelectAll} 
+                      checked={nomenklatura.length > 0 && selectedIds.length === nomenklatura.length}
+                    />
+                  </th>
+                  <th>Code / Artikul</th>
+                  <th>Nomi</th>
+                  <th>Loyihalar</th>
+                  <th>Status</th>
+                  <th>Amallar</th>
+                </tr>
+              </thead>
               <tbody>
                 {nomenklatura.map((item) => (
-                  <tr key={item.id}>
+                  <tr key={item.id} className={selectedIds.includes(item.code_1c) ? 'row-selected' : ''}>
+                    <td>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedIds.includes(item.code_1c)}
+                        onChange={() => toggleSelectOne(item.code_1c)}
+                      />
+                    </td>
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <span className="code-tag">{item.code_1c}</span>
                         {item.article_code && <span className="code-tag" style={{ backgroundColor: '#fff8e1', color: '#f57f17' }}>{item.article_code}</span>}
+                        {item.enrichment_status === 'COMPLETED' && (
+                          <span className="status-chip enriched mini">🤖 AI</span>
+                        )}
                       </div>
                     </td>
                     <td>{item.name}</td>
@@ -603,7 +723,6 @@ const NomenklaturaAdmin = () => {
                     <td><div className="action-buttons"><button onClick={() => handleEdit(item)} className="btn-edit">✏️</button><button onClick={() => handleDelete(item)} className="btn-delete">🗑️</button></div></td>
                   </tr>
                 ))}
-
               </tbody>
             </table>
           </div>

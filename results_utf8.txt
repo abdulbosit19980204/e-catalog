@@ -1,0 +1,46 @@
+```html
+<div class="product-description">
+    <h1>iPhone 15 Pro 256GB Natural Titanium</h1>
+    <p>iPhone 15 Pro, Apple'ning eng ilg'or va qudratli smartfonlaridan biri bo'lib, 256GB xotira sig'imi va o'ziga xos Natural Titanium rangida taqdim etiladi. Ushbu qurilma innovatsion texnologiyalar, ajoyib dizayn va yuqori unumdorlikning mukammal uyg'unligini o'zida mujassam etgan.</p>
+
+    <h2>Dizayn va Materiallar</h2>
+    <ul>
+        <li><b>Titan korpus:</b> Aviatsiya sanoatida ishlatiladigan yuqori sifatli, engil va bardoshli titan materialidan ishlangan. Bu iPhone 15 Pro'ni o'zidan oldingi Pro modellarga qaraganda sezilarli darajada engilroq va mustahkamroq qiladi.</li>
+        <li><b>Natural Titanium rangi:</b> Tabiiy titan yuzasining o'ziga xos to'qimasi va mat qoplamasi smartfonga nafis va zamonaviy ko'rinish beradi. Bu rang yorug'likka qarab o'zgarib turadigan nozik tuslarga ega bo'lib, uning premiumligini yanada ta'kidlaydi.</li>
+        <li><b>Dynamic Island:</b> Interaktiv Dynamic Island displey bilan uzviy bog'lanib, bildirishnomalar, jonli harakatlar va ogohlantirishlarni qulay tarzda boshqarish imkonini beradi.</li>
+        <li><b>Ceramic Shield:</b> Old panel Ceramic Shield bilan himoyalangan bo'lib, shisha yuzasining bardoshliligini sezilarli darajada oshiradi.</li>
+    </ul>
+
+    <h2>A17 Pro Chip: Misli ko'rilmagan Unumdorlik</h2>
+    <p>Dunyodagi birinchi 3 nanometrli smartfon chipi – A17 Pro bilan jihozlangan iPhone 15 Pro mobil qurilmalar orasida misli ko'rilmagan tezlik va samaradorlikni taqdim etadi. Bu chip eng talabchan o'yinlar, professional ilovalar va ko'p vazifali ishlash uchun yetarli quvvatga ega.</p>
+
+    <h2>Professional Darajadagi Kamera Tizimi</h2>
+    <p>iPhone 15 Pro ilg'or uch linzali kamera tizimiga ega:</p>
+    <ul>
+        <li><b>48MP Asosiy Kamera:</b> Yuqori aniqlikdagi va tiniq fotosuratlar uchun rivojlangan 48MP sensor, 24mm, 28mm va 35mm kabi bir nechta fokus masofalarida suratga olish imkoniyati.</li>
+        <li><b>3x Telefoto Kamera:</b> 77mm fokus masofasi bilan uzoqdan ham batafsil va sifatli suratga olish, portretlar uchun ideal.</li>
+        <li><b>12MP Ultra Keng Burchakli Kamera:</b> Manzaralar, arxitektura va guruh portretlari uchun ideal, makro suratga olishni ham qo'llab-quvvatlaydi.</li>
+        <li><b>ProRes Video:</b> Professional darajadagi video yozish imkoniyatlari, jumladan 4K 60 kadr/sekundgacha suratga olish va tashqi diskka to'g'ridan-to'g'ri yozish.</li>
+        <li><b>Fazoviy Video (Spatial Video):</b> Kelajakda Apple Vision Pro uchun mo'ljallangan uch o'lchamli videolarni yozib olish imkoniyati.</li>
+    </ul>
+
+    <h2>Yangi Action Button</h2>
+    <p>An'anaviy jim qilish tugmasi o'rnini egallagan Action Button foydalanuvchiga turli funksiyalarni (kamera, chiroq, ovoz yozuvchi, fokus rejimi, tarjimon yoki boshqa shaxsiy yorliqlar) tezkor ishga tushirish uchun moslashuvchanlikni beradi. Uni shaxsiylashtirish orqali o'zingizga qulay tarzda sozlash mumkin.</p>
+
+    <h2>USB-C Porti</h2>
+    <p>Birinchi marta iPhone Pro modellarida USB-C porti paydo bo'ldi. Bu universal port nafaqat zaryadlash, balki USB 3.0 tezligida (10 Gbit/s gacha) ma'lumot uzatish imkoniyatini ham beradi, bu esa avvalgi modellarga qaraganda sezilarli darajada tezroqdir.</p>
+
+    <p>iPhone 15 Pro 256GB Natural Titanium – bu nafaqat smartfon, balki yuqori texnologiyalar, nafis dizayn va betakror ish faoliyatining mukammal uyg'unligi bo'lib, eng yaxshi foydalanish tajribasini taqdim etadi.</p>
+</div>
+```
+```json
+{
+  "brand": "Apple",
+  "model": "iPhone 15 Pro 256GB",
+  "color": "Natural Titanium",
+  "material": "Aerospace-grade titanium",
+  "weight": "187 grams (6.60 ounces)",
+  "dimensions": "146.6 mm (5.77 in) x 70.6 mm (2.78 in) x 8.25 mm (0.32 in)",
+  "category": "Smartphone"
+}
+```

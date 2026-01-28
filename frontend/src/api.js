@@ -321,6 +321,18 @@ export const nomenklaturaAPI = {
   setMainImage: (imageId) => {
     return apiClient.patch(`/nomenklatura-image/${imageId}/`, { is_main: true });
   },
+  enrichNomenklatura: (code1c) => {
+    return apiClient.post(`/nomenklatura/${code1c}/enrich/`);
+  },
+  bulkEnrich: (data) => {
+    return apiClient.post(`/nomenklatura/bulk-enrich/`, data);
+  },
+  clearEnrichment: (code1c) => {
+    return apiClient.post(`/nomenklatura/${code1c}/clear-enrichment/`);
+  },
+  bulkClear: (data) => {
+    return apiClient.post(`/nomenklatura/bulk-clear/`, data);
+  },
 };
 
 // User Management API
@@ -491,6 +503,12 @@ export const visitImageAPI = {
 export const coreAPI = {
   getStatus: () => {
     return apiClient.get("/core/health/status/");
+  },
+  getSettings: () => {
+    return apiClient.get("/core/system-settings/");
+  },
+  updateSetting: (key, data) => {
+    return apiClient.patch(`/core/system-settings/${key}/`, data);
   },
 };
 

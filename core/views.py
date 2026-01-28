@@ -1,8 +1,9 @@
 from django.shortcuts import render
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAdminUser, AllowAny
+from .models import SystemSettings
 from django.db import connection as db_connection
 from django.core.cache import cache
 import os
@@ -211,3 +212,22 @@ class HealthViewSet(viewsets.ViewSet):
             }
         except Exception as e:
             return {"status": "error", "message": str(e)}
+
+class SystemSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SystemSettings
+        fields = ['id', 'key', 'value', 'description', 'is_secret', 'updated_at']
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if instance.is_secret:
+            ret['value'] = "********"
+        return ret
+
+class SystemSettingsViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing dynamic system settings"""
+    queryset = SystemSettings.objects.filter(is_deleted=False)
+    serializer_class = SystemSettingsSerializer
+    permission_classes = [IsAdminUser]
+    lookup_field = 'key'
+    lookup_value_regex = '[^/]+'

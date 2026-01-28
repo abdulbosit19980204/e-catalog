@@ -72,6 +72,21 @@ class Nomenklatura(BaseModel):
     source = models.CharField(max_length=100, blank=True, null=True, help_text="Manba")
     metadata = models.JSONField(blank=True, null=True, default=dict, help_text="Qo'shimcha meta ma'lumotlar (JSON)")
 
+    # Enrichment tracking
+    ENRICHMENT_STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed'),
+        ('FAILED', 'Failed'),
+    ]
+    enrichment_status = models.CharField(
+        max_length=20, 
+        choices=ENRICHMENT_STATUS_CHOICES, 
+        default='PENDING',
+        help_text="AI enrichment status"
+    )
+    last_enriched_at = models.DateTimeField(blank=True, null=True, help_text="Last successful enrichment time")
+
     class Meta:
         unique_together = ('project', 'code_1c')
         indexes = [
@@ -105,6 +120,7 @@ class NomenklaturaImage(BaseModel):
         default='',
         help_text="Rasm haqida qo'shimcha izoh"
     )
+    is_ai_generated = models.BooleanField(default=False, help_text="AI orqali qo'shilgan rasm")
     status = models.ForeignKey(
         'api.ImageStatus',
         on_delete=models.SET_NULL,

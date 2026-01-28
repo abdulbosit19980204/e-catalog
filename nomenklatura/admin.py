@@ -3,6 +3,8 @@ from django.db.models import Q
 from django.utils.html import format_html
 from django.urls import reverse
 from .models import Nomenklatura, NomenklaturaImage
+from nomenklatura.services import NomenklaturaEnrichmentService
+from django.contrib import messages
 
 
 class NomenklaturaImageInline(admin.TabularInline):
@@ -66,10 +68,11 @@ class ImageStatusFilter(admin.SimpleListFilter):
 @admin.register(Nomenklatura)
 class NomenklaturaAdmin(admin.ModelAdmin):
     """Nomenklatura admin"""
-    list_display = ['name', 'code_1c', 'project', 'sku', 'brand', 'category', 'base_price', 'stock_quantity', 'rating', 'images_count', 'is_active', 'is_deleted', 'created_at']
-    list_filter = ['is_active', 'is_deleted', 'project', DescriptionStatusFilter, ImageStatusFilter, 'category', 'subcategory', 'brand', 'manufacturer', 'created_at', 'updated_at']
+    list_display = ['name', 'code_1c', 'project', 'sku', 'brand', 'category', 'base_price', 'stock_quantity', 'rating', 'enrichment_status', 'images_count', 'is_active', 'is_deleted', 'created_at']
+    list_filter = ['is_active', 'is_deleted', 'project', 'enrichment_status', DescriptionStatusFilter, ImageStatusFilter, 'category', 'subcategory', 'brand', 'manufacturer', 'created_at', 'updated_at']
     search_fields = ['name', 'code_1c', 'title', 'sku', 'barcode', 'brand', 'manufacturer', 'model', 'category']
-    readonly_fields = ['created_at', 'updated_at', 'images_count_display']
+    readonly_fields = ['created_at', 'updated_at', 'images_count_display', 'last_enriched_at']
+    actions = ['enrich_selected_nomenklatura', 'clear_enriched_data']
     inlines = [NomenklaturaImageInline]
     fieldsets = (
         ('Asosiy ma\'lumotlar', {
@@ -100,7 +103,7 @@ class NomenklaturaAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Status', {
-            'fields': ('is_active', 'is_deleted')
+            'fields': ('is_active', 'is_deleted', 'enrichment_status', 'last_enriched_at')
         }),
         ('Statistika', {
             'fields': ('images_count_display',),
@@ -137,6 +140,36 @@ class NomenklaturaAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Optimizatsiya: prefetch_related(images) va select_related(project) yuklash"""
         return super().get_queryset(request).prefetch_related('images').select_related('project')
+
+    @admin.action(description="Tanlangan mahsulotlarni AI orqali boyitish")
+    def enrich_selected_nomenklatura(self, request, queryset):
+        service = NomenklaturaEnrichmentService()
+        success_count = 0
+        error_count = 0
+        
+        for item in queryset:
+            try:
+                if service.enrich_instance(item):
+                    success_count += 1
+                else:
+                    error_count += 1
+            except Exception as e:
+                error_count += 1
+                self.message_user(request, f"Xato ({item.name}): {str(e)}", level=messages.ERROR)
+        
+        if success_count:
+            self.message_user(request, f"{success_count} ta mahsulot muvaffaqiyatli boyitildi.", level=messages.SUCCESS)
+        if error_count:
+            self.message_user(request, f"{error_count} ta mahsulotda xatolik yuz berdi.", level=messages.WARNING)
+
+    @admin.action(description="Tanlangan mahsulotlarni AI ma'lumotlarini tozalash")
+    def clear_enriched_data(self, request, queryset):
+        service = NomenklaturaEnrichmentService()
+        count = 0
+        for item in queryset:
+            if service.clear_enrichment(item):
+                count += 1
+        self.message_user(request, f"{count} ta mahsulot ma'lumotlari tozalandi.", level=messages.SUCCESS)
 
 
 @admin.register(NomenklaturaImage)

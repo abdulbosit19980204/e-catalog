@@ -322,7 +322,8 @@
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 800px; /* Ensure table doesn't get too squeezed horizontally */
+  min-width: 800px;
+  /* Ensure table doesn't get too squeezed horizontally */
 }
 
 .data-table th {
@@ -344,8 +345,10 @@
   color: var(--text-main);
   vertical-align: middle;
   word-break: break-all;
-  min-width: 150px; /* Prevent columns from getting too narrow */
-  max-width: 400px; /* Prevent any single column from taking too much space */
+  min-width: 150px;
+  /* Prevent columns from getting too narrow */
+  max-width: 400px;
+  /* Prevent any single column from taking too much space */
 }
 
 .data-table tr:last-child td {
@@ -704,9 +707,20 @@
   opacity: 0.8;
 }
 
-.stat-card.created { background: #ecfdf5; color: #059669; }
-.stat-card.updated { background: #eff6ff; color: #2563eb; }
-.stat-card.errors { background: #fef2f2; color: #dc2626; }
+.stat-card.created {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.stat-card.updated {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.stat-card.errors {
+  background: #fef2f2;
+  color: #dc2626;
+}
 
 .error-list {
   background: #fffafa;
@@ -752,4 +766,83 @@
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+.bulk-actions-group {
+  display: flex;
+  gap: 8px;
+  padding-right: 12px;
+  border-right: 1px solid var(--border-color);
+  margin-right: 12px;
+}
+
+.btn-ai {
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-ai.enrich {
+  background: #f0f9ff;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+
+.btn-ai.enrich:hover:not(:disabled) {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+}
+
+.btn-ai.clear {
+  background: #fff1f2;
+  color: #be123c;
+  border-color: #fecdd3;
+}
+
+.btn-ai.clear:hover:not(:disabled) {
+  background: #ffe4e6;
+  border-color: #fda4af;
+}
+
+.btn-ai.project-enrich {
+  background: #faf5ff;
+  color: #7c3aed;
+  border-color: #e9d5ff;
+}
+
+.btn-ai.project-enrich:hover:not(:disabled) {
+  background: #f3e8ff;
+  border-color: #d8b4fe;
+}
+
+.btn-ai:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+.row-selected {
+  background-color: #f0f7ff !important;
+}
+
+.status-chip.mini {
+  padding: 2px 6px;
+  font-size: 0.65rem;
+  border-radius: 4px;
+  font-weight: 800;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.status-chip.enriched.mini {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
 }

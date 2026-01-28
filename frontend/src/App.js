@@ -26,6 +26,7 @@ import AgentTracker from "./components/admin/AgentTracker";
 import AgentTrackerPage from "./components/AgentTrackerPage";
 import VisitManagement from "./components/admin/VisitManagement";
 import SystemHealth from "./components/admin/SystemHealth";
+import AdminSettings from "./components/admin/AdminSettings";
 
 import MainLayout from "./components/MainLayout";
 
@@ -197,6 +198,16 @@ function App() {
               <ProtectedRoute>
                 <AdminLayout>
                   <SystemHealth />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/settings"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminSettings />
                 </AdminLayout>
               </ProtectedRoute>
             }

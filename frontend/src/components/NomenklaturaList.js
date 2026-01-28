@@ -231,6 +231,9 @@ const NomenklaturaList = () => {
                         >
                           {item.is_active ? "Sotuvda" : "Arxiv"}
                         </span>
+                        {item.enrichment_status === 'COMPLETED' && (
+                          <span className="status-chip enriched">AI Boyitilgan</span>
+                        )}
                         <span className="price-placeholder">Narx: —</span>
                       </div>
                       <div className="nomenklatura-actions">

@@ -50,6 +50,7 @@ class NomenklaturaImageSerializer(serializers.ModelSerializer):
             'status_id',
             'source',
             'source_id',
+            'is_ai_generated',
             'created_at',
         ]
         read_only_fields = ['id', 'created_at']
@@ -173,7 +174,9 @@ class NomenklaturaSerializer(serializers.ModelSerializer):
             'color', 'size', 'material', 'warranty_period', 'expiry_date',
             'production_date', 'roditel', 'supplier', 'country_code', 'country',
             'notes', 'rating', 'popularity_score', 'seo_keywords',
-            'source', 'metadata', 'is_active', 'is_deleted', 'created_at', 'updated_at',
+            'source', 'metadata', 'is_active', 'is_deleted', 
+            'enrichment_status', 'last_enriched_at',
+            'created_at', 'updated_at',
             'images',
         ]
         extra_kwargs = {

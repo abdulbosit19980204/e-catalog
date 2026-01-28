@@ -230,6 +230,83 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
         context['request'] = self.request
         return context
 
+    @action(detail=True, methods=['post'], url_path='enrich')
+    def enrich(self, request, code_1c=None):
+        """AI orqali bitta mahsulot ma'lumotlarini boyitish"""
+        from nomenklatura.services import NomenklaturaEnrichmentService
+        instance = self.get_object()
+        service = NomenklaturaEnrichmentService()
+        
+        try:
+            success = service.enrich_instance(instance)
+            if success:
+                return Response({'status': 'success', 'message': 'Mahsulot muvaffaqiyatli boyitildi'})
+            else:
+                return Response({'status': 'error', 'message': 'Boyitishda xatolik yuz berdi'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'], url_path='bulk-enrich')
+    def bulk_enrich(self, request):
+        """AI orqali mahsulotlarni guruhlab boyitish"""
+        from nomenklatura.services import NomenklaturaEnrichmentService
+        code_1cs = request.data.get('code_1cs', [])
+        project_id = request.data.get('project_id')
+        
+        queryset = self.get_queryset()
+        if code_1cs:
+            queryset = queryset.filter(code_1c__in=code_1cs)
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+            
+        service = NomenklaturaEnrichmentService()
+        count = 0
+        for instance in queryset:
+            try:
+                if service.enrich_instance(instance):
+                    count += 1
+            except:
+                continue
+                
+        return Response({'status': 'success', 'message': f'{count} ta mahsulot boyitildi'})
+
+    @action(detail=True, methods=['post'], url_path='clear-enrichment')
+    def clear_enrichment(self, request, code_1c=None):
+        """AI orqali qo'shilgan ma'lumotlarni tozalash"""
+        from nomenklatura.services import NomenklaturaEnrichmentService
+        instance = self.get_object()
+        service = NomenklaturaEnrichmentService()
+        
+        try:
+            service.clear_enrichment(instance)
+            return Response({'status': 'success', 'message': "AI ma'lumotlari tozalandi"})
+        except Exception as e:
+            return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'], url_path='bulk-clear')
+    def bulk_clear(self, request):
+        """AI ma'lumotlarini guruhlab tozalash"""
+        from nomenklatura.services import NomenklaturaEnrichmentService
+        code_1cs = request.data.get('code_1cs', [])
+        project_id = request.data.get('project_id')
+        
+        queryset = self.get_queryset()
+        if code_1cs:
+            queryset = queryset.filter(code_1c__in=code_1cs)
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+            
+        service = NomenklaturaEnrichmentService()
+        count = 0
+        for instance in queryset:
+            try:
+                service.clear_enrichment(instance)
+                count += 1
+            except:
+                continue
+                
+        return Response({'status': 'success', 'message': f'{count} ta mahsulot tozalandi'})
+
     # Excel helpers ---------------------------------------------------------
     @action(detail=False, methods=['get'])
     def duplicates(self, request):

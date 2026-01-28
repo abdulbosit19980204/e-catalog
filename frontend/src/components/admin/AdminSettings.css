@@ -1,0 +1,140 @@
+.admin-settings-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 24px;
+}
+
+.admin-settings-header {
+    margin-bottom: 32px;
+}
+
+.admin-settings-header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.admin-settings-header p {
+    color: var(--text-muted);
+}
+
+.settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+}
+
+.setting-info {
+    flex: 1;
+}
+
+.setting-key {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 4px;
+}
+
+.setting-desc {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.setting-meta {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.setting-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 300px;
+    justify-content: flex-end;
+}
+
+.setting-value {
+    font-family: monospace;
+    font-size: 0.9rem;
+    background: #f1f5f9;
+    padding: 4px 12px;
+    border-radius: 6px;
+    color: var(--text-main);
+}
+
+.edit-group {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.admin-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    outline: none;
+}
+
+.admin-error-banner {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 12px 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    font-weight: 600;
+}
+
+.admin-success-banner {
+    background: #dcfce7;
+    color: #166534;
+    padding: 12px 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    font-weight: 600;
+}
+
+.admin-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.admin-btn:hover {
+    background: #f8fafc;
+}
+
+.admin-btn.primary {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+@media (max-width: 768px) {
+    .setting-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .setting-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+}

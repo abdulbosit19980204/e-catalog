@@ -84,3 +84,18 @@ class ErrorLog(BaseModel):
 
     def __str__(self):
         return f"{self.error_type}: {self.message[:50]}"
+
+class SystemSettings(BaseModel):
+    """Dynamically configurable system settings (e.g., API keys)"""
+    key = models.CharField(max_length=255, unique=True, help_text="Config key (e.g. GEMINI_API_KEY)")
+    value = models.TextField(help_text="Config value")
+    description = models.CharField(max_length=500, blank=True, null=True, help_text="Key description")
+    is_secret = models.BooleanField(default=True, help_text="If true, value is sensitive (API key, etc.)")
+
+    class Meta:
+        verbose_name = "System Setting"
+        verbose_name_plural = "System Settings"
+        ordering = ['key']
+
+    def __str__(self):
+        return self.key
