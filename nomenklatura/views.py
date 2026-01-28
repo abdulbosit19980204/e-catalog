@@ -238,11 +238,11 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
         service = NomenklaturaEnrichmentService()
         
         try:
-            success = service.enrich_instance(instance)
+            success, msg = service.enrich_instance(instance)
             if success:
-                return Response({'status': 'success', 'message': 'Mahsulot muvaffaqiyatli boyitildi'})
+                return Response({'status': 'success', 'message': msg or 'Mahsulot muvaffaqiyatli boyitildi'})
             else:
-                return Response({'status': 'error', 'message': 'Boyitishda xatolik yuz berdi'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'status': 'error', 'message': msg or 'Boyitishda xatolik yuz berdi'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -261,14 +261,23 @@ class NomenklaturaViewSet(viewsets.ModelViewSet):
             
         service = NomenklaturaEnrichmentService()
         count = 0
+        last_error = None
         for instance in queryset:
             try:
-                if service.enrich_instance(instance):
+                success, msg = service.enrich_instance(instance)
+                if success:
                     count += 1
-            except:
+                else:
+                    last_error = msg
+            except Exception as e:
+                last_error = str(e)
                 continue
                 
-        return Response({'status': 'success', 'message': f'{count} ta mahsulot boyitildi'})
+        message = f'{count} ta mahsulot boyitildi'
+        if last_error:
+            message += f" (Oxirgi xatolik: {last_error})"
+            
+        return Response({'status': 'success', 'message': message})
 
     @action(detail=True, methods=['post'], url_path='clear-enrichment')
     def clear_enrichment(self, request, code_1c=None):

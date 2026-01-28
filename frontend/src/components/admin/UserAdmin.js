@@ -4,7 +4,7 @@ import { useNotification } from "../../contexts/NotificationContext";
 import "./UserAdmin.css";
 
 const UserAdmin = () => {
-  const { error: showError, success: showSuccess } = useNotification();
+  const { error: showError, success: showSuccess, confirm } = useNotification();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -65,7 +65,12 @@ const UserAdmin = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("O'chirmoqchimisiz?")) return;
+    const confirmed = await confirm({
+      title: "O'chirishni tasdiqlaysizmi?",
+      message: "Ushbu foydalanuvchini o'chirib yubormoqchimisiz?",
+      type: 'danger'
+    });
+    if (!confirmed) return;
     try {
       await userAPI.deleteUser(id);
       showSuccess("O'chirildi");

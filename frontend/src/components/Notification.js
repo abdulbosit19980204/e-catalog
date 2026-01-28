@@ -3,46 +3,56 @@ import { useNotification } from '../contexts/NotificationContext';
 import './Notification.css';
 
 const Notification = () => {
-  const { notifications, removeNotification } = useNotification();
+  const { notifications, removeNotification, setErrorDetail } = useNotification();
 
   const getIcon = (type) => {
     switch (type) {
-      case 'success':
-        return '✓';
-      case 'error':
-        return '✕';
-      case 'warning':
-        return '⚠';
-      case 'info':
-        return 'ℹ';
-      default:
-        return 'ℹ';
+      case 'success': return '✅';
+      case 'error': return '❌';
+      case 'warning': return '⚠️';
+      case 'info': return 'ℹ️';
+      default: return 'ℹ️';
     }
   };
 
   return (
     <div className="notification-container">
-      {notifications.map((notification) => (
-        <div
-          key={notification.id}
-          className={`notification notification-${notification.type}`}
-          onClick={() => removeNotification(notification.id)}
-        >
-          <div className="notification-content">
-            <span className="notification-icon">{getIcon(notification.type)}</span>
-            <span className="notification-message">{notification.message}</span>
-            <button
-              className="notification-close"
-              onClick={(e) => {
-                e.stopPropagation();
-                removeNotification(notification.id);
-              }}
-            >
-              ×
-            </button>
+      {notifications.map((n) => {
+        const isLong = n.message && n.message.length > 120;
+        const displayMessage = isLong 
+          ? n.message.substring(0, 120) + "..." 
+          : n.message;
+
+        return (
+          <div
+            key={n.id}
+            className={`notification notification-${n.type}`}
+          >
+            <div className="notification-content">
+              <span className="notification-icon">{getIcon(n.type)}</span>
+              <div className="notification-body">
+                <span className="notification-message">{displayMessage}</span>
+                {n.type === 'error' && (
+                  <div className="notification-actions">
+                    <button 
+                      className="btn-details" 
+                      onClick={() => setErrorDetail(n.message)}
+                    >
+                      🔍 Batafsil o'qish
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button
+                className="notification-close"
+                onClick={() => removeNotification(n.id)}
+              >
+                ×
+              </button>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

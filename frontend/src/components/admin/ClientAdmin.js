@@ -5,7 +5,7 @@ import { useNotification } from "../../contexts/NotificationContext";
 import "./AdminCRUD.css";
 
 const ClientAdmin = () => {
-  const { success, error: showError } = useNotification();
+  const { error: showError, success, confirm } = useNotification();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -144,7 +144,12 @@ const ClientAdmin = () => {
   };
 
   const handleDelete = async (client) => {
-    if (!window.confirm("Bu client'ni o'chirishni xohlaysizmi?")) return;
+    const confirmed = await confirm({
+      title: "Mijozni o'chirish?",
+      message: `${client.name} mijozini o'chirib yubormoqchimisiz?`,
+      type: 'danger'
+    });
+    if (!confirmed) return;
     try {
       await clientAPI.deleteClient(client.client_code_1c, client.project?.id);
       loadClients();

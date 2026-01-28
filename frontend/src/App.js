@@ -2,6 +2,8 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import Notification from "./components/Notification";
+import ConfirmModal from "./components/ConfirmModal";
+import ErrorDetailModal from "./components/ErrorDetailModal";
 import "./App.css";
 import Home from "./components/Home";
 import ClientList from "./components/ClientList";
@@ -36,6 +38,8 @@ function App() {
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="App">
           <Notification />
+          <ConfirmModal />
+          <ErrorDetailModal />
           <Routes>
             {/* Frontend routes with main navigation */}
             <Route element={<MainLayout />}>

@@ -4,7 +4,7 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from nomenklatura.models import Nomenklatura, NomenklaturaImage
-from utils.ai.gemini import GeminiService
+from utils.ai.factory import AIService
 from utils.settings import get_system_setting
 import os
 
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class NomenklaturaEnrichmentService:
     def __init__(self):
-        self.gemini = GeminiService()
+        self.ai = AIService()
         self.search_api_key = get_system_setting('SEARCH_API_KEY')
         self.serper_url = "https://google.serper.dev/search"
 
@@ -84,35 +84,45 @@ class NomenklaturaEnrichmentService:
 
         description = ""
         specs = {}
+        last_error = None
 
         # 1. Try Serper Search (Best for real-time/niche data)
         if self.search_api_key:
             try:
                 raw_text, _ = self.search_product(query)
                 if raw_text:
-                    description = self.gemini.generate_product_description(nomenklatura.name, raw_text)
-                    specs = self.gemini.parse_product_specs(nomenklatura.name, raw_text)
+                    description = self.ai.generate_product_description(nomenklatura.name, raw_text)
+                    specs = self.ai.parse_product_specs(nomenklatura.name, raw_text)
             except Exception as e:
-                logger.error(f"Serper enrichment failed: {e}")
+                last_error = f"Serper/AI xatoligi: {str(e)}"
+                logger.error(last_error)
 
-        # 2. Try Gemini Search Grounding (Free fallback)
+        # 2. Try Grounding/Search (Provider specific)
         if not description and not specs:
-            logger.info("Using Gemini Search Grounding fallback")
-            grounded_res = self.gemini.generate_with_search(query)
-            if grounded_res:
-                description, specs = self._parse_grounded_response(grounded_res)
+            logger.info("Using AI Search Grounding fallback")
+            try:
+                grounded_res = self.ai.generate_with_search(query)
+                if grounded_res:
+                    description, specs = self._parse_grounded_response(grounded_res)
+            except Exception as e:
+                last_error = str(e)
+                logger.error(f"Grounding fallback failed: {last_error}")
 
-        # 3. Try Gemini Internal Knowledge (Final fallback)
+        # 3. Try Internal Knowledge (Final fallback)
         if not description and not specs:
-            logger.info("Using Gemini Internal Knowledge fallback")
-            knowledge_res = self.gemini.generate_with_knowledge(query)
-            if knowledge_res:
-                description, specs = self._parse_grounded_response(knowledge_res)
+            logger.info("Using AI Internal Knowledge fallback")
+            try:
+                knowledge_res = self.ai.generate_with_knowledge(query)
+                if knowledge_res:
+                    description, specs = self._parse_grounded_response(knowledge_res)
+            except Exception as e:
+                last_error = str(e)
+                logger.error(f"Knowledge fallback failed: {last_error}")
 
         if not description and not specs:
             nomenklatura.enrichment_status = 'FAILED'
             nomenklatura.save()
-            return False
+            return False, last_error or "Ma'lumot topilmadi"
 
         if description:
             nomenklatura.description = description
@@ -151,7 +161,7 @@ class NomenklaturaEnrichmentService:
         nomenklatura.enrichment_status = 'COMPLETED'
         nomenklatura.last_enriched_at = timezone.now()
         nomenklatura.save()
-        return True
+        return True, "Muvaffaqiyatli boyitildi"
 
     def _parse_grounded_response(self, text):
         """Helper to parse the grounded response from Gemini"""

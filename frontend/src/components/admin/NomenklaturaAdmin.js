@@ -5,7 +5,7 @@ import { useNotification } from "../../contexts/NotificationContext";
 import "./AdminCRUD.css";
 
 const NomenklaturaAdmin = () => {
-  const { success, error: showError } = useNotification();
+  const { success, error: showError, confirm } = useNotification();
   const [nomenklatura, setNomenklatura] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -162,7 +162,14 @@ const NomenklaturaAdmin = () => {
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm("Bu nomenklatura'ni o'chirishni xohlaysizmi?")) return;
+    const confirmed = await confirm({
+      title: "O'chirishni tasdiqlaysizmi?",
+      message: `${item.name} mahsulotini o'chirib yubormoqchimisiz?`,
+      type: 'danger'
+    });
+    
+    if (!confirmed) return;
+    
     try {
       await nomenklaturaAPI.deleteNomenklatura(item.code_1c, item.project?.id);
       loadNomenklatura();
@@ -337,7 +344,13 @@ const NomenklaturaAdmin = () => {
       ? "Loyiha bo'yicha barcha mahsulotlarni boyitish? (Katta hajm vaqt olishi mumkin)"
       : `${selectedIds.length} ta mahsulotni boyitishni tasdiqlaysizmi?`;
 
-    if (!window.confirm(confirmMsg)) return;
+    const confirmed = await confirm({
+      title: "AI Boyitishni boshlash",
+      message: confirmMsg,
+      type: 'info'
+    });
+    
+    if (!confirmed) return;
 
     try {
       setBulkLoading('enrich');
@@ -354,11 +367,13 @@ const NomenklaturaAdmin = () => {
   };
 
   const handleBulkClear = async () => {
-    if (selectedIds.length === 0) {
-      showError("Mahsulotlarni tanlang");
-      return;
-    }
-    if (!window.confirm(`${selectedIds.length} ta mahsulot AI ma'lumotlarini tozalashni tasdiqlaysizmi?`)) return;
+    const confirmed = await confirm({
+      title: "AI Ma'lumotlarini tozalash",
+      message: `${selectedIds.length} ta mahsulot AI ma'lumotlarini tozalashni tasdiqlaysizmi?`,
+      type: 'danger'
+    });
+    
+    if (!confirmed) return;
 
     try {
       setBulkLoading('clear');
@@ -389,7 +404,12 @@ const NomenklaturaAdmin = () => {
 
 
   const handleDeleteImage = async (imageId) => {
-    if (!window.confirm("Rasmni o'chirish?")) return;
+    const confirmed = await confirm({
+      title: "Rasmni o'chirish?",
+      message: "Ushbu mahsulot rasmini butunlay o'chirmoqchimisiz?",
+      type: 'danger'
+    });
+    if (!confirmed) return;
     try {
       await nomenklaturaAPI.deleteImage(imageId);
       const updated = await nomenklaturaAPI.getNomenklaturaItem(editingNomenklatura.code_1c, editingNomenklatura.project?.id);

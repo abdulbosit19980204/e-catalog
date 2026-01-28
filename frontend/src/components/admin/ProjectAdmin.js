@@ -5,7 +5,7 @@ import { useNotification } from "../../contexts/NotificationContext";
 import "./AdminCRUD.css";
 
 const ProjectAdmin = () => {
-  const { success, error: showError } = useNotification();
+  const { success, error: showError, confirm } = useNotification();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -109,9 +109,12 @@ const ProjectAdmin = () => {
   };
 
   const handleDelete = async (code1c) => {
-    if (!window.confirm("Bu project'ni o'chirishni xohlaysizmi?")) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Loyihani o'chirish?",
+      message: "Ushbu loyihani o'chirishni tasdiqlaysizmi?",
+      type: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
       await projectAPI.deleteProject(code1c);
@@ -159,7 +162,12 @@ const ProjectAdmin = () => {
   };
 
   const handleDeleteImage = async (imageId) => {
-    if (!window.confirm("Bu rasmni o'chirishni xohlaysizmi?")) return;
+    const confirmed = await confirm({
+      title: "Rasmni o'chirish?",
+      message: "Ushbu loyiha rasmini o'chirishni tasdiqlaysizmi?",
+      type: 'danger'
+    });
+    if (!confirmed) return;
     try {
       await projectAPI.deleteImage(imageId);
       if (editingProject) loadProjectImages(editingProject.code_1c);

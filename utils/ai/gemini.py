@@ -84,8 +84,9 @@ class GeminiService:
             self._log_usage(response, f"Description: {product_name}")
             return response.text
         except Exception as e:
-            logger.error(f"Error generating content with Gemini: {str(e)}")
-            return None
+            error_msg = f"Gemini (Description) xatoligi: {str(e)}"
+            logger.error(error_msg)
+            raise Exception(error_msg)
 
     def parse_product_specs(self, product_name, raw_data_str):
         """
@@ -111,8 +112,9 @@ class GeminiService:
             clean_text = response.text.replace('```json', '').replace('```', '').strip()
             return json.loads(clean_text)
         except Exception as e:
-            logger.error(f"Error parsing specs with Gemini: {str(e)}")
-            return {}
+            error_msg = f"Gemini (Specs) xatoligi: {str(e)}"
+            logger.error(error_msg)
+            raise Exception(error_msg)
 
     def generate_with_search(self, product_name):
         """
@@ -143,7 +145,9 @@ class GeminiService:
             self._log_usage(response, f"Search grounding: {product_name}")
             return response.text
         except Exception as e:
-            logger.error(f"Error generating content with search grounding: {str(e)}")
+            error_msg = f"Gemini Search xatoligi: {str(e)}"
+            logger.error(error_msg)
+            # Try knowledge fallback if search fails
             return self.generate_with_knowledge(product_name)
 
     def generate_with_knowledge(self, product_name):
@@ -171,5 +175,6 @@ class GeminiService:
             self._log_usage(response, f"Internal Knowledge: {product_name}")
             return response.text
         except Exception as e:
-            logger.error(f"Error generating content with knowledge: {str(e)}")
-            return None
+            error_msg = f"Gemini Knowledge xatoligi: {str(e)}"
+            logger.error(error_msg)
+            raise Exception(error_msg)

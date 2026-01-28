@@ -133,6 +133,7 @@ class AIModel(BaseModel):
     """Database of available AI Models (LLMs)"""
     PROVIDER_CHOICES = [
         ('google', 'Google (Gemini)'),
+        ('puter', 'Puter.com (Free)'),
         ('openai', 'OpenAI (GPT)'),
         ('anthropic', 'Anthropic (Claude)'),
         ('custom', 'Custom Provider'),

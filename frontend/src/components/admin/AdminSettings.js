@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { coreAPI } from "../../api";
+import { useNotification } from "../../contexts/NotificationContext";
 import "./AdminSettings.css";
 
 const AdminSettings = () => {
+  const { confirm } = useNotification();
   const [settings, setSettings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,7 +16,6 @@ const AdminSettings = () => {
   
   // Model state
   const [models, setModels] = useState([]);
-  const [modelsLoading, setModelsLoading] = useState(false);
   const [editingModel, setEditingModel] = useState(null);
   const [showModelForm, setShowModelForm] = useState(false);
   const [modelForm, setModelForm] = useState({ name: "", model_id: "", provider: "google", is_active: true, is_default: false });
@@ -48,13 +49,10 @@ const AdminSettings = () => {
 
   const fetchModels = async () => {
     try {
-      setModelsLoading(true);
       const res = await coreAPI.getAIModels();
       setModels(res.data.results || res.data);
     } catch (err) {
       console.error("Modellarni yuklab bo'lmadi", err);
-    } finally {
-      setModelsLoading(false);
     }
   };
 
@@ -90,7 +88,12 @@ const AdminSettings = () => {
   };
 
   const handleModelDelete = async (id) => {
-    if (!window.confirm("Rostdan ham ushbu modelni o'chirib tashlamoqchimisiz?")) return;
+    const confirmed = await confirm({
+      title: "Modelni o'chirish?",
+      message: "Rostdan ham ushbu AI modelni o'chirib tashlamoqchimisiz?",
+      type: 'danger'
+    });
+    if (!confirmed) return;
     try {
       await coreAPI.deleteAIModel(id);
       setSuccess("Model o'chirildi");
@@ -276,7 +279,7 @@ const AdminSettings = () => {
 
           {showModelForm && (
             <div className="settings-modal-overlay">
-              <div className="settings-modal-content card">
+              <div className="settings-modal-content">
                 <h3>{editingModel ? "Modelni tahrirlash" : "Yangi model qo'shish"}</h3>
                 <form onSubmit={handleModelSave} className="settings-modal-form">
                   <div className="form-group">
@@ -300,12 +303,14 @@ const AdminSettings = () => {
                   <div className="form-group">
                     <label>Provayder</label>
                     <select 
-                      className="admin-input" 
                       value={modelForm.provider} 
                       onChange={e => setModelForm({...modelForm, provider: e.target.value})}
+                      className="form-input"
                     >
-                      <option value="google">Google</option>
-                      <option value="openai">OpenAI</option>
+                      <option value="google">Google (Gemini)</option>
+                      <option value="puter">Puter.com (Free)</option>
+                      <option value="openai">OpenAI (GPT)</option>
+                      <option value="anthropic">Anthropic (Claude)</option>
                     </select>
                   </div>
                   <div className="form-checkbox">
