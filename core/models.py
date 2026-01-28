@@ -87,8 +87,18 @@ class ErrorLog(BaseModel):
 
 class SystemSettings(BaseModel):
     """Dynamically configurable system settings (e.g., API keys)"""
+    FIELD_TYPE_CHOICES = [
+        ('text', 'Text'),
+        ('secret', 'Secret Key'),
+        ('select', 'Selection'),
+        ('multiselect', 'Multi-Selection'),
+        ('number', 'Number'),
+    ]
+    
     key = models.CharField(max_length=255, unique=True, help_text="Config key (e.g. GEMINI_API_KEY)")
     value = models.TextField(help_text="Config value")
+    field_type = models.CharField(max_length=20, choices=FIELD_TYPE_CHOICES, default='text')
+    options = models.JSONField(blank=True, null=True, help_text="Possible values for 'select' type")
     description = models.CharField(max_length=500, blank=True, null=True, help_text="Key description")
     is_secret = models.BooleanField(default=True, help_text="If true, value is sensitive (API key, etc.)")
 
@@ -99,3 +109,22 @@ class SystemSettings(BaseModel):
 
     def __str__(self):
         return self.key
+
+class AITokenUsage(BaseModel):
+    """Tracks token usage for AI operations"""
+    model_name = models.CharField(max_length=100)
+    input_tokens = models.IntegerField(default=0)
+    output_tokens = models.IntegerField(default=0)
+    total_tokens = models.IntegerField(default=0)
+    purpose = models.CharField(max_length=255, blank=True, null=True, help_text="e.g. Nomenklatura Description")
+    
+    # Cost calculation (optional, can be done at runtime)
+    cost = models.DecimalField(max_digits=12, decimal_places=6, default=0)
+
+    class Meta:
+        verbose_name = "AI Token Usage"
+        verbose_name_plural = "AI Token Usage Logs"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.model_name} - {self.total_tokens} tokens"

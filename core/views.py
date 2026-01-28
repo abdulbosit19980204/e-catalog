@@ -3,7 +3,7 @@ from rest_framework import viewsets, status, serializers
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAdminUser, AllowAny
-from .models import SystemSettings
+from .models import SystemSettings, AITokenUsage
 from django.db import connection as db_connection
 from django.core.cache import cache
 import os
@@ -231,3 +231,48 @@ class SystemSettingsViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser]
     lookup_field = 'key'
     lookup_value_regex = '[^/]+'
+
+class AITokenUsageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AITokenUsage
+        fields = '__all__'
+
+class AITokenUsageViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for viewing AI token usage and statistics"""
+    queryset = AITokenUsage.objects.all()
+    serializer_class = AITokenUsageSerializer
+    permission_classes = [IsAdminUser]
+
+    @action(detail=False, methods=['get'])
+    def statistics(self, request):
+        """Returns aggregated token usage statistics"""
+        from django.db.models import Sum, Count
+        from django.db.models.functions import TruncDay
+        
+        # Total stats
+        totals = AITokenUsage.objects.aggregate(
+            total_requests=Count('id'),
+            total_input=Sum('input_tokens'),
+            total_output=Sum('output_tokens'),
+            total_all=Sum('total_tokens')
+        )
+        
+        # Stats per model
+        model_stats = AITokenUsage.objects.values('model_name').annotate(
+            requests=Count('id'),
+            tokens=Sum('total_tokens')
+        ).order_by('-tokens')
+        
+        # Daily usage (last 30 days)
+        daily_usage = AITokenUsage.objects.annotate(
+            day=TruncDay('created_at')
+        ).values('day').annotate(
+            tokens=Sum('total_tokens'),
+            requests=Count('id')
+        ).order_by('-day')[:30]
+        
+        return Response({
+            "totals": totals,
+            "models": model_stats,
+            "daily": daily_usage
+        })

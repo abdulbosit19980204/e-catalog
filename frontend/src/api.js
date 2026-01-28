@@ -510,6 +510,9 @@ export const coreAPI = {
   updateSetting: (key, data) => {
     return apiClient.patch(`/core/system-settings/${key}/`, data);
   },
+  getAIUsageStats: () => {
+    return apiClient.get("/core/ai-usage/statistics/");
+  },
 };
 
 export default apiClient;

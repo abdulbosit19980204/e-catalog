@@ -10,28 +10,56 @@ logger = logging.getLogger(__name__)
 class GeminiService:
     def __init__(self):
         api_key = get_system_setting('GEMINI_API_KEY')
+        # GEMINI_MODEL_NAME can now be a comma-separated list of models
+        model_names_str = get_system_setting('GEMINI_MODEL_NAME', 'models/gemini-2.5-flash')
+        self.model_names = [m.strip() for m in model_names_str.split(',') if m.strip()]
+        
         if not api_key:
             logger.error("GEMINI_API_KEY not found")
             raise ValueError("GEMINI_API_KEY is required")
         
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        # Use the first model in the list as the primary model
+        self.primary_model_name = self.model_names[0] if self.model_names else 'models/gemini-2.5-flash'
+        self.model = genai.GenerativeModel(self.primary_model_name)
         
         # Free fallback using Google Search grounding
-        # Using gemini-2.5-flash which is confirmed available and robust
+        # Try new 'google_search' tool first, then fallback to 'google_search_retrieval'
         try:
             self.model_with_search = genai.GenerativeModel(
-                model_name='gemini-2.5-flash',
-                tools=[{"google_search_retrieval": {}}]
+                model_name=self.primary_model_name,
+                tools=[{"google_search": {}}]
             )
         except Exception as e:
-            logger.warning(f"Could not initialize Gemini search tool: {e}")
-            self.model_with_search = self.model
+            logger.warning(f"Could not initialize 'google_search' tool, trying 'google_search_retrieval': {e}")
+            try:
+                self.model_with_search = genai.GenerativeModel(
+                    model_name=self.primary_model_name,
+                    tools=[{"google_search_retrieval": {}}]
+                )
+            except Exception as e2:
+                logger.error(f"Failed to initialize any search tool: {e2}")
+                self.model_with_search = self.model
+
+    def _log_usage(self, response, purpose):
+        """Helper to log token usage to the database"""
+        try:
+            from core.models import AITokenUsage
+            usage = response.usage_metadata
+            AITokenUsage.objects.create(
+                model_name=self.model.model_name,
+                input_tokens=usage.prompt_token_count,
+                output_tokens=usage.candidates_token_count,
+                total_tokens=usage.total_token_count,
+                purpose=purpose
+            )
+        except Exception as e:
+            logger.error(f"Error logging token usage: {e}")
 
     def generate_product_description(self, product_name, raw_data_str):
         """
         Generates a professional product description in HTML/RichText format
-        based on raw search data and product name.
         """
         prompt = f"""
         Siz professional kopiraytersiz. Quyidagi mahsulot haqidagi ma'lumotlarni o'rganib chiqing va uni chiroyli, 
@@ -50,6 +78,7 @@ class GeminiService:
         
         try:
             response = self.model.generate_content(prompt)
+            self._log_usage(response, f"Description: {product_name}")
             return response.text
         except Exception as e:
             logger.error(f"Error generating content with Gemini: {str(e)}")
@@ -74,6 +103,7 @@ class GeminiService:
         
         try:
             response = self.model.generate_content(prompt)
+            self._log_usage(response, f"Specs: {product_name}")
             # Remove markdown code blocks if present
             clean_text = response.text.replace('```json', '').replace('```', '').strip()
             return json.loads(clean_text)
@@ -107,6 +137,7 @@ class GeminiService:
         
         try:
             response = self.model_with_search.generate_content(prompt)
+            self._log_usage(response, f"Search grounding: {product_name}")
             return response.text
         except Exception as e:
             logger.error(f"Error generating content with search grounding: {str(e)}")
@@ -134,6 +165,7 @@ class GeminiService:
         """
         try:
             response = self.model.generate_content(prompt)
+            self._log_usage(response, f"Internal Knowledge: {product_name}")
             return response.text
         except Exception as e:
             logger.error(f"Error generating content with knowledge: {str(e)}")
