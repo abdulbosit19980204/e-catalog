@@ -25,8 +25,9 @@ channels-redis==4.3.0
 # AI Description Generation
 openai>=1.0.0
 google-generativeai>=0.3.0
+putergenai==2.1.0
 beautifulsoup4>=4.12.0
-requests>=2.31.0
+requests>=2.32.5
 
 # System Metrics
 psutil==5.9.8
