@@ -57,6 +57,10 @@ class Client(BaseModel):
     contact_email = models.EmailField(max_length=100, blank=True, null=True, help_text="Kontakt email")
     contact_phone = models.CharField(max_length=100, blank=True, null=True, help_text="Kontakt telefon")
     
+    # Business Region (Added for 1C Integration)
+    business_region_code = models.CharField(max_length=100, blank=True, null=True, db_index=True, help_text="Business Region Code (1C)")
+    business_region_name = models.CharField(max_length=255, blank=True, null=True, help_text="Business Region Name (1C)")
+    
     # Additional Information
     notes = models.TextField(blank=True, null=True, help_text="Qo'shimcha izohlar")
     tags = models.JSONField(blank=True, null=True, default=list, help_text="Teglar (JSON)")

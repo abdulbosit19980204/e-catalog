@@ -201,6 +201,19 @@
     color: #94a3b8;
 }
 
+.badge-region {
+    padding: 6px 16px;
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #dbeafe;
+    border-radius: 100px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .info-group h3 {
     font-size: 0.9rem;
     text-transform: uppercase;

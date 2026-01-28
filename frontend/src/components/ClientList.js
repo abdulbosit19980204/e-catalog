@@ -198,6 +198,11 @@ const ClientList = () => {
                         <span className="icon">📞</span> {client.phone}
                       </p>
                     )}
+                    {client.business_region_name && (
+                      <p className="client-region">
+                        <span className="icon">📍</span> {client.business_region_name}
+                      </p>
+                    )}
                     {client.description && (
                       <div
                         className="client-description-preview"

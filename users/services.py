@@ -78,6 +78,8 @@ class OneCAuthService:
                 'code_error': data_map.get('CodeError'),
                 'message': data_map.get('Message'),
                 'code_sklad': data_map.get('CodeSklad'),
+                'business_region_code': data_map.get('BussinesRegionCode'),
+                'business_region_name': data_map.get('BussinesRegionName'),
             }
 
         except Exception as e:
@@ -184,7 +186,9 @@ class OneCAuthService:
                 'code_1c': data.get('code'),
                 'code_project': data.get('code_project'),
                 'code_sklad': data.get('code_sklad'),
-                'type_1c': data.get('type')
+                'type_1c': data.get('type'),
+                'business_region_code': data.get('business_region_code'),
+                'business_region_name': data.get('business_region_name'),
             }
         )
         return user

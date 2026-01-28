@@ -223,6 +223,8 @@ def parse_client_item(item):
         'Priority': 'priority',
         'Source': 'source',
         'Metadata': 'metadata',
+        'BussinesRegionCode': 'business_region_code',
+        'BussinesRegionName': 'business_region_name',
     }
     
     # Field type mapping: qaysi fieldlar qanday type'ga convert qilinadi

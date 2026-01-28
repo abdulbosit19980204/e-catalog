@@ -60,6 +60,8 @@ const ClientAdmin = () => {
     rating: "",
     priority: 0,
     source: "",
+    business_region_code: "",
+    business_region_name: "",
     project_ids: [],
   };
 
@@ -486,6 +488,24 @@ const ClientAdmin = () => {
                 type="text"
                 value={formData.postal_code}
                 onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Business Region (Code)</label>
+              <input
+                type="text"
+                value={formData.business_region_code}
+                onChange={(e) => setFormData({ ...formData, business_region_code: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label>Business Region (Name)</label>
+              <input
+                type="text"
+                value={formData.business_region_name}
+                onChange={(e) => setFormData({ ...formData, business_region_name: e.target.value })}
                 className="form-input"
               />
             </div>

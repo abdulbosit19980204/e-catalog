@@ -101,6 +101,7 @@ const UserAdmin = () => {
               <th>Username</th>
               <th>F.I.SH</th>
               <th>Role</th>
+              <th>Region</th>
               <th>Status</th>
               <th>Amallar</th>
             </tr>
@@ -112,6 +113,7 @@ const UserAdmin = () => {
                 <td>{user.username}</td>
                 <td>{user.first_name} {user.last_name}</td>
                 <td>{user.is_staff ? "Admin" : "User"}</td>
+                <td>{user.profile?.business_region_name || "-"}</td>
                 <td>
                   <span className={`status-pill ${user.is_active ? 'active' : 'inactive'}`}>
                     {user.is_active ? 'Active' : 'Inactive'}

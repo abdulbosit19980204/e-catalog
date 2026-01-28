@@ -112,6 +112,9 @@ const ClientDetail = () => {
                 <span className={`badge-status ${client.is_active ? "active" : "inactive"}`}>
                   {client.is_active ? "Active" : "Inactive"}
                 </span>
+                {client.business_region_name && (
+                  <span className="badge-region">📍 {client.business_region_name}</span>
+                )}
               </div>
             </div>
 

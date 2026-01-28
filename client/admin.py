@@ -66,9 +66,9 @@ class ImageStatusFilter(admin.SimpleListFilter):
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
     """Client admin"""
-    list_display = ['name', 'client_code_1c', 'project', 'email', 'phone', 'city', 'industry', 'rating', 'images_count', 'is_active', 'is_deleted', 'created_at']
-    list_filter = ['is_active', 'is_deleted', 'project', DescriptionStatusFilter, ImageStatusFilter, 'city', 'region', 'country', 'industry', 'business_type', 'created_at', 'updated_at']
-    search_fields = ['name', 'client_code_1c', 'email', 'phone', 'company_name', 'tax_id', 'contact_person', 'city', 'region']
+    list_display = ['name', 'client_code_1c', 'project', 'business_region_name', 'email', 'phone', 'city', 'industry', 'rating', 'images_count', 'is_active', 'is_deleted', 'created_at']
+    list_filter = ['is_active', 'is_deleted', 'project', 'business_region_name', DescriptionStatusFilter, ImageStatusFilter, 'city', 'region', 'country', 'industry', 'business_type', 'created_at', 'updated_at']
+    search_fields = ['name', 'client_code_1c', 'email', 'phone', 'company_name', 'tax_id', 'contact_person', 'city', 'region', 'business_region_name', 'business_region_code']
     readonly_fields = ['created_at', 'updated_at', 'images_count_display']
     inlines = [ClientImageInline]
     fieldsets = (
@@ -86,6 +86,9 @@ class ClientAdmin(admin.ModelAdmin):
         ('Biznes ma\'lumotlari', {
             'fields': ('industry', 'business_type', 'employee_count', 'annual_revenue', 'established_date'),
             'classes': ('collapse',)
+        }),
+        ('Business Region', {
+            'fields': ('business_region_code', 'business_region_name'),
         }),
         ('Moliyaviy ma\'lumotlar', {
             'fields': ('payment_terms', 'credit_limit', 'currency'),

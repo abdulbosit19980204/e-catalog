@@ -34,6 +34,8 @@ class UserProfile(BaseModel):
     code_project = models.CharField(max_length=100, blank=True, null=True, help_text="1C CodeProject")
     code_sklad = models.CharField(max_length=100, blank=True, null=True, help_text="1C CodeSklad")
     type_1c = models.CharField(max_length=50, blank=True, null=True, help_text="1C Type")
+    business_region_code = models.CharField(max_length=100, blank=True, null=True, db_index=True, help_text="Business Region Code (1C)")
+    business_region_name = models.CharField(max_length=255, blank=True, null=True, help_text="Business Region Name (1C)")
     
     def __str__(self):
         return f"{self.user.username} - {self.code_1c}"

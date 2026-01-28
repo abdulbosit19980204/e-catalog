@@ -158,8 +158,9 @@ class ClientSerializer(serializers.ModelSerializer):
             'industry', 'business_type', 'employee_count', 'annual_revenue',
             'established_date', 'payment_terms', 'credit_limit', 'currency',
             'city', 'region', 'country', 'postal_code', 'contact_person',
-            'contact_position', 'contact_email', 'contact_phone', 'notes',
-            'tags', 'rating', 'priority', 'source', 'metadata',
+            'contact_position', 'contact_email', 'contact_phone', 
+            'business_region_code', 'business_region_name',
+            'notes', 'tags', 'rating', 'priority', 'source', 'metadata',
             'is_active', 'is_deleted', 'created_at', 'updated_at', 'images'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']

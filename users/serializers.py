@@ -7,7 +7,7 @@ User = get_user_model()
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ['code_1c', 'code_project', 'code_sklad', 'type_1c']
+        fields = ['code_1c', 'code_project', 'code_sklad', 'type_1c', 'business_region_code', 'business_region_name']
 
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(source='userprofile', read_only=True)

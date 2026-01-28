@@ -217,7 +217,8 @@
 }
 
 .client-email,
-.client-phone {
+.client-phone,
+.client-region {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -228,7 +229,8 @@
 }
 
 .client-email .icon,
-.client-phone .icon {
+.client-phone .icon,
+.client-region .icon {
   font-size: 1.1rem;
   opacity: 0.8;
 }

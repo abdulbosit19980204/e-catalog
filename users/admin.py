@@ -9,6 +9,7 @@ class AuthProjectAdmin(admin.ModelAdmin):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'code_1c', 'code_project', 'code_sklad', 'type_1c']
-    search_fields = ['user__username', 'code_1c', 'user__first_name']
+    list_display = ['user', 'code_1c', 'business_region_name', 'code_project', 'code_sklad', 'type_1c']
+    search_fields = ['user__username', 'code_1c', 'user__first_name', 'business_region_name', 'business_region_code']
+    list_filter = ['project', 'business_region_name']
     raw_id_fields = ['user']
