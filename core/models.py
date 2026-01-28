@@ -128,3 +128,32 @@ class AITokenUsage(BaseModel):
 
     def __str__(self):
         return f"{self.model_name} - {self.total_tokens} tokens"
+
+class AIModel(BaseModel):
+    """Database of available AI Models (LLMs)"""
+    PROVIDER_CHOICES = [
+        ('google', 'Google (Gemini)'),
+        ('openai', 'OpenAI (GPT)'),
+        ('anthropic', 'Anthropic (Claude)'),
+        ('custom', 'Custom Provider'),
+    ]
+    
+    name = models.CharField(max_length=100, help_text="Human-readable name")
+    model_id = models.CharField(max_length=255, unique=True, help_text="API identifier (e.g. models/gemini-1.5-pro)")
+    provider = models.CharField(max_length=50, choices=PROVIDER_CHOICES, default='google')
+    is_default = models.BooleanField(default=False)
+    meta_data = models.JSONField(default=dict, blank=True, help_text="Additional params (temperature, etc.)")
+
+    class Meta:
+        verbose_name = "AI Model"
+        verbose_name_plural = "AI Models"
+        ordering = ['-is_default', 'name']
+
+    def __str__(self):
+        return f"{self.name} ({self.model_id})"
+
+    def save(self, *args, **kwargs):
+        if self.is_default:
+            # Only one model can be default
+            AIModel.objects.filter(is_default=True).update(is_default=False)
+        super().save(*args, **kwargs)

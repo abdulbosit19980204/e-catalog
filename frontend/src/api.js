@@ -513,6 +513,18 @@ export const coreAPI = {
   getAIUsageStats: () => {
     return apiClient.get("/core/ai-usage/statistics/");
   },
+  getAIModels: () => {
+    return apiClient.get("/core/ai-models/");
+  },
+  createAIModel: (data) => {
+    return apiClient.post("/core/ai-models/", data);
+  },
+  updateAIModel: (id, data) => {
+    return apiClient.patch(`/core/ai-models/${id}/`, data);
+  },
+  deleteAIModel: (id) => {
+    return apiClient.delete(`/core/ai-models/${id}/`);
+  },
 };
 
 export default apiClient;

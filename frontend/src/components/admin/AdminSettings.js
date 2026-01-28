@@ -11,10 +11,18 @@ const AdminSettings = () => {
   const [editValue, setEditValue] = useState("");
   const [aiStats, setAiStats] = useState(null);
   const [activeTab, setActiveTab] = useState("settings");
+  
+  // Model state
+  const [models, setModels] = useState([]);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [editingModel, setEditingModel] = useState(null);
+  const [showModelForm, setShowModelForm] = useState(false);
+  const [modelForm, setModelForm] = useState({ name: "", model_id: "", provider: "google", is_active: true, is_default: false });
 
   useEffect(() => {
     fetchSettings();
     fetchStats();
+    fetchModels();
   }, []);
 
   const fetchSettings = async () => {
@@ -38,6 +46,18 @@ const AdminSettings = () => {
     }
   };
 
+  const fetchModels = async () => {
+    try {
+      setModelsLoading(true);
+      const res = await coreAPI.getAIModels();
+      setModels(res.data.results || res.data);
+    } catch (err) {
+      console.error("Modellarni yuklab bo'lmadi", err);
+    } finally {
+      setModelsLoading(false);
+    }
+  };
+
   const handleUpdate = async (key) => {
     try {
       setSuccess(null);
@@ -48,6 +68,44 @@ const AdminSettings = () => {
       fetchSettings();
     } catch (err) {
       setError(`${key} ni yangilashda xatolik yuz berdi`);
+    }
+  };
+
+  const handleModelSave = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingModel) {
+        await coreAPI.updateAIModel(editingModel.id, modelForm);
+        setSuccess("Model muvaffaqiyatli yangilandi");
+      } else {
+        await coreAPI.createAIModel(modelForm);
+        setSuccess("Yangi model qo'shildi");
+      }
+      setShowModelForm(false);
+      setEditingModel(null);
+      fetchModels();
+    } catch (err) {
+      setError("Modelni saqlashda xatolik yuz berdi");
+    }
+  };
+
+  const handleModelDelete = async (id) => {
+    if (!window.confirm("Rostdan ham ushbu modelni o'chirib tashlamoqchimisiz?")) return;
+    try {
+      await coreAPI.deleteAIModel(id);
+      setSuccess("Model o'chirildi");
+      fetchModels();
+    } catch (err) {
+      setError("Modelni o'chirishda xatolik yuz berdi");
+    }
+  };
+
+  const handleModelToggle = async (model) => {
+    try {
+      await coreAPI.updateAIModel(model.id, { is_active: !model.is_active });
+      fetchModels();
+    } catch (err) {
+      setError("Model holatini o'zgartirishda xatolik");
     }
   };
 
@@ -63,6 +121,12 @@ const AdminSettings = () => {
             onClick={() => setActiveTab("settings")}
           >
             Sozlamalar
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === "models" ? "active" : ""}`}
+            onClick={() => setActiveTab("models")}
+          >
+            Modellar
           </button>
           <button 
             className={`tab-btn ${activeTab === "ai-stats" ? "active" : ""}`}
@@ -158,6 +222,110 @@ const AdminSettings = () => {
               </div>
             </div>
           ))}
+        </div>
+      ) : activeTab === "models" ? (
+        <div className="models-management">
+          <div className="section-header">
+            <h3>Mavjud AI Modellar</h3>
+            <button 
+              className="admin-btn primary"
+              onClick={() => {
+                setEditingModel(null);
+                setModelForm({ name: "", model_id: "", provider: "google", is_active: true, is_default: false });
+                setShowModelForm(true);
+              }}
+            >
+              Yangi model qo'shish
+            </button>
+          </div>
+
+          <div className="models-list">
+            {models.map(m => (
+              <div key={m.id} className="model-item card">
+                <div className="model-info">
+                  <div className="model-name-wrapper">
+                    <span className="model-name">{m.name}</span>
+                    {m.is_default && <span className="badge default">Asosiy</span>}
+                    {!m.is_active && <span className="badge inactive">O'chirilgan</span>}
+                  </div>
+                  <div className="model-id">{m.model_id}</div>
+                  <div className="model-provider">Provayder: {m.provider}</div>
+                </div>
+                <div className="model-actions">
+                  <button 
+                    className={`admin-btn ${m.is_active ? "warning" : "success"}`}
+                    onClick={() => handleModelToggle(m)}
+                  >
+                    {m.is_active ? "O'chirib qo'yish" : "Yoqish"}
+                  </button>
+                  <button 
+                    className="admin-btn"
+                    onClick={() => {
+                      setEditingModel(m);
+                      setModelForm({ ...m });
+                      setShowModelForm(true);
+                    }}
+                  >
+                    Tahrirlash
+                  </button>
+                  <button className="admin-btn danger" onClick={() => handleModelDelete(m.id)}>O'chirish</button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {showModelForm && (
+            <div className="settings-modal-overlay">
+              <div className="settings-modal-content card">
+                <h3>{editingModel ? "Modelni tahrirlash" : "Yangi model qo'shish"}</h3>
+                <form onSubmit={handleModelSave} className="settings-modal-form">
+                  <div className="form-group">
+                    <label>Nomi</label>
+                    <input 
+                      className="admin-input" 
+                      value={modelForm.name} 
+                      onChange={e => setModelForm({...modelForm, name: e.target.value})} 
+                      required 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Model ID (API uchun)</label>
+                    <input 
+                      className="admin-input" 
+                      value={modelForm.model_id} 
+                      onChange={e => setModelForm({...modelForm, model_id: e.target.value})} 
+                      required 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Provayder</label>
+                    <select 
+                      className="admin-input" 
+                      value={modelForm.provider} 
+                      onChange={e => setModelForm({...modelForm, provider: e.target.value})}
+                    >
+                      <option value="google">Google</option>
+                      <option value="openai">OpenAI</option>
+                    </select>
+                  </div>
+                  <div className="form-checkbox">
+                    <label>
+                      <input 
+                        type="checkbox" 
+                        checked={modelForm.is_default} 
+                        onChange={e => setModelForm({...modelForm, is_default: e.target.checked})} 
+                      />
+                      Asosiy (Default) qilib belgilash
+                    </label>
+                  </div>
+                  <div className="form-actions">
+                    <button type="button" className="admin-btn" onClick={() => setShowModelForm(false)}>Bekor qilish</button>
+                    <button type="submit" className="admin-btn primary">Saqlash</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          ) }
         </div>
       ) : (
         <div className="ai-stats-container">

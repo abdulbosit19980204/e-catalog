@@ -9,19 +9,22 @@ logger = logging.getLogger(__name__)
 
 class GeminiService:
     def __init__(self):
+        from core.models import AIModel
         api_key = get_system_setting('GEMINI_API_KEY')
-        # GEMINI_MODEL_NAME can now be a comma-separated list of models
-        model_names_str = get_system_setting('GEMINI_MODEL_NAME', 'models/gemini-2.5-flash')
-        self.model_names = [m.strip() for m in model_names_str.split(',') if m.strip()]
+        
+        # Fetch active models from database
+        active_models = AIModel.objects.filter(is_active=True)
+        self.model_names = [m.model_id for m in active_models]
+        
+        # Primary model is the one marked is_default, or the first active one
+        primary_model = active_models.filter(is_default=True).first() or active_models.first()
+        self.primary_model_name = primary_model.model_id if primary_model else 'models/gemini-2.5-flash'
         
         if not api_key:
             logger.error("GEMINI_API_KEY not found")
             raise ValueError("GEMINI_API_KEY is required")
         
         genai.configure(api_key=api_key)
-        
-        # Use the first model in the list as the primary model
-        self.primary_model_name = self.model_names[0] if self.model_names else 'models/gemini-2.5-flash'
         self.model = genai.GenerativeModel(self.primary_model_name)
         
         # Free fallback using Google Search grounding
