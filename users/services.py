@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import AuthProject, UserProfile
+from .models import AuthProject, UserProfile, AgentBusinessRegion
 
 User = get_user_model()
 
@@ -18,6 +18,18 @@ class OneCAuthService:
          <sam:Login>{login}</sam:Login>
          <sam:Password>{password}</sam:Password>
       </sam:GetUser>
+   </soap:Body>
+</soap:Envelope>"""
+
+    @staticmethod
+    def get_business_regions_soap_body(user_code):
+        return f"""<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sam="http://www.sample-package.org">
+   <soap:Header/>
+   <soap:Body>
+      <sam:GetBusinessRegions>
+         <sam:UserCode>{user_code}</sam:UserCode>
+      </sam:GetBusinessRegions>
    </soap:Body>
 </soap:Envelope>"""
 
@@ -81,14 +93,57 @@ class OneCAuthService:
                 'business_region_code': data_map.get('BussinesRegionCode'),
                 'business_region_name': data_map.get('BussinesRegionName'),
             }
-
         except Exception as e:
             print(f"XML Parse Error: {e}")
-            try:
-                print(f"Raw Response Content: {response_content.decode('utf-8', errors='ignore')}")
-            except:
-                pass
             return None
+
+    @staticmethod
+    def parse_business_regions(response_content):
+        """
+        Parses the GetBusinessRegions SOAP response.
+        """
+        try:
+            root = ET.fromstring(response_content)
+            def is_tag(element, name):
+                return element.tag.endswith(f"}}{name}") or element.tag == name
+
+            body = None
+            for child in root:
+                if is_tag(child, 'Body'):
+                    body = child
+                    break
+            if body is None: return []
+            
+            resp_node = None
+            for child in body:
+                if is_tag(child, 'GetBusinessRegionsResponse'):
+                    resp_node = child
+                    break
+            if resp_node is None: return []
+            
+            ret_node = None
+            for child in resp_node:
+                if is_tag(child, 'return'):
+                    ret_node = child
+                    break
+            if ret_node is None: return []
+            
+            regions = []
+            for child in ret_node:
+                if is_tag(child, 'Rows'):
+                    region_data = {}
+                    for row_child in child:
+                        tag_name = row_child.tag.split('}', 1)[1] if '}' in row_child.tag else row_child.tag
+                        region_data[tag_name] = row_child.text
+                    if region_data.get('Code'):
+                        regions.append({
+                            'code': region_data.get('Code'),
+                            'name': region_data.get('Name')
+                        })
+            return regions
+        except Exception as e:
+            print(f"Business Region Parse Error: {e}")
+            return []
 
     @classmethod
     def authenticate(cls, project_name, login, password):
@@ -141,6 +196,10 @@ class OneCAuthService:
                     
                 # Success - Create or Update User
                 user = cls.update_or_create_user(project, login, data)
+                
+                # NEW: Fetch and sync Business Regions
+                cls.sync_agent_regions(project, url, data.get('code'), user.profile, headers)
+                
                 tokens = cls.get_tokens_for_user(user)
                 
                 return {
@@ -192,6 +251,32 @@ class OneCAuthService:
             }
         )
         return user
+
+    @classmethod
+    def sync_agent_regions(cls, project, url, user_code, profile, headers):
+        """
+        Fetches business regions from 1C and updates the AgentBusinessRegion model.
+        """
+        if not user_code or not profile:
+            return
+
+        payload = cls.get_business_regions_soap_body(user_code)
+        try:
+            response = requests.post(url, data=payload.encode('utf-8'), headers=headers, timeout=10)
+            if response.status_code == 200:
+                regions_data = cls.parse_business_regions(response.content)
+                if regions_data:
+                    # Remove old regions and add new ones
+                    AgentBusinessRegion.objects.filter(profile=profile).delete()
+                    for reg in regions_data:
+                        AgentBusinessRegion.objects.create(
+                            profile=profile,
+                            code=reg['code'],
+                            name=reg['name'] or f"Region {reg['code']}"
+                        )
+                    print(f"DEBUG: Synced {len(regions_data)} business regions for agent {user_code}")
+        except Exception as e:
+            print(f"ERROR: Failed to sync business regions: {e}")
 
     @staticmethod
     def get_tokens_for_user(user):

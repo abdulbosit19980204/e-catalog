@@ -1,5 +1,10 @@
 from django.contrib import admin
-from .models import AuthProject, UserProfile
+from .models import AuthProject, UserProfile, AgentBusinessRegion
+
+class AgentBusinessRegionInline(admin.TabularInline):
+    model = AgentBusinessRegion
+    extra = 0
+    readonly_fields = ['code', 'name']
 
 @admin.register(AuthProject)
 class AuthProjectAdmin(admin.ModelAdmin):
@@ -13,3 +18,4 @@ class UserProfileAdmin(admin.ModelAdmin):
     search_fields = ['user__username', 'code_1c', 'user__first_name', 'business_region_name', 'business_region_code']
     list_filter = ['project', 'business_region_name']
     raw_id_fields = ['user']
+    inlines = [AgentBusinessRegionInline]
