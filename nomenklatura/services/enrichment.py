@@ -140,28 +140,47 @@ class NomenklaturaEnrichmentService:
                 if val and not getattr(nomenklatura, field):
                     setattr(nomenklatura, field, val)
 
-        # 4. Search and download images if no images exist (Only if search key present)
-        if not nomenklatura.images.exists() and self.search_api_key:
-            image_urls = self.search_images(query)
-            for i, url in enumerate(image_urls):
+        # 4. Search and download images
+        if not nomenklatura.images.exists():
+            image_urls = self.search_images(query) if self.search_api_key else []
+            if image_urls:
+                for i, url in enumerate(image_urls):
+                    try:
+                        img_data = requests.get(url, timeout=10).content
+                        self._save_enrichment_image(nomenklatura, img_data, i, f"AI Search from {url[:50]}...")
+                    except Exception as e:
+                        logger.error(f"Failed to download image {url}: {str(e)}")
+            else:
+                # 5. AI Image Generation (Fallback)
+                logger.info("No images found, generating AI product image...")
                 try:
-                    img_data = requests.get(url, timeout=10).content
-                    img_name = f"{nomenklatura.code_1c}_{i}.jpg"
-                    
-                    ni = NomenklaturaImage(
-                        nomenklatura=nomenklatura,
-                        is_main=(i == 0),
-                        note=f"AI Generated from {url[:50]}...",
-                        is_ai_generated=True
-                    )
-                    ni.image.save(img_name, ContentFile(img_data), save=True)
+                    prompt = f"Professional studio product photography of {nomenklatura.name}, high resolution, sharp focus, isolated on white background, cinematic lighting"
+                    img_data = self.ai.generate_image(prompt)
+                    if img_data:
+                        self._save_enrichment_image(nomenklatura, img_data, 0, "AI Generated Product Image")
                 except Exception as e:
-                    logger.error(f"Failed to download image {url}: {str(e)}")
+                    logger.error(f"AI Image generation failed: {str(e)}")
 
         nomenklatura.enrichment_status = 'COMPLETED'
         nomenklatura.last_enriched_at = timezone.now()
         nomenklatura.save()
         return True, "Muvaffaqiyatli boyitildi"
+
+    def _save_enrichment_image(self, nomenklatura, img_data, index, note):
+        """Helper to save images to NomenklaturaImage model"""
+        try:
+            img_name = f"{nomenklatura.code_1c}_{index}_{timezone.now().timestamp()}.jpg"
+            ni = NomenklaturaImage(
+                nomenklatura=nomenklatura,
+                is_main=(index == 0),
+                note=note,
+                is_ai_generated=True
+            )
+            ni.image.save(img_name, ContentFile(img_data), save=True)
+            return ni
+        except Exception as e:
+            logger.error(f"Error saving AI image: {e}")
+            return None
 
     def _parse_grounded_response(self, text):
         """Helper to parse the grounded response from Gemini"""

@@ -31,14 +31,38 @@ class AIService:
                 self.service = GeminiService() # Default fallback
 
     def generate_product_description(self, product_name, raw_data_str):
+        prompt = f"""
+        Siz professional kopiraytersiz. Quyidagi mahsulot haqidagi ma'lumotlarni o'rganib chiqing va uni chiroyli, 
+        sotiladigan (professional) va JUDA BATAFSIL ko'rinishga keltiring.
+        
+        Mahsulot nomi: {product_name}
+        Xom ma'lumotlar: {raw_data_str}
+        
+        Talablar:
+        1. HTML formatida bo'lsin (p, ul, li, strong, h3 teglaridan foydalaning).
+        2. O'zbek tilida bo'lsin.
+        3. Mahsulotning afzalliklari va foydalanish sohalarini batafsil yozing.
+        4. Tavsif qismi ishonchli va sotiladigan bo'lsin.
+        5. Faqat HTML kodini qaytaring.
+        """
         if self.provider == 'puter':
-            prompt = f"Product: {product_name}\nData: {raw_data_str}\nGenerate a professional detailed HTML description in Uzbek."
             return self.service.generate_sync(prompt, model=self.model_id)
         return self.service.generate_product_description(product_name, raw_data_str)
 
     def parse_product_specs(self, product_name, raw_data_str):
+        prompt = f"""
+        Quyidagi xom ma'lumotlardan mahsulot xususiyatlarini MAKSIMAL darajada ajratib oling va JSON formatida qaytaring.
+        
+        Mahsulot nomi: {product_name}
+        Xom ma'lumotlar: {raw_data_str}
+        
+        JSON keys: brand, manufacturer, model, series, color, material, weight, dimensions, category, 
+                   subcategory, country, country_code, sku, article_code, barcode, warranty_period, rating, 
+                   seo_keywords, popularity_score.
+        Agar ma'lumot topilmasa, null qo'ying.
+        Faqat JSON qaytaring.
+        """
         if self.provider == 'puter':
-            prompt = f"Product: {product_name}\nData: {raw_data_str}\nParse into JSON with keys: brand, manufacturer, model, color, material, weight, dimensions, category. Return ONLY JSON."
             import json
             try:
                 res = self.service.generate_sync(prompt, model=self.model_id)
@@ -53,3 +77,13 @@ class AIService:
 
     def generate_with_knowledge(self, product_name):
         return self.service.generate_with_knowledge(product_name)
+
+    def generate_image(self, prompt):
+        """
+        Generates an image based on the prompt.
+        Currently primarily supported by Puter.
+        """
+        if self.provider == 'puter':
+            return self.service.generate_image_sync(prompt)
+        # Add fallback or other providers later
+        return None
