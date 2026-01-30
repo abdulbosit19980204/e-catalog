@@ -53,6 +53,9 @@ urlpatterns = [
     
     # Core (Health, Monitoring)
     path('api/v1/core/', include('core.urls')),
+
+    # License & Version Management
+    path('api/v1/license/', include('license.urls')),
 ]
 
 # Serve media files in development

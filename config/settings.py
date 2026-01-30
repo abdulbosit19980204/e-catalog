@@ -94,6 +94,7 @@ INSTALLED_APPS = [
     'chat',
     'visits',  # Visit Management System
     'references', # Dynamic References (Types, Statuses, Steps)
+    'license',    # Mobile License & Access Management
     'core',    # System-wide logs and utilities
 ]
 
