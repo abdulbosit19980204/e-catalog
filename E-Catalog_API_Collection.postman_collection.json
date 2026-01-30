@@ -107,6 +107,9 @@
         {
           "name": "Check License Status",
           "request": {
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [
               {
@@ -125,7 +128,57 @@
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "license", "status", ""]
             },
-            "description": "Check if mobile app license is active and get version info"
+            "description": "Check if mobile app license is active and get version info. No authentication required - only X-License-Key header needed."
+          }
+        },
+        {
+          "name": "Activate License (New Device)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"DEVICE-12345\",\n  \"device_info\": {\n    \"model\": \"iPhone 14\",\n    \"os\": \"iOS 17.2\",\n    \"app_version\": \"1.0.4\"\n  },\n  \"organization_name\": \"Gloriya\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/license/activate/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "license", "activate", ""]
+            },
+            "description": "Auto-generate license key for new device installation. Returns existing license if device already activated."
+          }
+        },
+        {
+          "name": "Activate Version",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": \"1.0.5\",\n  \"device_id\": \"DEVICE-12345\",\n  \"device_info\": {\n    \"model\": \"Samsung Galaxy S23\",\n    \"os\": \"Android 14\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/license/version-activate/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "license", "version-activate", ""]
+            },
+            "description": "Activate specific app version and get full license info. Creates license if device_id provided."
           }
         },
         {
