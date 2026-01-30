@@ -1,0 +1,307 @@
+{
+  "info": {
+    "name": "E-Catalog API - Complete Collection",
+    "description": "Complete API collection for E-Catalog microservice including License Management, Client, Nomenklatura, Visits, Chat, and Integration APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "e-catalog-api-v1",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "license_key",
+      "value": "TEST-LIC-12345678",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Obtain Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', jsonData.access);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.refresh);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"your_password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/token/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "token", ""]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/token/refresh/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "token", "refresh", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "License Management",
+      "item": [
+        {
+          "name": "Check License Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-License-Key",
+                "value": "{{license_key}}",
+                "type": "text"
+              },
+              {
+                "key": "X-App-Version",
+                "value": "1.0.4",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/license/status/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "license", "status", ""]
+            },
+            "description": "Check if mobile app license is active and get version info"
+          }
+        },
+        {
+          "name": "Get Access History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/license/history/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "license", "history", ""]
+            },
+            "description": "View all access history logs"
+          }
+        },
+        {
+          "name": "Filter History by License",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/license/history/?license__license_key={{license_key}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "license", "history", ""],
+              "query": [
+                {
+                  "key": "license__license_key",
+                  "value": "{{license_key}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Client API",
+      "item": [
+        {
+          "name": "List Clients",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "clients", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Client Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "clients", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Nomenklatura API",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/nomenklatura/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "nomenklatura", ""]
+            }
+          }
+        },
+        {
+          "name": "Enrich Product (AI)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/nomenklatura/:id/enrich/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "nomenklatura", ":id", "enrich", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Visit Management",
+      "item": [
+        {
+          "name": "List Visits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/visits/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "visits", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Visit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_code\": \"CLIENT001\",\n  \"visit_date\": \"2026-01-30\",\n  \"notes\": \"Test visit\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/visits/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "visits", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Core & Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/core/health/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "core", "health", ""]
+            }
+          }
+        },
+        {
+          "name": "AI Usage Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/core/ai-usage/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "core", "ai-usage", ""]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
